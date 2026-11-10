@@ -8,7 +8,7 @@ updated: 2026-11-10
 > Feature priorities: [[FTB task types]], [[FTB reward types]].
 > Targets: **solo/LAN first**, graphical book from the MVP ([[ADR-008 Graphical client book first]]), English-only in-game text.
 
-## Phase 0: setup ⬅️ IN PROGRESS
+## Phase 0: setup ✅ (LAN test still optional)
 - [x] Horizon and FTB Quests research (2026-11-10)
 - [x] Project vault (2026-11-10)
 - [x] `git init`, `.gitignore`, first commit and push to https://github.com/LKTbgoodall/Horizon_quest (2026-11-10, sole author: LKTbgoodall)
@@ -18,10 +18,10 @@ updated: 2026-11-10
 - [x] References cloned into `ext/` (gitignored): `horizon` sparse at `1453e0e` (2026-11-10) + `horizon-mods` (2026-11-10)
 - [x] Real signatures checked in `native_hooks.rs` (`NATIVE_HOOKS_API` 415) → [[Horizon hooks and API]] § 0 (2026-11-10)
 - [x] Mod skeleton in `mod/` (v0.0.1, hooks 313, MIT), 16 unit tests pass with `-D warnings` (2026-11-10)
-- [ ] **Spike 1, hello world**: Options > Mods row + HUD hint. Code written; **to test on the home PC** (see `mod/README.md`)
-- [ ] **Spike 2, test book**: K opens a mod screen with 6 demo nodes, icons, lines; drag pans, wheel zooms, click selects. Code written; **to test**
-- [ ] **Spike 3, mod messages in solo**: opening the book pings the server half, which answers pong (footer + chat). Code written; **to test**. The result decides if ADR-008 holds as is
-- [ ] **Spike 4, server command**: `/quests` answers in chat. Code written; **to test**
+- [x] **Spike 1, hello world**: HUD hint shown in solo (2026-11-10, dev PC). Options > Mods row not reported yet
+- [x] **Spike 2, test book**: K opens the mod screen; 6 nodes, item icons, lines; pan and zoom work (footer showed zoom 1.77, pan 5,4) (2026-11-10). Click-select gold frame not reported yet
+- [x] **Spike 3, mod messages in solo**: `NET OK: pong #14 received`, one pong per opening, 14 in a row with no loss (2026-11-10). **ADR-008 holds**
+- [x] **Spike 4, server command**: `/quests` answers `Hello __LKT__! Book pings answered so far: 14.` (2026-11-10)
 
 ## Phase 1: pure logic core (without the game, `cargo test`)
 > Started on 2026-11-10 while the in-game test of phase 0 is still pending: this phase needs no game.
@@ -41,7 +41,7 @@ updated: 2026-11-10
 
 > **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).
 
-## Phase 2: playable MVP (solo/LAN) 🎯
+## Phase 2: playable MVP (solo/LAN) 🎯 ⬅️ NEXT
 - [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`
 - [ ] Tasks: item (polling), checkmark, kill (`mob_killed`)
 - [ ] Rewards: item (`give_stack` + drop the rest), xp, levels
