@@ -3,7 +3,7 @@ tags: [design, data-model]
 status: draft
 date: 2026-11-10
 ---
-# Horizon Quest data model
+# Horizon Quests data model
 
 Inspiration: [[FTB data model]]. On-disk format: [[Quest file format]].
 

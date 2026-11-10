@@ -9,7 +9,7 @@ Inspiration: [[FTB file format]] · Decision: [[ADR-006 Quest definitions as JSO
 
 ## Layout
 ```
-config/horizon_quest/quests/
+config/horizon_quests/quests/
 ├── quests.json            ← version + global settings + chapter groups
 ├── chapters/
 │   ├── 01_getting_started.json

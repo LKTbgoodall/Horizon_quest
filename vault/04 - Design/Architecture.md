@@ -1,24 +1,24 @@
 ---
 tags: [design, architecture]
-status: proposed
+status: accepted
 date: 2026-11-10
 ---
-# Horizon Quest architecture
+# Horizon Quests architecture
 
 > [!abstract] Summary
 > A single native bundle, in two halves:
-> - **Authoritative server**: it holds the definitions, the progress and the rewards. It works on its own with vanilla clients thanks to **chest menus**, chat and the sidebar.
-> - **Horizon client (optional)**: a real **graphical quest book** (pannable canvas), fed by *mod messages*.
+> - **Authoritative server**: it holds the definitions, the progress and the rewards. In solo/LAN it runs in the integrated server.
+> - **Horizon client**: the **graphical quest book** (pannable canvas), fed by *mod messages*. It ships in the MVP ([[ADR-008 Graphical client book first]]).
 >
 > All the logic lives in **pure, testable modules**, and a thin *glue* layer talks to the game. This is the pattern from [[Example - smp mod (patterns to reuse)|smp]].
 
-Related decisions: [[ADR-002 Authoritative server and dual UI]] · [[ADR-003 Hook points over raw injections]] · [[ADR-004 Mixin bundle style like smp]]
+Related decisions: [[ADR-002 Authoritative server and dual UI]] · [[ADR-008 Graphical client book first]] · [[ADR-003 Hook points over raw injections]] · [[ADR-004 Mixin bundle style like smp]]
 
 ## Overview
 ```mermaid
 flowchart LR
   subgraph Game[Horizon : Game server]
-    H[Hooks : item_picked_up, mob_killed,<br/>item_crafted, advancement_done,<br/>changed_dimension, server_tick,<br/>menu_clicked, perform_command…]
+    H[Hooks : item_picked_up, mob_killed,<br/>item_crafted, advancement_done,<br/>changed_dimension, server_tick,<br/>net_from_client, perform_command…]
   end
   subgraph Glue[Glue *_glue.rs]
     Q[(Event queue<br/>Mutex Vec QuestEvent)]
@@ -30,7 +30,7 @@ flowchart LR
     P[hq_progress<br/>task engine]
     R[hq_rewards]
     C[hq_commands]
-    B[hq_book_menu<br/>chest layout]
+    B[hq_canvas<br/>book layout + hit tests]
     N[hq_net<br/>protocol]
     S[hq_store<br/>atomic JSON]
   end
@@ -61,7 +61,7 @@ flowchart LR
 | `hq_rewards` | Weighted draws, choice, team vs player, auto-claim | ✅ (injected RNG) |
 | `hq_teams` | Minimal teams: personal, party, progress merge and copy | ✅ |
 | `hq_commands` | Parsing `/quests …` → `Vec<Out>` | ✅ |
-| `hq_book_menu` | Book as **chest menus**: `layout() -> Vec<Cell>`, `click(slot) -> Click` | ✅ |
+| `hq_canvas` | Graphical book maths: pan/zoom transform, quest and line layout, hit testing, homemade widget layout | ✅ |
 | `hq_net` | Client ↔ server messages (versioned, < 30,000 bytes, chunked) | ✅ |
 | `hq_store` | Atomic JSON reads and writes, version migrations | ✅ (fs) |
 | `hq_import_ftb` | Import FTB JSON5/SNBT → our format (later) | ✅ |
@@ -84,7 +84,7 @@ Horizon_quest/
 │   ├── src/lib.rs
 │   ├── compatibility.json
 │   ├── LICENSE
-│   └── mixins/horizon_quest/
+│   └── mixins/horizon_quests/
 │       ├── horizon-mixin.toml
 │       ├── *.rs (helpers), *_glue.rs, hq_*.rs
 │       └── data/        ← embedded example quests

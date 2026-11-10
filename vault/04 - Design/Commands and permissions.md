@@ -40,4 +40,4 @@ Reference: [[FTB commands]] · API: [[Horizon hooks and API]] §6 · Pattern: [[
 
 ## Permissions
 - MVP: op levels (`NativeCommand::op(usage, level)`), plus a re-check in the rules.
-- Later: `horizon_quest.admin`, `horizon_quest.editor` nodes once `native_has_permission` ships (⏳).
+- Later: `horizon_quests.admin`, `horizon_quests.editor` nodes once `native_has_permission` ships (⏳).

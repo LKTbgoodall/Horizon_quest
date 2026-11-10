@@ -6,7 +6,7 @@ verified_on: 2026-11-10
 # Reference example: the `smp` mod
 
 > [!important] Why this note
-> `smp` (economy, claims, market, auctions, casino…) is the **largest server-side native mod** in the registry, and it is made by the Horizon team. It is **the model to copy** for Horizon Quest: server commands, chest menus, JSON saving, global state and tests.
+> `smp` (economy, claims, market, auctions, casino…) is the **largest server-side native mod** in the registry, and it is made by the Horizon team. It is **the model to copy** for Horizon Quests: server commands, chest menus, JSON saving, global state and tests.
 > Code: `horizon-mods/native/smp/` (https://github.com/horizon-rust/horizon-mods/tree/main/native/smp)
 
 Back: [[Horizon hooks and API]] · [[Native mods - structure and manifest]]

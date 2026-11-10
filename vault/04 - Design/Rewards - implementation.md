@@ -9,7 +9,7 @@ Sources: [[FTB reward types]] × [[Horizon hooks and API]]
 
 | Reward | Implementation | Status | Phase |
 |---|---|---|---|
-| **Item** | `native_give_stack(uuid, stack)` → if anything is left: `native_run_command("summon item …")` at the player's position, **or** storage in a reward "mailbox" (to be decided) | ✅ | MVP |
+| **Item** | `native_give_stack(uuid, stack)` → if anything is left: `native_run_command("summon item …")` at the player's position, the rest is **dropped at the player's feet** (decided 2026-11-10, like FTB) | ✅ | MVP |
 | **XP / levels** | `native_give_experience(uuid, pts)` / `native_give_levels(uuid, lvls)`. If they return `false`, retry on the next tick | ✅ | MVP |
 | **Command** | `native_run_command(line)` on the tick (level 4, console), with `{player}` and `{uuid}` replaced. Later `native_run_command_as` (⏳) | ✅ | V1 |
 | **Toast** | Horizon client: net message → `native_add_toast` (⏳). Vanilla client: injected advancement (`native_data_pack_files`) + `native_trigger_criterion` (69), or a title or an action bar | ⏳ / ✅ | V1 |

@@ -19,7 +19,7 @@ verified_on: 2026-11-10
 | Type | File | Content | For us |
 |---|---|---|---|
 | **Content mod** | `.hmod` | data-only: blocks, items, recipes, loot tables, textures, lang (`horizon-mod.toml`) | useful for **assets** (icons, book textures, "quest book" item) |
-| **Native mod** | `.hnmod` | **Rust code compiled into the game** (`horizon-mixin.toml`), not sandboxed | ✅ **the core of Horizon Quest** |
+| **Native mod** | `.hnmod` | **Rust code compiled into the game** (`horizon-mixin.toml`), not sandboxed | ✅ **the core of Horizon Quests** |
 | Combined | `.hmod` with `horizon-native.json` + `mixins/<id>/` + `assets/` | code and assets | 🎯 the final target (code + textures + lang) |
 | Shader, resource pack | — | — | — |
 

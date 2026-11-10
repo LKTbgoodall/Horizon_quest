@@ -1,6 +1,6 @@
 ---
 tags: [adr]
-status: proposed
+status: accepted
 date: 2026-11-10
 ---
 # ADR-004: Mixin bundle style like smp (not a pure trait mod)
@@ -12,7 +12,7 @@ There are two styles:
 
 The trait does **not yet have all the hooks**: it lacks `player_command`, keyboard and wheel input for screens, `player_respawned`, `server_data_loaded`… It also lacks some helpers (`sidebar`, `player`).
 
-## Proposed decision
+## Decision
 smp-style mixin bundle for the MVP, because it is the most complete server example and is maintained by the Horizon team. Helpers can call the typed API via `&mut Game as &mut dyn Host` when that is simpler. We'll reassess the pure trait once it is complete.
 
 ## Consequences

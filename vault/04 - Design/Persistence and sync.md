@@ -10,16 +10,16 @@ API: [[Horizon hooks and API]] §1 and §4 · Decision: [[ADR-005 Progress as JS
 ## Where the data lives
 | Data | Location | Why |
 |---|---|---|
-| **Quest definitions** (modpack) | `config/horizon_quest/quests/` (via `native_config_dir()`) | shared between worlds, versionable, hand-editable |
-| Definitions shipped as a datapack (V1) | `data/<ns>/horizon_quest/*.json` via `native_add_server_reload_listeners` + `NativeReloadListener::json` | reloaded by `/reload`, distributable |
+| **Quest definitions** (modpack) | `config/horizon_quests/quests/` (via `native_config_dir()`) | shared between worlds, versionable, hand-editable |
+| Definitions shipped as a datapack (V1) | `data/<ns>/horizon_quests/*.json` via `native_add_server_reload_listeners` + `NativeReloadListener::json` | reloaded by `/reload`, distributable |
 | Example quests | embedded in the bundle's `data/` (`native_data!`) | demo without configuration |
-| **Progress and teams** | `<world>/horizon-quest/` (via `native_world_dir()`) | follows the world's backups (smp pattern) |
-| Mod config | `config/horizon_quest-server.toml` / `-client.toml` via `native_register_configs` | standard |
+| **Progress and teams** | `<world>/horizon-quests/` (via `native_world_dir()`) | follows the world's backups (smp pattern) |
+| Mod config | `config/horizon_quests-server.toml` / `-client.toml` via `native_register_configs` | standard |
 | Client UI preferences | `native_setting` / `native_set_setting` | per local player |
 
 ## Progress files
 ```
-<world>/horizon-quest/
+<world>/horizon-quests/
 ├── teams.json                 ← teams, members, invitations
 ├── progress/<team-id>.json    ← TeamProgress (one file per team)
 ├── audit.log                  ← JSON lines: completions, claims (debug, anti-dupe)
@@ -30,7 +30,7 @@ API: [[Horizon hooks and API]] §1 and §4 · Decision: [[ADR-005 Progress as JS
 - Migrations: a `version` field in each file, and `hq_store::migrate()`.
 
 ## Horizon client sync (V2)
-- Channel `horizon_quest:sync` (mod messages, API 40). Constraints: ≤ 30,000 bytes per message and ≤ 32 messages per tick.
+- Channel `horizon_quests:sync` (mod messages, API 40). Constraints: ≤ 30,000 bytes per message and ≤ 32 messages per tick.
 - Protocol (versioned):
   1. client → `Hello { proto_version, mod_version }` on connection. The server replies `Welcome` or `Incompatible` (Horizon has **no** native handshake);
   2. server → `Definitions { chunk i/n, payload }`, compressed if needed (`flate2` is in the lock);

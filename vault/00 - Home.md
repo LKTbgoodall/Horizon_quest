@@ -2,7 +2,7 @@
 tags: [home, moc]
 updated: 2026-11-10
 ---
-# 🧭 Horizon Quest: home
+# 🧭 Horizon Quests: home
 
 > **An FTB Quests-style quest mod for Horizon** (Minecraft Java 26.3 rewritten in Rust).
 > This vault is the project's "second brain". Everything that matters is here, so nobody has to reread old conversations.
@@ -11,15 +11,15 @@ updated: 2026-11-10
 | | |
 |---|---|
 | **Phase** | 0: setup → [[Roadmap]] |
-| **Last session** | [[2026-11-10]]: research, vault created, repo pushed |
+| **Last session** | [[2026-11-10]]: research, vault, repo pushed, all project decisions taken, Rust installed on the dev PC |
 | **Code** | none yet (the repo holds only docs) |
-| **Blocking** | ADRs to approve, tools to install |
+| **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
+| **Blocking** | nothing; the phase 0 spikes will tell whether the graphical book works as planned |
 
 ## ➡️ Next step
-1. Review and approve the 🟡 ADRs → [[Decision index]]
-2. Answer the open decisions → [[Open questions]]
-3. Install the tools → [[Build, test and tools]] § Prerequisites
-4. Hello world (client mod), then `/quests` (server mod)
+1. Re-clone the references into `ext/` and read the real signatures in `native_hooks.rs`
+2. Mod skeleton in `mod/` (MIT `LICENSE`, `horizon-mixin.toml`, `compatibility.json`)
+3. Spikes 1 to 4 → [[Roadmap]] phase 0 (hello world, mod screen, mod messages in solo, `/quests`), tested by Bastien on the home PC → [[Build, test and tools]] § Two-PC workflow
 
 ## 🗺️ Vault map
 ### 01 · Project
@@ -44,9 +44,9 @@ updated: 2026-11-10
 
 ### 04 · Design (our mod)
 - [[Architecture]]: ⭐ events → pure rules → effects
-- [[Horizon Quest data model]]
+- [[Horizon Quests data model]]
 - [[Tasks - hook mapping]] · [[Rewards - implementation]]
-- [[UI - Quest book]]: chest-menu book (MVP) and graphical book (V2)
+- [[UI - Quest book]]: the graphical book (MVP)
 - [[Persistence and sync]] · [[Quest file format]] · [[Commands and permissions]]
 
 ### 05 · Decisions
@@ -65,7 +65,7 @@ updated: 2026-11-10
 5. If something about Horizon changed, update the reference note and its `verified_on`.
 
 ## 📏 Conventions
-- Everything is written in **English**: notes, code, comments, commits.
+- Every project file is written in **English**: notes, code, comments, commits. (Chat with Bastien is in French.)
 - Frontmatter: `tags`, `status`, `date` / `verified_on`, and `source` for reference notes.
 - API status: ✅ available · ⏳ pending (not numbered yet) · ❌ does not exist · ❓ unknown.
 - Priorities: 🔴 MVP · 🟠 V1 · 🟡 V2 · ⚪ later.

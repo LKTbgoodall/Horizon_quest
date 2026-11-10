@@ -1,9 +1,12 @@
 ---
 tags: [adr]
-status: proposed
+status: accepted (UI part superseded by ADR-008)
 date: 2026-11-10
 ---
 # ADR-002: Authoritative server and dual UI
+
+> [!warning] Partly superseded
+> The **authoritative server** part is accepted. The **UI order** (chest book first) is superseded by [[ADR-008 Graphical client book first]].
 
 ## Context
 - Progress must be reliable (anti-cheat) and shared across a team, so it is handled server-side.
@@ -15,13 +18,12 @@ date: 2026-11-10
 2. Server and graphical client screen only → a big GUI effort before anything is playable.
 3. **Authoritative server + chest book (MVP), then graphical client screen (V2)**.
 
-## Proposed decision
-Option 3. All the logic and data are server-side. The MVP is played with chest menus, the sidebar and chat. The graphical book comes afterwards and reads the same data via `hq_net`.
+## Decision
+- ✅ All the logic and data are server-side; clients only display and send requests that the server re-validates.
+- ❌ (superseded) ~~The MVP is played with chest menus, the sidebar and chat; the graphical book comes afterwards.~~ → Option 2 was chosen instead, see ADR-008.
 
 ## Consequences
-- + A quickly playable MVP, compatible with all clients.
 - + The logic is testable without a GUI.
-- − The chest book is not as pretty as FTB (no canvas).
-- − Two interfaces to maintain (but a single logic, `hq_logic`).
+- + Works the same in solo (integrated server) and multiplayer.
 
 See [[Architecture]] · [[UI - Quest book]] · [[Decision index]]

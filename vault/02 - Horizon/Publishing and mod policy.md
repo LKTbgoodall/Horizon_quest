@@ -20,9 +20,9 @@ A deterministic zip containing `horizon-native.json` (`{schema:1, id, version, g
 
 ## Registry entry `mods/<id>.toml`
 ```toml
-id = "horizon_quest"        # a-z, 0-9, _
+id = "horizon_quests"        # a-z, 0-9, _
 kind = "native-mod"
-name = "Horizon Quest"
+name = "Horizon Quests"
 summary = "…"
 description = """markdown"""
 authors = ["…"]
@@ -30,7 +30,7 @@ owners = ["<github login>"]
 owner_ids = [123]
 license = "MIT"
 source = "https://github.com/LKTbgoodall/Horizon_quest"
-icon = "icons/horizon_quest.png"
+icon = "icons/horizon_quests.png"
 categories = ["…"]
 tags = ["quests", "progression"]
 # key = "<minisign pubkey>"   (optional ; once set, all versions must be signed)
@@ -39,7 +39,7 @@ tags = ["quests", "progression"]
 version = "0.1.0"
 published = "YYYY-MM-DD"
 game = "26.3"
-file = "horizon_quest-0.1.0.hnmod"
+file = "horizon_quests-0.1.0.hnmod"
 sha256 = "…"
 changelog = "…"
 ```

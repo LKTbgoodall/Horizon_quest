@@ -10,7 +10,7 @@ priority: MVP     # MVP | V1 | V2 | later
 ## Detailed behaviour
 
 ## Data needed
-(link [[Horizon Quest data model]])
+(link [[Horizon Quests data model]])
 
 ## Horizon hooks / API used
 (link [[Horizon hooks and API]])

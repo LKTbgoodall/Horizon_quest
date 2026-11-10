@@ -1,4 +1,4 @@
-# Horizon Quest
+# Horizon Quests
 
 A quest book mod for [Horizon](https://playhorizon.dev), the Rust rewrite of Minecraft: Java Edition 26.3. It takes its ideas from FTB Quests: chapters, quests linked by dependencies, tasks, rewards, and progress shared by a team.
 

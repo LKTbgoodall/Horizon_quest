@@ -14,7 +14,7 @@ Back: [[Horizon - Overview]]
 ## Two toolchains
 ### A. The launcher (native Windows): for playing and testing
 ```powershell
-horizon-launcher native-build C:\path\horizon_quest\mixins\horizon_quest --trust-native-code
+horizon-launcher native-build C:\path\horizon_quests\mixins\horizon_quests --trust-native-code
 horizon-launcher native-build <folder> --instance NAME --trust-native-code
 horizon-launcher settings native-profile dev          # rebuild ~6x faster, game ~2x slower
 horizon-launcher settings native-profile performance  # to switch back
@@ -28,11 +28,11 @@ horizon-launcher settings native-profile performance  # to switch back
 ```bash
 git clone https://github.com/horizon-rust/horizon-mods
 cd horizon-mods
-python3 native/tools/native.py check   /path/horizon_quest
-python3 native/tools/native.py check   /path/horizon_quest --horizon latest
-python3 native/tools/native.py build   /path/horizon_quest
-python3 native/tools/native.py package /path/horizon_quest   # → native/target/horizon_quest-<v>.hnmod
-python3 native/tools/native.py proof   /path/horizon_quest --resources <game files>
+python3 native/tools/native.py check   /path/horizon_quests
+python3 native/tools/native.py check   /path/horizon_quests --horizon latest
+python3 native/tools/native.py build   /path/horizon_quests
+python3 native/tools/native.py package /path/horizon_quests   # → native/target/horizon_quests-<v>.hnmod
+python3 native/tools/native.py proof   /path/horizon_quests --resources <game files>
 ```
 - **Python ≥ 3.11 and rsync** are required. On Windows: **WSL** (« *on Windows, use WSL for the checks below* »).
 - `native.py` downloads the Horizon archive at the pinned commit, installs `horizon-mixins-cli`, applies the bundle, then runs `cargo check|build --locked` with `RUSTFLAGS=-D warnings`.
@@ -64,10 +64,23 @@ horizon-server --dir <SERVER> run
 - Precompiled MSVC static libraries are incompatible (we are on the GNU toolchain).
 - If two mods inject at the same place, you get warnings.
 
+## Two-PC workflow
+| | Dev PC (work, this repo) | Home PC (Windows) |
+|---|---|---|
+| Role | write code, `cargo test`, commit and push | `git pull`, build the mod with the launcher, test in game |
+| Game | ❌ none, no in-game test possible | ✅ Horizon launcher + Minecraft Java |
+| Rust | ✅ rustup, stable 1.99.1 `x86_64-pc-windows-gnu` (installed 2026-11-10) | the launcher brings its own Rust 1.99.1 |
+
+Loop: Claude commits and pushes each step → Bastien runs `git pull` on the home PC → builds with `horizon-launcher native-build … --trust-native-code` (Bastien runs it, never Claude) → Bastien reports the result (screenshots, `native/build.log`) → the next session fixes it.
+
 ## Prerequisites to install
-- [ ] Horizon launcher (https://playhorizon.dev)
-- [ ] A copy of Minecraft Java (Microsoft account) for the game files
-- [ ] Git
-- [ ] Stable Rust via https://rustup.rs (for local `cargo test`)
-- [ ] WSL + Python 3.11 + rsync (for `native.py`)
+Dev PC:
+- [x] Git
+- [x] Stable Rust (GNU toolchain) via rustup, for `cargo test` (2026-11-10)
+- [ ] (optional) WSL + Python 3.11 + rsync, for `native.py check` without the game
 - [ ] (optional) Obsidian for this vault
+
+Home PC:
+- [x] Horizon launcher and Minecraft Java (according to Bastien, 2026-11-10)
+- [ ] Git, and a clone of https://github.com/LKTbgoodall/Horizon_quest
+- [ ] Smart App Control off if builds get blocked (os error 4551)

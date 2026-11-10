@@ -44,4 +44,4 @@ Every object (file, group, chapter, quest, task, reward, table) has a **long `id
 > [!tip] `emergency_items`
 > These are items that can be given back if the player loses their book (with a cooldown).
 
-See also: [[FTB file format]], [[Horizon Quest data model]]
+See also: [[FTB file format]], [[Horizon Quests data model]]

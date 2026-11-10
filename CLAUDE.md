@@ -1,7 +1,7 @@
-# Horizon Quest: instructions for Claude
+# Horizon Quests: instructions for Claude
 
 An FTB Quests-style quest mod for **Horizon** (Minecraft Java 26.3 rewritten in Rust), written as a **native Rust mod**.
-**Everything in English**: replies, vault notes, code, comments, commit messages.
+**Talk to the user in French.** **Write every project file in English**: vault notes, code, comments, commit messages.
 
 ## Project memory = `vault/` (Obsidian)
 **At the start of every session, BEFORE anything else:**
@@ -34,6 +34,15 @@ Vault conventions: `[[Note title]]` wiki links, YAML frontmatter, API status ✅
 - The only author is **LKTbgoodall**: `user.name = LKTbgoodall`, `user.email = bgoodall79@gmail.com` (repo-local config).
 - **No `Co-Authored-By`**, and no Claude or "Generated with" attribution line, in commits or PRs.
 - Remote: https://github.com/LKTbgoodall/Horizon_quest (branch `main`).
+- **Commit and push after each step** without asking: Bastien tests by pulling on another PC. Commit messages in English.
+
+## Machines
+- **Dev PC (this one)**: no game, so no in-game test. Rust stable 1.99.1 `x86_64-pc-windows-gnu` is installed via rustup (`%USERPROFILE%\.cargo\bin`) for `cargo test`.
+- **Home PC (Windows)**: Horizon launcher + Minecraft. Bastien runs `git pull` there, builds with `horizon-launcher native-build … --trust-native-code`, tests in game and reports back.
+- So: prepare ready-to-run commands for the home PC, and ask for screenshots or `native/build.log` when something needs checking in game.
+
+## Mod identity
+- Mod id `horizon_quests`, display name "Horizon Quests", license MIT (ADR-009). In-game text is English-only for now.
 
 ## External references
 - Horizon docs: https://playhorizon.dev/docs

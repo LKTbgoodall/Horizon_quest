@@ -9,12 +9,12 @@ Back: [[Horizon - Overview]]
 
 ## Typical layout (model from the `horizon-mods` registry)
 ```
-horizon_quest/
+horizon_quests/
 ├── Cargo.toml              # for `cargo test` ; [lib] path → src/lib.rs (pure rules)
-├── src/lib.rs              # #[path = "../mixins/horizon_quest/hq_X.rs"] pub mod hq_X;
+├── src/lib.rs              # #[path = "../mixins/horizon_quests/hq_X.rs"] pub mod hq_X;
 ├── compatibility.json      # used by native.py (registry)
 ├── LICENSE
-└── mixins/horizon_quest/
+└── mixins/horizon_quests/
     ├── horizon-mixin.toml  # MANIFEST
     ├── <helper>.rs         # 1 file per injection/hook
     ├── *_glue.rs           # code that touches Game
@@ -33,7 +33,7 @@ horizon_quest/
 ## `horizon-mixin.toml`: known keys
 ```toml
 [mod]
-id = "horizon_quest"      # a-z, 0-9, _
+id = "horizon_quests"      # a-z, 0-9, _
 version = "0.1.0"
 priority = 100
 
