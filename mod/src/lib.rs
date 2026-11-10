@@ -11,6 +11,8 @@ pub mod hq_logic;
 pub mod hq_meta;
 #[path = "../mixins/horizon_quests/hq_model.rs"]
 pub mod hq_model;
+#[path = "../mixins/horizon_quests/hq_progress.rs"]
+pub mod hq_progress;
 #[path = "../mixins/horizon_quests/hq_protocol.rs"]
 pub mod hq_protocol;
 #[path = "../mixins/horizon_quests/hq_validate.rs"]

@@ -175,8 +175,33 @@ pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
         });
     }
 
-    let chapters = entries.into_iter().map(|(_, chapter)| chapter).collect();
+    let mut chapters: Vec<Chapter> = entries.into_iter().map(|(_, chapter)| chapter).collect();
+    chapters.iter_mut().for_each(write_ids_in_full);
     Loaded { file: QuestFile { settings, chapters }, problems }
+}
+
+/// Writes the chapter's item and entity ids in full (`apple` becomes
+/// `minecraft:apple`), so the rest of the mod compares them as they are.
+fn write_ids_in_full(chapter: &mut Chapter) {
+    fn full(id: &mut String) {
+        if let Some(whole) = resource_id(id) {
+            *id = whole;
+        }
+    }
+    chapter.icon.iter_mut().for_each(full);
+    for quest in &mut chapter.quests {
+        quest.icon.iter_mut().for_each(full);
+        for task in &mut quest.tasks {
+            if let TaskKind::Kill { entity, .. } = &mut task.kind {
+                full(entity);
+            }
+        }
+        for reward in &mut quest.rewards {
+            if let RewardKind::Item { item, .. } = &mut reward.kind {
+                full(item);
+            }
+        }
+    }
 }
 
 /// Notepad on Windows starts files with a byte-order mark, which is not JSON.
@@ -587,6 +612,21 @@ mod tests {
                 "warning: chapters/a.json > one: `min_required` 0 does nothing",
             ]
         );
+    }
+
+    #[test]
+    fn ids_are_written_in_full() {
+        let text = r#"{ "id": "a", "title": "A", "icon": "book", "quests": [ { "id": "q", "title": "t", "icon": "create:gear",
+            "tasks": [ { "id": "t", "type": "kill", "entity": "zombie" } ],
+            "rewards": [ { "id": "r", "type": "item", "item": "apple" } ] } ] }"#;
+        let loaded = load(None, &[("a.json", text)]);
+        assert_eq!(loaded.problems, []);
+        let chapter = &loaded.file.chapters[0];
+        let quest = &chapter.quests[0];
+        assert_eq!(chapter.icon.as_deref(), Some("minecraft:book"));
+        assert_eq!(quest.icon.as_deref(), Some("create:gear"));
+        assert_eq!(quest.tasks[0].kind, TaskKind::Kill { entity: "minecraft:zombie".into(), count: 1 });
+        assert_eq!(quest.rewards[0].kind, RewardKind::Item { item: "minecraft:apple".into(), count: 1 });
     }
 
     #[test]

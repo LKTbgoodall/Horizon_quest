@@ -188,7 +188,8 @@ pub enum TaskKind {
     },
     /// Tick a box in the book.
     Checkmark,
-    /// Kill `count` entities of this type.
+    /// Kill `count` entities of this type (an entity id, written in full
+    /// once loaded: `minecraft:zombie`).
     Kill {
         entity: String,
         #[serde(default = "one")]
@@ -250,6 +251,7 @@ pub struct Reward {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RewardKind {
+    /// `count` of an item (its id, written in full once loaded).
     Item {
         item: String,
         #[serde(default = "one")]
