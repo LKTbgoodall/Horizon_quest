@@ -40,9 +40,17 @@ const NODE_FILL: u32 = 0xFF26_2632;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SELECTED: u32 = 0xFFFF_C040;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-const LINE: u32 = 0xFF60_6070;
+const LINE: u32 = 0xFF8C_7C88;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const LINE_DONE: u32 = 0xFF40_A050;
+/// A line into the quest under the pointer: what it needs.
+const LINE_NEEDS: u32 = 0xFF38_C8E8;
+/// A line out of the quest under the pointer: what it opens.
+const LINE_OPENS: u32 = 0xFFE8_C838;
+/// A dependency line's thickness and the step between its chevrons, in
+/// canvas units (a node is `canvas::NODE`).
+const LINE_WIDTH: f32 = 5.0;
+const CHEVRON_STEP: f32 = 9.0;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const BAR: u32 = 0xFF30_303C;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -268,6 +276,13 @@ pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]
             [cx + radius * angle.cos(), cy - radius * angle.sin()]
         })
         .collect()
+}
+
+/// `colour` darker, for the chevrons on a line of that colour.
+fn darker(colour: u32) -> u32 {
+    let [a, r, g, b] = colour.to_be_bytes();
+    let dim = |c: u8| (u32::from(c) * 3 / 5) as u8;
+    u32::from_be_bytes([a, dim(r), dim(g), dim(b)])
 }
 
 /// A shape filled with `colour`, as quads.
@@ -789,19 +804,53 @@ impl BookView {
             self.view.to_screen(origin, canvas::cell_centre([quest.x, quest.y]))
         };
 
-        // Dependency lines first, under the nodes. Those to another
-        // chapter's quests are not drawn.
-        let width = (2.0 * self.view.zoom).max(1.0);
+        // The quest the lines are about: the one under the pointer, else
+        // the selected one. What it needs comes in cyan, what it opens goes
+        // out in yellow, over the other lines.
+        let hovered = shown
+            .iter()
+            .copied()
+            .filter(|&n| {
+                let b = node_box(&self.view, origin, book.quest(n), book.nodes()[n].size);
+                intersect(b, area).is_some_and(|part| canvas::inside(part, s.mouse))
+            })
+            .last();
+        let focus = hovered.or(selected);
+
+        // Dependency lines first, under the nodes: a band with chevrons
+        // pointing from the dependency to the quest it opens. Those to
+        // another chapter's quests are not drawn.
+        let width = (LINE_WIDTH * self.view.zoom).max(3.0);
+        let spacing = (CHEVRON_STEP * self.view.zoom).max(8.0);
+        let mut lines = Vec::new();
         for &n in &shown {
             for &d in &book.nodes()[n].dependencies {
                 if !shown.contains(&d) {
                     continue;
                 }
-                let colour = if s.progress.is_completed(&book.nodes()[d].id) { LINE_DONE } else { LINE };
-                if let Some(corners) = canvas::line_quad(centre_of(d), centre_of(n), width)
-                    && canvas::overlaps(area, canvas::quad_bounds(&corners))
-                {
-                    scene.draws.push(Draw::Quad { corners, colour });
+                let (colour, on_top) = if focus == Some(n) {
+                    (LINE_NEEDS, true)
+                } else if focus == Some(d) {
+                    (LINE_OPENS, true)
+                } else if s.progress.is_completed(&book.nodes()[d].id) {
+                    (LINE_DONE, false)
+                } else {
+                    (LINE, false)
+                };
+                lines.push((on_top, d, n, colour));
+            }
+        }
+        // The lines of the quest in focus go last, over the others.
+        lines.sort_by_key(|(on_top, ..)| *on_top);
+        for (_, d, n, colour) in lines {
+            let (from, to) = (centre_of(d), centre_of(n));
+            if let Some(corners) = canvas::line_quad(from, to, width)
+                && canvas::overlaps(area, canvas::quad_bounds(&corners))
+            {
+                scene.draws.push(Draw::Quad { corners, colour });
+                let mark = darker(colour);
+                for corners in canvas::chevrons(from, to, width, spacing) {
+                    scene.draws.push(Draw::Quad { corners, colour: mark });
                 }
             }
         }
@@ -1733,6 +1782,42 @@ mod tests {
         assert_eq!(*frames[0].0, node_cell(shape, QuestState::Available));
         assert_eq!(node_cell(Shape::Octagon, QuestState::Done), [128.0, 128.0, 32.0, 32.0]);
         assert!(frames.iter().all(|(_, fallback)| fallback.iter().all(|d| matches!(d, Draw::Quad { .. })) && !fallback.is_empty()));
+    }
+
+    #[test]
+    fn lines_carry_chevrons_and_light_up_round_the_quest_under_the_pointer() {
+        let (book, progress) = (book(), Progress::default());
+        let view = opened(&book, &progress);
+        // The bands: quads of a line colour, each followed by its darker chevrons.
+        let colours = |mouse: [f32; 2]| -> Vec<u32> {
+            view.scene(&screen(&book, &progress, mouse))
+                .draws
+                .iter()
+                .filter_map(|d| match d {
+                    Draw::Quad { colour, .. } if [LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS].contains(colour) => Some(*colour),
+                    _ => None,
+                })
+                .collect()
+        };
+        let chevrons = view
+            .scene(&screen(&book, &progress, NOWHERE))
+            .draws
+            .iter()
+            .filter(|d| matches!(d, Draw::Quad { colour, .. } if *colour == darker(LINE)))
+            .count();
+        assert_eq!(colours(NOWHERE), [LINE]);
+        assert!(chevrons >= 2 && chevrons % 2 == 0, "{chevrons} chevron arms");
+        // Over the first quest: the line to the quest it opens is yellow.
+        let first = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(0)).unwrap();
+        assert_eq!(colours(first), [LINE_OPENS]);
+        // Over the second: the line from what it needs is cyan.
+        let second = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
+        assert_eq!(colours(second), [LINE_NEEDS]);
+        // A completed dependency's line is green while nothing is in focus.
+        let done = progress_after(&book, &[QuestEvent::Check { task: "a/start/ok".into() }]);
+        let scene = view.scene(&screen(&book, &done, NOWHERE));
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Quad { colour, .. } if *colour == LINE_DONE)));
+        assert_eq!(darker(0xFF64_C8FF), 0xFF3C_7899);
     }
 
     #[test]
