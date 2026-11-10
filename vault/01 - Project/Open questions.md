@@ -17,7 +17,7 @@ updated: 2026-11-10
 - [ ] **Flexible progression**: **default taken: tasks count always**, even for a locked or hidden quest; the quest completes when its dependencies are met too. (The Tasks note said "if visible" before; a `secret` quest could then never progress.)
 - [ ] **Chapter tally** (`3/5` in the chapter list): **default taken: every non-optional quest counts**, hidden ones too, which hints that hidden quests exist. Alternative: count only visible quests
 - [ ] **Strict JSON** for quest files (no comments): fine for now? JSON5 is not in Horizon's lock
-- [ ] **Inventory polling frequency & scaling (multiplayer)**: `detection_delay` defaults to 20 ticks (1s) in `Settings`. On servers with many online players, reading 41 slots across everyone on the same tick could cause spikes. Keep `detection_delay` configurable in pack settings / server TOML, and stagger player checks across ticks in V1?
+- [x] **Inventory polling frequency & scaling (multiplayer)** → v0.3.0 (2026-11-10): the server's `detection_delay` overrides the pack's, and each player has their own tick in every delay (from their UUID), so a server's players are spread over it. Was: `detection_delay` defaults to 20 ticks (1s) in `Settings`. On servers with many online players, reading 41 slots across everyone on the same tick could cause spikes. Keep `detection_delay` configurable in pack settings / server TOML, and stagger player checks across ticks in V1?
 
 ## Technical unknowns (to check in the code or with Horizon)
 ### 🔴 Critical for the graphical book ([[ADR-008 Graphical client book first]]): phase 0 spike

@@ -58,6 +58,8 @@ pub enum Refusal {
     AlreadyInvited,
     NotMember,
     Yourself,
+    /// The party has as many members as the server allows.
+    Full,
 }
 
 impl Refusal {
@@ -74,6 +76,7 @@ impl Refusal {
             Refusal::AlreadyInvited => "That player is already invited.",
             Refusal::NotMember => "That player is not in your party.",
             Refusal::Yourself => "You cannot do that to yourself.",
+            Refusal::Full => "That party is full.",
         }
     }
 }
@@ -148,8 +151,9 @@ impl Teams {
     }
 
     /// The owner of `by`'s party invites player `target` (named
-    /// `target_name`): the party's id.
-    pub fn invite(&mut self, by: &str, target: &str, target_name: &str) -> Result<String, Refusal> {
+    /// `target_name`): the party's id. `max` is the most members a party may
+    /// have (0: no limit).
+    pub fn invite(&mut self, by: &str, target: &str, target_name: &str, max: usize) -> Result<String, Refusal> {
         if by == target {
             return Err(Refusal::Yourself);
         }
@@ -161,14 +165,18 @@ impl Teams {
         if party.members.contains_key(target) {
             return Err(Refusal::AlreadyMember);
         }
+        if full(party, max) {
+            return Err(Refusal::Full);
+        }
         if party.invites.insert(target.to_owned(), target_name.to_owned()).is_some() {
             return Err(Refusal::AlreadyInvited);
         }
         Ok(id)
     }
 
-    /// Whether player `player` may join the party named `name` now: its id.
-    pub fn can_join(&self, player: &str, name: &str) -> Result<String, Refusal> {
+    /// Whether player `player` may join the party named `name` now, `max`
+    /// members at most (0: no limit): its id.
+    pub fn can_join(&self, player: &str, name: &str, max: usize) -> Result<String, Refusal> {
         let id = self.find(name).ok_or(Refusal::NoSuchParty)?;
         if self.party_of(player).is_some() {
             return Err(Refusal::AlreadyInParty);
@@ -177,13 +185,16 @@ impl Teams {
         if !party.invites.contains_key(player) {
             return Err(Refusal::NotInvited);
         }
+        if full(party, max) {
+            return Err(Refusal::Full);
+        }
         Ok(id.to_owned())
     }
 
     /// Player `player` (named `player_name`) accepts the invitation of the
     /// party named `name`: its id.
-    pub fn join(&mut self, player: &str, player_name: &str, name: &str) -> Result<String, Refusal> {
-        let id = self.can_join(player, name)?;
+    pub fn join(&mut self, player: &str, player_name: &str, name: &str, max: usize) -> Result<String, Refusal> {
+        let id = self.can_join(player, name, max)?;
         if let Some(party) = self.parties.get_mut(&id) {
             party.invites.remove(player);
             party.members.insert(player.to_owned(), player_name.to_owned());
@@ -253,6 +264,11 @@ impl Teams {
     }
 }
 
+/// Whether `party` has `max` members already (0: no limit).
+fn full(party: &Party, max: usize) -> bool {
+    max > 0 && party.members.len() >= max
+}
+
 /// Joining a party: what `from` (the joiner's progress) has done is added to
 /// `into` (the party's). A quest or a task counts as done in the party when
 /// either side did it; claims add up; the earliest time is kept.
@@ -313,18 +329,18 @@ mod tests {
         assert_eq!(teams.find("miners"), Some(id.as_str()));
 
         // Alex needs an invitation, from the owner.
-        assert_eq!(teams.join("alex", "Alex", "Miners"), Err(Refusal::NotInvited));
-        assert_eq!(teams.invite("alex", "steve", "Steve"), Err(Refusal::NotInParty));
-        assert_eq!(teams.invite("steve", "steve", "Steve"), Err(Refusal::Yourself));
-        assert_eq!(teams.invite("steve", "alex", "Alex"), Ok(id.clone()));
-        assert_eq!(teams.invite("steve", "alex", "Alex"), Err(Refusal::AlreadyInvited));
+        assert_eq!(teams.join("alex", "Alex", "Miners", 0), Err(Refusal::NotInvited));
+        assert_eq!(teams.invite("alex", "steve", "Steve", 0), Err(Refusal::NotInParty));
+        assert_eq!(teams.invite("steve", "steve", "Steve", 0), Err(Refusal::Yourself));
+        assert_eq!(teams.invite("steve", "alex", "Alex", 0), Ok(id.clone()));
+        assert_eq!(teams.invite("steve", "alex", "Alex", 0), Err(Refusal::AlreadyInvited));
         assert_eq!(teams.invitations("alex"), [(id.as_str(), "Miners")]);
-        assert_eq!(teams.join("alex", "Alex", "Nobody"), Err(Refusal::NoSuchParty));
-        assert_eq!(teams.join("alex", "Alex", "MINERS"), Ok(id.clone()));
+        assert_eq!(teams.join("alex", "Alex", "Nobody", 0), Err(Refusal::NoSuchParty));
+        assert_eq!(teams.join("alex", "Alex", "MINERS", 0), Ok(id.clone()));
         assert!(teams.invitations("alex").is_empty());
         assert_eq!(teams.team_of("alex"), id);
-        assert_eq!(teams.invite("steve", "alex", "Alex"), Err(Refusal::AlreadyMember));
-        assert_eq!(teams.invite("alex", "kim", "Kim"), Err(Refusal::NotOwner));
+        assert_eq!(teams.invite("steve", "alex", "Alex", 0), Err(Refusal::AlreadyMember));
+        assert_eq!(teams.invite("alex", "kim", "Kim", 0), Err(Refusal::NotOwner));
         assert_eq!(teams.member_named("steve", "ALEX").as_deref(), Some("alex"));
 
         // The owner leaves: Alex owns it; Alex leaves: it is gone.
@@ -354,22 +370,36 @@ mod tests {
         assert_eq!(second, "party-0000000000000008");
 
         // In a party already: no joining another.
-        teams.invite("alex", "steve", "Steve").unwrap();
-        assert_eq!(teams.join("steve", "Steve", "Other"), Err(Refusal::AlreadyInParty));
+        teams.invite("alex", "steve", "Steve", 0).unwrap();
+        assert_eq!(teams.join("steve", "Steve", "Other", 0), Err(Refusal::AlreadyInParty));
     }
 
     #[test]
     fn the_owner_kicks_members() {
         let mut teams = Teams::default();
         let id = teams.create("steve", "Steve", "Miners", 0, &mut seeds()).unwrap();
-        teams.invite("steve", "alex", "Alex").unwrap();
-        teams.join("alex", "Alex", "Miners").unwrap();
+        teams.invite("steve", "alex", "Alex", 0).unwrap();
+        teams.join("alex", "Alex", "Miners", 0).unwrap();
         assert_eq!(teams.kick("alex", "steve"), Err(Refusal::NotOwner));
         assert_eq!(teams.kick("steve", "steve"), Err(Refusal::Yourself));
         assert_eq!(teams.kick("steve", "kim"), Err(Refusal::NotMember));
         assert_eq!(teams.kick("steve", "alex"), Ok(Departure { party: id, disbanded: false, new_owner: None }));
         assert_eq!(teams.team_of("alex"), "alex");
         assert_eq!(teams.kick("kim", "alex"), Err(Refusal::NotInParty));
+    }
+
+    #[test]
+    fn a_full_party_takes_nobody_more() {
+        let mut teams = Teams::default();
+        teams.create("steve", "Steve", "Miners", 0, &mut seeds()).unwrap();
+        teams.invite("steve", "alex", "Alex", 2).unwrap();
+        teams.invite("steve", "kim", "Kim", 2).unwrap();
+        teams.join("alex", "Alex", "Miners", 2).unwrap();
+        // Two members of two: Kim's invitation no longer lets them in, and nobody new is invited.
+        assert_eq!(teams.join("kim", "Kim", "Miners", 2), Err(Refusal::Full));
+        assert_eq!(teams.invite("steve", "lee", "Lee", 2), Err(Refusal::Full));
+        // A higher limit, or none, lets them in.
+        assert!(teams.join("kim", "Kim", "Miners", 0).is_ok());
     }
 
     #[test]

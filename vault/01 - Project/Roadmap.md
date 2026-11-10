@@ -63,7 +63,7 @@ updated: 2026-11-10
 - [x] Rewards: command, choice, random, toast, reward tables: coded (v0.0.6), **tested in game 2026-11-10**. Toasts are drawn on our own HUD
 - [ ] Teams (parties): create, invite, join, leave, kick, with FTB's copy / merge / keep-claims rules: coded (v0.2.0, [[ADR-012 Parties share one progress]]), to test in game (LAN)
 - [x] Repeatable and optional quests, sequential tasks: coded (v0.0.6), **tested in game 2026-11-10** ([[ADR-011 Repeatable quests start over]])
-- [ ] TOML config (`native_register_configs`)
+- [ ] TOML config (`native_register_configs`): coded (v0.3.0): server `parties`, `party_size`, `detection_delay`, `completion_messages`; client file `toasts`, `toast_seconds`; players looked at on ticks of their own. To test in game
 - [ ] Datapack quests (`NativeReloadListener`)
 - [ ] Book polish: search, tracked quest in the HUD, `show_recipes`, client toasts
 - [ ] Assets (combined `.hmod`): shape textures, icon

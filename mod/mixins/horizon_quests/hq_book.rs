@@ -997,7 +997,8 @@ pub struct Toast {
     pub icon: Option<String>,
 }
 
-/// Window ticks a toast stays on the HUD (5 seconds).
+/// Window ticks a toast stays on the HUD unless the player's settings say
+/// otherwise (5 seconds).
 pub const TOAST_TICKS: u32 = 100;
 /// The most toasts that wait their turn: more than that and the new one is
 /// dropped, so a server cannot fill a client's memory with them.
@@ -1016,6 +1017,8 @@ pub struct Toasts {
     waiting: VecDeque<Toast>,
     /// Ticks the first one has been on show.
     shown: u32,
+    /// Ticks each stays; 0: `TOAST_TICKS`.
+    stay: u32,
 }
 
 impl Toasts {
@@ -1030,14 +1033,19 @@ impl Toasts {
         self.waiting.front()
     }
 
+    /// How many window ticks each toast stays (the player's settings).
+    pub fn set_stay(&mut self, ticks: u32) {
+        self.stay = ticks;
+    }
+
     /// One window tick with the HUD in view: the toast on show leaves after
-    /// `TOAST_TICKS`, and the next one takes its place.
+    /// its time (`TOAST_TICKS` unless set), and the next one takes its place.
     pub fn tick(&mut self) {
         if self.waiting.is_empty() {
             return;
         }
         self.shown += 1;
-        if self.shown >= TOAST_TICKS {
+        if self.shown >= if self.stay == 0 { TOAST_TICKS } else { self.stay } {
             self.waiting.pop_front();
             self.shown = 0;
         }
@@ -1732,6 +1740,16 @@ mod tests {
             }
         }
         assert_eq!(seen, ["0", "1", "2", "3", "4", "5", "6", "7"]);
+
+        // The player's settings make them stay longer.
+        toasts.set_stay(240);
+        toasts.push(toast("long"));
+        for _ in 0..239 {
+            toasts.tick();
+        }
+        assert_eq!(toasts.current().unwrap().title, "long");
+        toasts.tick();
+        assert!(toasts.current().is_none());
     }
 
     #[test]

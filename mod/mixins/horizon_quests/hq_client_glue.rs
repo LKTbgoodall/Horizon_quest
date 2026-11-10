@@ -4,11 +4,13 @@
 // immutably, so the client state lives in a thread local on the window thread.
 
 use super::hq_book::{self as book_ui, BookView, Draw, Reaction, Screen};
+use super::hq_config::{self as config, ClientConfig};
 use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::Progress;
 use super::hq_net::{self as net, ToClient, ToServer};
 use super::native_claimed_items::NativeModEvent;
+use super::native_configs::{NativeConfig, NativeConfigFile, NativeConfigKind};
 use crate::game::Game;
 use horizon_client::extras::Corner;
 use horizon_client::extras_hud::Corners;
@@ -16,7 +18,29 @@ use horizon_client::hud::HudBatch;
 use horizon_client::items::ItemStack;
 use horizon_client::mod_api::NativeScreenView;
 use std::cell::RefCell;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+
+/// This player's settings (hq_config), as `horizon_quests-client.toml` last
+/// said; the defaults until the window reads it.
+static CLIENT_CONFIG: Mutex<ClientConfig> = Mutex::new(ClientConfig::DEFAULT);
+
+fn client_config() -> ClientConfig {
+    *CLIENT_CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// The window read our client config file (at start, or after a change).
+pub(super) fn config_read(file: &NativeConfigFile) {
+    let (read, problems) = config::parse_client(&file.text);
+    for problem in &problems {
+        log::warn!("{}: {}: {problem}", meta::NAME, file.path.display());
+    }
+    *CLIENT_CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = read;
+}
+
+/// The client config file, registered with the server's (hq_server_glue).
+pub(super) fn config_file() -> NativeConfig {
+    NativeConfig::new(meta::ID, NativeConfigKind::Client, config::CLIENT_TEXT)
+}
 
 struct ClientState {
     view: BookView,
@@ -244,7 +268,11 @@ pub(super) fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
             s.view.notice = text;
         }
         ToClient::Toast { title, text, icon } => {
-            s.toasts.push(book_ui::Toast { title, text, icon });
+            let settings = client_config();
+            if settings.toasts {
+                s.toasts.set_stay(settings.toast_ticks());
+                s.toasts.push(book_ui::Toast { title, text, icon });
+            }
         }
     });
 }

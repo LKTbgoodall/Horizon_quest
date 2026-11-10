@@ -55,6 +55,24 @@ pub struct TeamReply {
 pub type Load<'a> = &'a dyn Fn(&str) -> Result<Progress, String>;
 
 const TEAMS_OFF: &str = "Parties are off in this world: its teams.json could not be read (see the log).";
+const PARTIES_OFF: &str = "Parties are turned off on this server.";
+
+/// What the server's settings (hq_config) ask of the session.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Rules {
+    /// Parties may be started and joined (leaving always works).
+    pub parties: bool,
+    /// The most members a party may have; 0: no limit.
+    pub party_size: u32,
+    /// Ticks between two inventory looks; 0: the pack's `detection_delay`.
+    pub detection_delay: u32,
+}
+
+impl Default for Rules {
+    fn default() -> Self {
+        Self { parties: true, party_size: 0, detection_delay: 0 }
+    }
+}
 const NOT_ON: &str = "You are not in the quest book yet.";
 
 #[derive(Debug)]
@@ -84,6 +102,7 @@ pub struct Session {
     next_probe: HashMap<u128, u64>,
     /// The state of the random bits handed to the engine (random rewards).
     roll: u64,
+    rules: Rules,
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -104,7 +123,20 @@ impl Session {
             poked: HashSet::new(),
             next_probe: HashMap::new(),
             roll: seed,
+            rules: Rules::default(),
         }
+    }
+
+    /// The server's settings, read again: they apply from the next tick.
+    pub fn set_rules(&mut self, rules: Rules) {
+        self.rules = rules;
+    }
+
+    /// Ticks between two looks at a player: the server's setting, else the
+    /// pack's.
+    fn delay(&self) -> u64 {
+        let delay = if self.rules.detection_delay > 0 { self.rules.detection_delay } else { self.book.settings().detection_delay };
+        u64::from(delay.max(1))
     }
 
     pub fn book(&self) -> &Book {
@@ -300,7 +332,7 @@ impl Session {
         }
         let probe = self.progress(uuid).map(|p| engine::probe(&self.book, p)).unwrap_or_default();
         if probe != engine::Probe::default() {
-            let delay = u64::from(self.book.settings().detection_delay.max(1));
+            let delay = self.delay();
             self.next_probe.insert(uuid, self.tick + delay);
         }
         probe
@@ -322,15 +354,19 @@ impl Session {
     }
 
     /// One server tick went by: the players to look at now (their
-    /// inventory, where they stand).
+    /// inventory, where they stand). Each player has their own tick in every
+    /// `delay`, taken from their UUID, so a server's players are not all
+    /// looked at on the same tick; a poke looks at once without moving it.
     pub fn advance(&mut self) -> Vec<u128> {
         self.tick += 1;
-        let delay = u64::from(self.book.settings().detection_delay.max(1));
+        let delay = self.delay();
+        let tick = self.tick;
         let mut due = Vec::new();
         for &uuid in self.players.keys() {
-            let next = self.next_look.entry(uuid).or_insert(self.tick);
-            if self.poked.contains(&uuid) || *next <= self.tick {
-                *next = self.tick + delay;
+            let next = self.next_look.entry(uuid).or_insert(tick);
+            if self.poked.contains(&uuid) || *next <= tick {
+                let phase = (uuid % u128::from(delay)) as u64;
+                *next = tick + 1 + (phase + delay - (tick + 1) % delay) % delay;
                 due.push(uuid);
             }
         }
@@ -575,6 +611,7 @@ impl Session {
                 }
                 lines.push("The party shares one progress. /quests team leave takes you back to your own.".to_owned());
             }
+            None if !self.rules.parties => lines.push(format!("You play on your own progress. {PARTIES_OFF}")),
             None => {
                 lines.push("You play on your own progress. Start a party with /quests team create <name>.".to_owned());
                 for (_, name) in self.parties.invitations(&me) {
@@ -617,6 +654,7 @@ impl Session {
     /// the new party's.
     pub fn create_team(&mut self, uuid: u128, name: &str, now: u64) -> Result<TeamReply, String> {
         let (me, my_name) = self.me(uuid)?;
+        self.parties_allowed()?;
         let roll = &mut self.roll;
         let party = self.parties.create(&me, &my_name, name, now, &mut || engine::next_roll(roll)).map_err(|r| r.text().to_owned())?;
         self.parties_dirty = true;
@@ -635,9 +673,11 @@ impl Session {
     /// `/quests team invite <player>`: the owner invites a player who is on.
     pub fn invite(&mut self, uuid: u128, target: &str) -> Result<TeamReply, String> {
         let (me, my_name) = self.me(uuid)?;
+        self.parties_allowed()?;
         let target_uuid = self.find_by_name(target).ok_or_else(|| format!("{target} is not on."))?;
         let target_name = self.players.get(&target_uuid).map(|p| p.name.clone()).unwrap_or_default();
-        let party = self.parties.invite(&me, &player_id(target_uuid), &target_name).map_err(|r| r.text().to_owned())?;
+        let max = self.party_size();
+        let party = self.parties.invite(&me, &player_id(target_uuid), &target_name, max).map_err(|r| r.text().to_owned())?;
         self.parties_dirty = true;
         let name = self.parties.party(&party).map(|p| p.name.clone()).unwrap_or_default();
         Ok(TeamReply {
@@ -650,12 +690,14 @@ impl Session {
     /// they have done is added to the party's progress.
     pub fn join_team(&mut self, uuid: u128, name: &str, load: Load<'_>) -> Result<TeamReply, String> {
         let (me, my_name) = self.me(uuid)?;
-        let party = self.parties.can_join(&me, name).map_err(|r| r.text().to_owned())?;
+        self.parties_allowed()?;
+        let max = self.party_size();
+        let party = self.parties.can_join(&me, name, max).map_err(|r| r.text().to_owned())?;
         if !self.teams.contains_key(&party) {
             let progress = load(&party).map_err(|e| format!("The party's progress could not be read: {e}"))?;
             self.teams.insert(party.clone(), Team { progress, dirty: false, saveable: true });
         }
-        self.parties.join(&me, &my_name, name).map_err(|r| r.text().to_owned())?;
+        self.parties.join(&me, &my_name, name, max).map_err(|r| r.text().to_owned())?;
         self.parties_dirty = true;
         let mine = self.progress(uuid).cloned().unwrap_or_default();
         if let Some(team) = self.teams.get_mut(&party) {
@@ -704,6 +746,15 @@ impl Session {
             others.push((target_uuid, format!("You were removed from the party {name}: you are back on your own progress.")));
         }
         Ok(TeamReply { lines, others })
+    }
+
+    /// Err when the server turned parties off.
+    fn parties_allowed(&self) -> Result<(), String> {
+        if self.rules.parties { Ok(()) } else { Err(PARTIES_OFF.to_owned()) }
+    }
+
+    fn party_size(&self) -> usize {
+        usize::try_from(self.rules.party_size).unwrap_or(usize::MAX)
     }
 
     fn party_name(&self, member: &str) -> String {
@@ -964,13 +1015,50 @@ mod tests {
         let mut s = session();
         s.join(7, "Steve", Ok(Progress::default()));
         assert_eq!(s.advance(), [7]); // tick 1: joined, poked
-        for _ in 2..=10 {
-            assert!(s.advance().is_empty());
-        }
-        assert_eq!(s.advance(), [7]); // tick 11
+        // Player 7's own tick in every 10 is the 7th: 7, 17, 27...
+        let due: Vec<u64> = (2..=30).filter(|_| !s.advance().is_empty()).collect();
+        assert_eq!(due, [7, 17, 27]);
         s.poke(7);
-        assert_eq!(s.advance(), [7]); // tick 12: poked
-        assert!(s.advance().is_empty());
+        assert_eq!(s.advance(), [7]); // tick 31: poked
+        // The poke does not move their tick.
+        let due: Vec<u64> = (32..=40).filter(|_| !s.advance().is_empty()).collect();
+        assert_eq!(due, [37]);
+    }
+
+    #[test]
+    fn players_are_looked_at_on_ticks_of_their_own_and_the_server_can_slow_it() {
+        let mut s = session();
+        for uuid in 0..10 {
+            s.join(uuid, "P", Ok(Progress::default()));
+        }
+        assert_eq!(s.advance().len(), 10); // tick 1: everyone just joined
+        for _ in 2..=10 {
+            assert_eq!(s.advance().len(), 1, "one player a tick");
+        }
+        s.set_rules(Rules { detection_delay: 100, ..Rules::default() });
+        s.advance();
+        let looks: usize = (0..200).map(|_| s.advance().len()).sum();
+        // The look each was already due, then two each in 200 ticks (not 20).
+        assert!((20..=30).contains(&looks), "{looks}");
+    }
+
+    #[test]
+    fn the_server_can_turn_parties_off_and_cap_them() {
+        let mut s = two();
+        s.join(9, "Kim", Ok(Progress::default()));
+        s.set_rules(Rules { parties: false, ..Rules::default() });
+        assert_eq!(s.create_team(7, "Miners", 1), Err(PARTIES_OFF.to_owned()));
+        assert_eq!(s.team_info(7), [format!("You play on your own progress. {PARTIES_OFF}")]);
+        s.set_rules(Rules { party_size: 2, ..Rules::default() });
+        s.create_team(7, "Miners", 1).unwrap();
+        s.invite(7, "Alex").unwrap();
+        s.invite(7, "Kim").unwrap();
+        s.join_team(8, "Miners", &no_file).unwrap();
+        assert_eq!(s.join_team(9, "Miners", &no_file), Err("That party is full.".to_owned()));
+        // Off again: no joining, but leaving still works.
+        s.set_rules(Rules { parties: false, ..Rules::default() });
+        assert_eq!(s.join_team(9, "Miners", &no_file), Err(PARTIES_OFF.to_owned()));
+        assert!(s.leave_team(8, &no_file).is_ok());
     }
 
     #[test]

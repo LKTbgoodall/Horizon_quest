@@ -20,7 +20,7 @@ use super::hq_meta as meta;
 use super::hq_model::{ItemMatch, Progress, RewardKind};
 use super::hq_net::{self as net, ToClient, ToServer};
 use super::hq_progress::{self as engine, Effect, QuestEvent, Wanted};
-use super::hq_session::{self as session, Session, Verb};
+use super::hq_session::{self as session, Rules, Session, Verb};
 use super::hq_store as store;
 use super::hq_validate::{self as validate, Loaded};
 use super::native_configs::{NativeConfig, NativeConfigFile, NativeConfigKind};
@@ -39,7 +39,7 @@ static STATE: Mutex<Option<State>> = Mutex::new(None);
 
 /// The server's settings (hq_config), as its config file last said. Read
 /// before the world opens; the defaults until then.
-static CONFIG: Mutex<ServerConfig> = Mutex::new(ServerConfig { example_chapter: true, quest_book: true });
+static CONFIG: Mutex<ServerConfig> = Mutex::new(ServerConfig::DEFAULT);
 
 struct State {
     session: Session,
@@ -112,6 +112,11 @@ fn load_pack(dir: Option<&Path>) -> (Loaded, &'static str) {
     (validate::load_pack(Some(settings), &chapters, &tables), "the built-in example pack")
 }
 
+/// What the server's settings ask of the session.
+fn rules(config: &ServerConfig) -> Rules {
+    Rules { parties: config.parties, party_size: config.party_size, detection_delay: config.detection_delay }
+}
+
 /// A new state for the open world, its pack loaded and reported in the log.
 fn open(game: &Game<'_>) -> State {
     let dir = game.native_world_dir().map(|w| w.join(store::FOLDER));
@@ -124,6 +129,7 @@ fn open(game: &Game<'_>) -> State {
         log::error!("{}: the parties are not readable, so they are off and the file stays as it is: {e}", meta::NAME);
     }
     session.set_parties(parties);
+    session.set_rules(rules(&server_config()));
     State {
         session,
         dir,
@@ -329,7 +335,10 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
             .map(|(uuid, effect)| Action {
                 uuid,
                 name: s.session.player(uuid).map(|p| p.name.clone()).unwrap_or_default(),
-                line: commands::announce(book, &effect),
+                line: match effect {
+                    Effect::QuestCompleted { .. } | Effect::ChapterCompleted { .. } if !config.completion_messages => None,
+                    _ => commands::announce(book, &effect),
+                },
                 reward: match effect {
                     Effect::Reward { title, kind, .. } => Some((title, kind)),
                     _ => None,
@@ -551,6 +560,7 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
 pub(super) fn register_configs(game: &mut Game<'_>, list: &mut Vec<NativeConfig>) {
     if game.native_on(meta::ID) {
         list.push(NativeConfig::new(meta::ID, NativeConfigKind::Server, config::DEFAULT_TEXT));
+        list.push(super::hq_client_glue::config_file());
     }
 }
 
@@ -558,7 +568,14 @@ pub(super) fn register_configs(game: &mut Game<'_>, list: &mut Vec<NativeConfig>
 /// server's settings; a change made while a world is open applies at once,
 /// as `/quests reload` does.
 pub(super) fn config_read(game: &mut Game<'_>, file: &NativeConfigFile, reloaded: bool) {
-    if file.mod_id != meta::ID || file.kind != NativeConfigKind::Server || !game.native_on(meta::ID) {
+    if file.mod_id != meta::ID || !game.native_on(meta::ID) {
+        return;
+    }
+    if file.kind == NativeConfigKind::Client {
+        super::hq_client_glue::config_read(file);
+        return;
+    }
+    if file.kind != NativeConfigKind::Server {
         return;
     }
     let (read, problems) = config::parse(&file.text);
@@ -566,6 +583,9 @@ pub(super) fn config_read(game: &mut Game<'_>, file: &NativeConfigFile, reloaded
         log::warn!("{}: {}: {problem}", meta::NAME, file.path.display());
     }
     let before = std::mem::replace(&mut *CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner()), read);
+    if let Some(s) = state().as_mut() {
+        s.session.set_rules(rules(&read));
+    }
     if reloaded && before != read {
         let lines = reload();
         log::info!("{}: {} changed: {}", meta::NAME, file.path.display(), lines.join(" | "));
