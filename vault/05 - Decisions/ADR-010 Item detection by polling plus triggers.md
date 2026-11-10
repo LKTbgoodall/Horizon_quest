@@ -27,3 +27,4 @@ When `native_player_inventory_changed` gets a number, it replaces the polling an
 - Nothing is missed; the common cases react within one tick.
 - Cost: one 41-slot read per player per second, only with an open item task.
 - Item tasks count what the player **holds** (like FTB), not what they picked up.
+- Multiplayer scaling: negligible in solo/LAN, but on larger servers (V1/V2), `detection_delay` must remain configurable and player inventory checks should be staggered across ticks rather than bundled on the same tick.

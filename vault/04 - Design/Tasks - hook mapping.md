@@ -34,4 +34,6 @@ Coded in `hq_progress.rs` (2026-11-10) for item, hand-in, kill and checkmark tas
 - `Item` tasks without consume: progress = `min(count, number found)`; it follows the inventory up **and down** until the task reaches its goal, then it **does not regress**. (With teams: the max found on an online member.)
 - `Item` tasks with consume: only a "Submit" in the book counts; partial hand-ins add up.
 - A kill counts for **every** open quest that has a matching kill task. A quest opened by that very kill does not count it.
+- **Ranged kills caveat**: currently `native_mob_killed` (40) only attributes direct melee blows in `fdc87ae`. Projectiles (bow, crossbow, trident) and indirect sources will need damage source resolution via `native_living_death` (392) once verified.
+- **Inventory polling scaling**: item tasks poll 41 slots every `detection_delay` ticks (default 20 = 1s) plus pokes ([[ADR-010 Item detection by polling plus triggers]]). For multiplayer scaling in V1, checks should be staggered across ticks to prevent multi-player tick spikes.
 - Sequential tasks (V1) only progress one at a time.

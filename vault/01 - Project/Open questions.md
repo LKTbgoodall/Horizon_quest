@@ -17,6 +17,7 @@ updated: 2026-11-10
 - [ ] **Flexible progression**: **default taken: tasks count always**, even for a locked or hidden quest; the quest completes when its dependencies are met too. (The Tasks note said "if visible" before; a `secret` quest could then never progress.)
 - [ ] **Chapter tally** (`3/5` in the chapter list): **default taken: every non-optional quest counts**, hidden ones too, which hints that hidden quests exist. Alternative: count only visible quests
 - [ ] **Strict JSON** for quest files (no comments): fine for now? JSON5 is not in Horizon's lock
+- [ ] **Inventory polling frequency & scaling (multiplayer)**: `detection_delay` defaults to 20 ticks (1s) in `Settings`. On servers with many online players, reading 41 slots across everyone on the same tick could cause spikes. Keep `detection_delay` configurable in pack settings / server TOML, and stagger player checks across ticks in V1?
 
 ## Technical unknowns (to check in the code or with Horizon)
 ### 🔴 Critical for the graphical book ([[ADR-008 Graphical client book first]]): phase 0 spike
@@ -38,7 +39,7 @@ updated: 2026-11-10
 - [ ] **Exact signatures** of `native_hud`, `native_key`, `native_mod_key`… → read `crates/horizon-client/src/game/native_hooks.rs`
 - [ ] **`native_destroy_block`**: how to get the id of the broken block?
 - [ ] **`native_player_changed_dimension`**: the doc contradicts itself on solo (NM:2278 vs NM:1291) → test
-- [ ] Does **`native_mob_killed`** cover ranged kills (bow, trident)?
+- [ ] **Ranged and indirect kills (bow, crossbow, trident, potion, pets)**: `native_mob_killed` (API 40) only attributes direct melee blows in current testing. Can projectile damage sources be tracked back to the player, or should we wire `native_living_death(..., attacker, ...)` (API 392) once projectile owner resolution is verified?
 - [ ] **Hooks ⏳ pending**: when will `player_inventory_changed`, `native_add_toast`, `native_title`, `native_boss_bar`, `native_has_permission` get a number? → watch the Nightlies, ask on Discord
 - [ ] Is **`/loot give`** implemented by Horizon?
 - [ ] **Command aliases** (`/q`): possible?
