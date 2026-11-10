@@ -25,6 +25,7 @@ use super::hq_store as store;
 use super::hq_validate::{self as validate, Loaded};
 use super::native_configs::{NativeConfig, NativeConfigFile, NativeConfigKind};
 use super::native_inventories::NativeInventoryKind;
+use super::native_reload_listeners::NativeReloadListener;
 use crate::game::Game;
 use crate::game::native_server::{NativeCommand, NativeServerPlayer};
 use horizon_client::items::ItemStack;
@@ -33,6 +34,13 @@ use horizon_client::text::Text;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
+
+/// The quest files the data packs hold (`data/<namespace>/horizon_quests/`),
+/// as the last data load handed them over: (`<namespace>:<path>`, JSON).
+static DATA: Mutex<Vec<(String, serde_json::Value)>> = Mutex::new(Vec::new());
+
+/// The id of our reload listener (API 400).
+const LISTENER: &str = "horizon_quests:quests";
 
 /// The open world's quest state; None while no world is open.
 static STATE: Mutex<Option<State>> = Mutex::new(None);
@@ -78,13 +86,18 @@ fn server_config() -> ServerConfig {
 }
 
 /// The pack: `<world>/horizon-quests/quests/` when the world has one, else
-/// the example pack compiled into the bundle, unless the server's config
+/// the chapters of the world's data packs (`data/<namespace>/horizon_quests/`),
+/// else the example pack compiled into the bundle, unless the server's config
 /// turned it off.
 fn load_pack(dir: Option<&Path>) -> (Loaded, &'static str) {
     if let Some(quests) = dir.map(|d| d.join("quests"))
         && quests.join("quests.json").is_file()
     {
         return (validate::load_dir(&quests), "the world's quests folder");
+    }
+    let data = validate::load_data(&DATA.lock().unwrap_or_else(|poisoned| poisoned.into_inner()));
+    if let Some(loaded) = data {
+        return (loaded, "the data packs (data/<namespace>/horizon_quests/)");
     }
     if !server_config().example_chapter {
         let empty = validate::load_pack(None, &[], &[]);
@@ -161,6 +174,8 @@ pub(super) fn lifecycle(game: &mut Game<'_>, phase: WorldPhase) {
             if let Some(mut s) = state().take() {
                 save(&mut s);
             }
+            // The next world's data load hands its own files over.
+            DATA.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).clear();
         }
         _ => {}
     }
@@ -596,6 +611,28 @@ pub(super) fn config_read(game: &mut Game<'_>, file: &NativeConfigFile, reloaded
 pub(super) fn config_dropped(file: &NativeConfigFile) {
     if file.mod_id == meta::ID && file.kind == NativeConfigKind::Server {
         *CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = ServerConfig::default();
+    }
+}
+
+/// The data packs' quest folder, read on every data load (a world opening,
+/// `/reload`).
+pub(super) fn reload_listeners(game: &mut Game<'_>, list: &mut Vec<NativeReloadListener>) {
+    if game.native_on(meta::ID) {
+        list.push(NativeReloadListener::json(LISTENER, validate::DATA_FOLDER));
+    }
+}
+
+/// The data packs' quest files were read. Kept for the world about to open;
+/// with a world open already (`/reload`), the pack is read again at once, as
+/// `/quests reload` does.
+pub(super) fn reload_listener_apply(game: &mut Game<'_>, listener: &NativeReloadListener, files: &[(String, serde_json::Value)]) {
+    if listener.id != LISTENER || !game.native_on(meta::ID) {
+        return;
+    }
+    *DATA.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = files.to_vec();
+    if state().is_some() {
+        let lines = reload();
+        log::info!("{}: the data packs were read again: {}", meta::NAME, lines.join(" | "));
     }
 }
 

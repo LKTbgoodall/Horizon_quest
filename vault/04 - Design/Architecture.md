@@ -61,7 +61,7 @@ Status on 2026-11-10: ✔ written and tested · ◻ planned.
 | Module | Role | Pure? |
 |---|---|---|
 | ✔ `hq_model` | Types: `Settings`, `Chapter`, `Quest`, `Task`, `Reward`, `QuestFile`, `Progress` + serde; id helpers (`quest_id`, `child_id`, `dependency_id`, `resource_id`) | ✅ |
-| ✔ `hq_validate` | `load` / `load_pack` / `load_dir`: read a pack (chapters and reward tables), report every `Problem` with its place, leave bad chapters and tables out; cycle detection; writes item, entity, dimension and advancement ids in full | ✅ (fs) |
+| ✔ `hq_validate` | `load` / `load_pack` / `load_dir`, and since v0.4.0 `load_data` (the data packs' `data/<ns>/horizon_quests/` files as Horizon's reload listener hands them, every namespace one pack, the first `quests.json` as settings): read a pack (chapters and reward tables), report every `Problem` with its place, leave bad chapters and tables out; cycle detection; writes item, entity, dimension and advancement ids in full | ✅ (fs) |
 | ✔ `hq_logic` | `Book`: the pack indexed, dependencies resolved, topological order; `dependencies_met`, `can_progress`, `task_counts` (tasks in order), `table`, `statuses`, chapter tallies | ✅ |
 | ✔ `hq_progress` | Engine: `apply(book, progress, &Actor { player, now, roll }, event) -> Outcome { changed, effects }`; `wanted_items`, `wanted_crafts`, `watch`, `submit_request`; claims and auto-claim; reward tables (`draw`, `next_roll`); repeatable quests (`start_over`, [[ADR-011 Repeatable quests start over]]) | ✅ |
 | ✘ `hq_rewards` | Not needed: weighted draws and choices went into `hq_progress` (v0.0.6). Claims stay per player inside a party (v0.2.0) | ✅ |

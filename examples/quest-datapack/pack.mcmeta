@@ -1,0 +1,8 @@
+{
+  "pack": {
+    "description": "Horizon Quests: an example quest chapter in a data pack",
+    "pack_format": 121,
+    "min_format": 121,
+    "max_format": 121
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "data_pack_loot",
+  "entries": [
+    { "weight": 3, "type": "item", "item": "minecraft:apple", "count": 4 },
+    { "weight": 1, "type": "item", "item": "minecraft:golden_apple", "count": 1 }
+  ]
+}

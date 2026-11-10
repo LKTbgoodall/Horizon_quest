@@ -11,7 +11,7 @@ API: [[Horizon hooks and API]] §1 and §4 · Decision: [[ADR-005 Progress as JS
 | Data | Location | Why |
 |---|---|---|
 | **Quest definitions** (modpack) | `config/horizon_quests/quests/` (via `native_config_dir()`) | shared between worlds, versionable, hand-editable |
-| Definitions shipped as a datapack (V1) | `data/<ns>/horizon_quests/*.json` via `native_add_server_reload_listeners` + `NativeReloadListener::json` | reloaded by `/reload`, distributable |
+| Definitions shipped as a datapack (v0.4.0) | `data/<ns>/horizon_quests/{quests.json, chapters/*.json, reward_tables/*.json}` via `native_add_server_reload_listeners` + `NativeReloadListener::json("horizon_quests:quests", "horizon_quests")` (API 400); used when the world has no `horizon-quests/quests/quests.json`; example in `examples/quest-datapack/` | reloaded by `/reload`, distributable |
 | Example quests | embedded in the bundle's `data/` (`native_data!`) | demo without configuration |
 | **Progress and teams** | `<world>/horizon-quests/` (via `native_world_dir()`) | follows the world's backups (smp pattern) |
 | Mod config | `config/horizon_quests-server.toml` (a world may override it in `<world>/serverconfig/`) via `native_register_configs`, since v0.0.5; `config/horizon_quests-client.toml` (toasts) since v0.3.0 | standard |

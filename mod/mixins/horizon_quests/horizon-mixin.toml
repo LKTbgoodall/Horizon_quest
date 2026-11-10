@@ -1,11 +1,11 @@
 [mod]
 id = "horizon_quests"
-version = "0.3.0"
+version = "0.4.0"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
-# "hooks": 397 in compatibility.json (the config files; native_item_stack
-# needs 313), so the launcher builds it on any Horizon that has them.
+# "hooks": 400 in compatibility.json (the data packs' quest folders; the
+# config files need 397, native_item_stack 313), so the launcher builds it on any Horizon that has them.
 [compatibility]
 horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
 
@@ -287,6 +287,29 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_config_unloading"
 helper = "config_unloading.rs"
 bindings = [
   { name = "config", ty = "&crate::game::native_configs::NativeConfigFile", value = "config" },
+]
+
+# ---- Server: the data packs' quest folders (API 400) ----
+
+[[injection]]
+id = "reload_listeners"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_add_server_reload_listeners"
+helper = "reload_listeners.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "listeners", ty = "&mut Vec<crate::game::native_reload_listeners::NativeReloadListener>", value = "&mut *listeners" },
+]
+
+[[injection]]
+id = "reload_listener_apply"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_server_reload_listener_apply"
+helper = "reload_listener_apply.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "listener", ty = "&crate::game::native_reload_listeners::NativeReloadListener", value = "listener" },
+  { name = "files", ty = "&[(String, serde_json::Value)]", value = "files" },
 ]
 
 # ---- Server: the quest engine (API 3, 4, 40, 57, 161, 228, 249, 347) ----

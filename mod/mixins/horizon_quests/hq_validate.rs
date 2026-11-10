@@ -121,6 +121,56 @@ pub fn load_dir(dir: &Path) -> Loaded {
     loaded
 }
 
+/// The folder under `data/<namespace>/` a data pack keeps its quests in:
+/// `quests.json` (the settings), `chapters/*.json`, `reward_tables/*.json`.
+pub const DATA_FOLDER: &str = "horizon_quests";
+
+/// The pack the data packs hold, from the files Horizon read in their
+/// `data/<namespace>/horizon_quests/` folders: (`<namespace>:<path>`, JSON),
+/// sorted by id. None when they hold no chapter. Chapters and tables of every
+/// namespace make one pack; the settings are the first namespace's
+/// `quests.json`.
+pub fn load_data(files: &[(String, serde_json::Value)]) -> Option<Loaded> {
+    let mut problems = Vec::new();
+    let mut settings: Option<String> = None;
+    let mut chapters = Vec::new();
+    let mut tables = Vec::new();
+    for (id, json) in files {
+        let (namespace, path) = id.split_once(':').unwrap_or(("minecraft", id));
+        let place = format!("data/{namespace}/{DATA_FOLDER}/{path}.json");
+        let text = json.to_string();
+        let name = format!("{namespace}:{path}.json");
+        if path == "quests" {
+            if settings.is_none() {
+                settings = Some(text);
+            } else {
+                problems.push(Problem {
+                    severity: Severity::Warning,
+                    place,
+                    message: "another data pack's quests.json came first: this one is not used".to_owned(),
+                });
+            }
+        } else if let Some(file) = path.strip_prefix("chapters/") {
+            chapters.push((format!("{namespace}:{file}.json"), text));
+        } else if let Some(file) = path.strip_prefix(&format!("{TABLES_FOLDER}/")) {
+            tables.push((format!("{namespace}:{file}.json"), text));
+        } else {
+            let message = format!("not a quests.json, a chapters/ file or a {TABLES_FOLDER}/ file: left out ({name})");
+            problems.push(Problem { severity: Severity::Warning, place, message });
+        }
+    }
+    if chapters.is_empty() {
+        return None;
+    }
+    fn as_refs(files: &[(String, String)]) -> Vec<(&str, &str)> {
+        files.iter().map(|(name, text)| (name.as_str(), text.as_str())).collect()
+    }
+    let mut loaded = load_pack(settings.as_deref(), &as_refs(&chapters), &as_refs(&tables));
+    problems.append(&mut loaded.problems);
+    loaded.problems = problems;
+    Some(loaded)
+}
+
 /// The `.json` files of `dir/folder`, as (name, text) in file-name order. A
 /// missing folder has none; what cannot be read is a problem.
 #[allow(dead_code, reason = "phase 3 glue calls it step by step")]
@@ -782,6 +832,37 @@ mod tests {
                 "warning: chapters/a.json > one: `min_required` 0 does nothing",
             ]
         );
+    }
+
+    #[test]
+    fn data_packs_make_one_pack_of_every_namespace() {
+        use serde_json::json;
+        let file = |id: &str, value: serde_json::Value| (id.to_owned(), value);
+        let files = [
+            file("alpha:chapters/one", json!({ "id": "one", "title": "One", "quests": [
+                { "id": "q", "title": "Q", "rewards": [ { "id": "r", "type": "random", "table": "loot" } ] } ] })),
+            file("alpha:notes", json!({ "hello": 1 })),
+            file("alpha:quests", json!({ "detection_delay": 40 })),
+            file("alpha:reward_tables/loot", json!({ "id": "loot", "entries": [ { "type": "xp", "points": 3 } ] })),
+            file("beta:chapters/two", json!({ "id": "two", "title": "Two", "quests": [ { "id": "q", "title": "Q" } ] })),
+            file("beta:quests", json!({ "detection_delay": 99 })),
+        ];
+        let loaded = load_data(&files).unwrap();
+        let ids: Vec<&str> = loaded.file.chapters.iter().map(|c| c.id.as_str()).collect();
+        assert_eq!(ids, ["one", "two"]);
+        assert_eq!(loaded.file.reward_tables.len(), 1);
+        // The first namespace's settings; the other's and the stray file are warned about.
+        assert_eq!(loaded.file.settings.detection_delay, 40);
+        assert_eq!(loaded.errors(), 0, "{:?}", loaded.problems);
+        let places: Vec<&str> = loaded.problems.iter().map(|p| p.place.as_str()).collect();
+        assert_eq!(places, ["data/alpha/horizon_quests/notes.json", "data/beta/horizon_quests/quests.json"]);
+
+        // No chapter: no pack from the data packs.
+        assert!(load_data(&[file("alpha:quests", json!({}))]).is_none());
+        assert!(load_data(&[]).is_none());
+        // A broken chapter is reported under its namespace.
+        let broken = load_data(&[file("gamma:chapters/bad", json!({ "id": "Bad Id" }))]).unwrap();
+        assert!(broken.errors() > 0 && broken.problems.iter().any(|p| p.place.contains("gamma:bad.json")), "{:?}", broken.problems);
     }
 
     #[test]

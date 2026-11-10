@@ -21,6 +21,11 @@ config/horizon_quests/quests/
     └── en_us.json
 ```
 
+## Where a pack is read from (v0.4.0)
+1. `<world>/horizon-quests/quests/` when it has a `quests.json` (the layout above).
+2. Else the world's **data packs**: `data/<namespace>/horizon_quests/` with the same files (`quests.json` optional, `chapters/*.json`, `reward_tables/*.json`). The chapters and tables of every namespace and every enabled pack make one pack; the settings are the first namespace's `quests.json` (others are warned about); any other file is warned about and left out. Problems name the file as `data/<ns>/horizon_quests/<path>.json`, or `chapters/<ns>:<file>.json` for what the validator finds inside. Read again on `/reload`. Example: `examples/quest-datapack/` in the repo.
+3. Else the built-in example chapters, unless `example_chapter = false`.
+
 ## Chapter example (v0)
 ```json
 {

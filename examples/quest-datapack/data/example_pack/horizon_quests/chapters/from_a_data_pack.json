@@ -1,0 +1,29 @@
+{
+  "id": "from_a_data_pack",
+  "title": "From a data pack",
+  "subtitle": "This chapter was read from the world's data packs",
+  "icon": "minecraft:map",
+  "quests": [
+    {
+      "id": "hello",
+      "title": "It works",
+      "description": [
+        "This quest comes from data/example_pack/horizon_quests/chapters/ in a data pack.",
+        "Tick the box to finish it."
+      ],
+      "icon": "minecraft:map",
+      "x": 0, "y": 0,
+      "tasks": [ { "id": "ok", "type": "checkmark", "title": "I see it" } ],
+      "rewards": [ { "id": "loot", "type": "random", "table": "data_pack_loot" } ]
+    },
+    {
+      "id": "torches",
+      "title": "Light the way",
+      "description": [ "Hold a stack of torches." ],
+      "x": 2, "y": 0,
+      "dependencies": ["hello"],
+      "tasks": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
+    }
+  ]
+}
