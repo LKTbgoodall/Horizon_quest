@@ -1,1 +1,1 @@
-Notes rapides à trier. Vider régulièrement.
+Quick notes to sort later. Empty this folder regularly.

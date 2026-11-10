@@ -1,42 +1,42 @@
-# Horizon Quest : instructions pour Claude
+# Horizon Quest: instructions for Claude
 
-Mod de quêtes façon FTB Quests pour **Horizon** (Minecraft Java 26.3 réécrit en Rust), écrit comme **mod natif Rust**.
-Réponds en **français**.
+An FTB Quests-style quest mod for **Horizon** (Minecraft Java 26.3 rewritten in Rust), written as a **native Rust mod**.
+**Everything in English**: replies, vault notes, code, comments, commit messages.
 
-## Mémoire du projet = `vault/` (Obsidian)
-**Au début de chaque session, AVANT toute autre chose :**
-1. Lire `vault/00 - Accueil.md` (état, prochaine étape, carte du vault).
-2. Lire la note la plus récente de `vault/06 - Journal/`.
-3. Selon la tâche, lire les notes concernées. Les plus importantes :
-   - `vault/02 - Horizon/Hooks et API Horizon.md` (la référence API)
-   - `vault/02 - Horizon/Exemple - mod smp (patterns à reprendre).md` (le modèle de code)
-   - `vault/04 - Conception/Architecture.md`
+## Project memory = `vault/` (Obsidian)
+**At the start of every session, BEFORE anything else:**
+1. Read `vault/00 - Home.md` (status, next step, vault map).
+2. Read the most recent note in `vault/06 - Journal/`.
+3. Read the notes the task needs. The most important ones:
+   - `vault/02 - Horizon/Horizon hooks and API.md` (the API reference)
+   - `vault/02 - Horizon/Example - smp mod (patterns to reuse).md` (the code model)
+   - `vault/04 - Design/Architecture.md`
 
-**À la fin de chaque session (ou après une étape importante) :**
-1. Créer ou compléter `vault/06 - Journal/AAAA-MM-JJ.md` (modèle : `vault/99 - Modèles/Modèle - Journal.md`).
-2. Cocher `vault/01 - Projet/Roadmap.md`.
-3. Mettre à jour « Où on en est » et « Prochaine étape » dans `vault/00 - Accueil.md`, ainsi que `mise_a_jour`.
-4. Questions → `vault/01 - Projet/Questions ouvertes.md`. Décision importante → nouvelle ADR dans `vault/05 - Décisions/` + `Index des décisions.md`.
-5. Une info Horizon apprise ou corrigée → mettre à jour la note de référence et son `verifie_le`.
+**At the end of every session (or after a significant step):**
+1. Create or update `vault/06 - Journal/YYYY-MM-DD.md` (template: `vault/99 - Templates/Template - Journal.md`).
+2. Tick off `vault/01 - Project/Roadmap.md`.
+3. Update "Where we are", "Next step" and `updated` in `vault/00 - Home.md`.
+4. Questions → `vault/01 - Project/Open questions.md`. Significant decision → a new ADR in `vault/05 - Decisions/` plus `Decision index.md`.
+5. Something learned or corrected about Horizon → update the reference note and its `verified_on`.
 
-Conventions du vault : liens wiki `[[Nom de note]]`, frontmatter YAML, statuts API ✅ / ⏳ pending / ❌ / ❓.
+Vault conventions: `[[Note title]]` wiki links, YAML frontmatter, API status ✅ / ⏳ pending / ❌ / ❓.
 
-## Règles du projet
-- **Ne jamais copier de code, d'assets ou de textes de FTB Quests** (All Rights Reserved). On réimplémente les concepts.
-- Aucun code ni asset Mojang dans le dépôt : les données du jeu se lisent au runtime.
-- N'utiliser que des **hook points** du catalogue, sans injection brute sur des fonctions (ADR-003), et aucun hook ⏳ pending non numéroté.
-- Seules les crates présentes dans le `Cargo.lock` d'Horizon sont autorisées.
-- `RUSTFLAGS=-D warnings` : un warning casse le build.
-- La logique va dans des modules **purs testables** (`hq_*.rs`, `cargo test`). Le code qui touche `Game` va dans les `*_glue.rs` (pattern smp).
-- **Ne jamais exécuter soi-même une commande avec `--trust-native-code`** (règle Horizon : c'est la décision du joueur). On prépare la commande, l'utilisateur la lance.
+## Project rules
+- **Never copy FTB Quests code, assets or text** (All Rights Reserved). We reimplement the concepts.
+- No Mojang code or assets in the repo: game data is read at runtime.
+- Use only **hook points** from the catalog, with no raw function injections (ADR-003) and no unnumbered ⏳ pending hooks.
+- Only crates already in Horizon's `Cargo.lock` are allowed.
+- `RUSTFLAGS=-D warnings`: any warning breaks the build.
+- Logic goes in **pure, testable modules** (`hq_*.rs`, `cargo test`). Code that touches `Game` goes in `*_glue.rs` (the smp pattern).
+- **Never run a command with `--trust-native-code` yourself** (Horizon rule: it is the player's decision). Prepare the command; the user runs it.
 
-## Git et GitHub
-- Le seul auteur est **LKTbgoodall** : `user.name = LKTbgoodall`, `user.email = bgoodall79@gmail.com` (config locale du dépôt).
-- **Aucun `Co-Authored-By`**, aucune ligne d'attribution Claude ou « Generated with », que ce soit dans les commits ou dans les PR.
-- Remote : https://github.com/LKTbgoodall/Horizon_quest (branche `main`).
+## Git and GitHub
+- The only author is **LKTbgoodall**: `user.name = LKTbgoodall`, `user.email = bgoodall79@gmail.com` (repo-local config).
+- **No `Co-Authored-By`**, and no Claude or "Generated with" attribution line, in commits or PRs.
+- Remote: https://github.com/LKTbgoodall/Horizon_quest (branch `main`).
 
-## Références externes
-- Docs Horizon : https://playhorizon.dev/docs
-- Moteur : https://github.com/horizon-rust/horizon (`docs/native-mods.md`, `native-hooks.json`)
-- Registre et exemples : https://github.com/horizon-rust/horizon-mods (`native/smp`)
-- Clones locaux de référence prévus dans `ext/` (gitignoré).
+## External references
+- Horizon docs: https://playhorizon.dev/docs
+- Engine: https://github.com/horizon-rust/horizon (`docs/native-mods.md`, `native-hooks.json`)
+- Registry and examples: https://github.com/horizon-rust/horizon-mods (`native/smp`)
+- Local reference clones planned in `ext/` (gitignored).
