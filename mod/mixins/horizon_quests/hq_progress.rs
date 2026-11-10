@@ -204,6 +204,38 @@ pub fn apply(book: &Book, progress: &mut Progress, player: &str, now: u64, event
     out
 }
 
+/// An admin completes quest `quest` for a team, whatever its dependencies
+/// and tasks: `player` gets its automatic rewards, and what it opens can
+/// complete in turn. None when there is no such quest.
+pub fn force_complete(book: &Book, progress: &mut Progress, player: &str, now: u64, quest: &str) -> Option<Outcome> {
+    let n = book.find(quest)?;
+    let mut out = Outcome::default();
+    if !progress.is_completed(quest) {
+        for (t, task) in book.quest(n).tasks.iter().enumerate() {
+            progress.tasks.insert(book.task_id(n, t), task.kind.goal());
+        }
+        complete(book, progress, player, now, n, &mut out);
+    }
+    settle(book, progress, player, now, &mut out);
+    Some(out)
+}
+
+/// An admin resets quest `quest` for a team: its tasks, its completion and
+/// its claims are forgotten. Quests completed after it stay completed.
+/// None when there is no such quest; else whether anything changed.
+pub fn reset_quest(book: &Book, progress: &mut Progress, quest: &str) -> Option<bool> {
+    let n = book.find(quest)?;
+    let mut changed = progress.started.remove(quest).is_some();
+    changed |= progress.completed.remove(quest).is_some();
+    for t in 0..book.quest(n).tasks.len() {
+        changed |= progress.tasks.remove(&book.task_id(n, t)).is_some();
+    }
+    for r in 0..book.quest(n).rewards.len() {
+        changed |= progress.claimed.remove(&book.reward_id(n, r)).is_some();
+    }
+    Some(changed)
+}
+
 /// The task with this full id, if a request can still act on it.
 fn open_task(book: &Book, progress: &Progress, task: &str) -> Result<(usize, usize), Refusal> {
     let (n, t) = book.find_task(task).ok_or(Refusal::UnknownTask)?;
@@ -251,28 +283,34 @@ fn claim(book: &Book, progress: &mut Progress, player: &str, n: usize, r: usize,
 fn settle(book: &Book, progress: &mut Progress, player: &str, now: u64, out: &mut Outcome) {
     for &n in book.order() {
         let node = &book.nodes()[n];
-        if progress.is_completed(&node.id) || !book.dependencies_met(n, progress) || !book.tasks_done(n, progress) {
-            continue;
+        if !progress.is_completed(&node.id) && book.dependencies_met(n, progress) && book.tasks_done(n, progress) {
+            complete(book, progress, player, now, n, out);
         }
-        progress.completed.insert(node.id.clone(), now);
-        progress.started.entry(node.id.clone()).or_insert(now);
-        out.changed = true;
-        out.effects.push(Effect::QuestCompleted { quest: node.id.clone() });
+    }
+}
 
-        let quest = book.quest(n);
-        for (r, reward) in quest.rewards.iter().enumerate() {
-            let auto = match reward.auto_claim {
-                AutoClaim::Enabled => true,
-                AutoClaim::Disabled => false,
-                AutoClaim::Default => book.settings().auto_claim_rewards,
-            };
-            if auto && !progress.has_claimed(&book.reward_id(n, r), player) {
-                claim(book, progress, player, n, r, out);
-            }
+/// Records node `n` as completed: its automatic rewards go to `player`, and
+/// the chapter is announced if that was its last quest.
+fn complete(book: &Book, progress: &mut Progress, player: &str, now: u64, n: usize, out: &mut Outcome) {
+    let node = &book.nodes()[n];
+    progress.completed.insert(node.id.clone(), now);
+    progress.started.entry(node.id.clone()).or_insert(now);
+    out.changed = true;
+    out.effects.push(Effect::QuestCompleted { quest: node.id.clone() });
+
+    let quest = book.quest(n);
+    for (r, reward) in quest.rewards.iter().enumerate() {
+        let auto = match reward.auto_claim {
+            AutoClaim::Enabled => true,
+            AutoClaim::Disabled => false,
+            AutoClaim::Default => book.settings().auto_claim_rewards,
+        };
+        if auto && !progress.has_claimed(&book.reward_id(n, r), player) {
+            claim(book, progress, player, n, r, out);
         }
-        if !quest.optional && book.chapter_completed(node.chapter, progress) {
-            out.effects.push(Effect::ChapterCompleted { chapter: book.chapter(node.chapter).id.clone() });
-        }
+    }
+    if !quest.optional && book.chapter_completed(node.chapter, progress) {
+        out.effects.push(Effect::ChapterCompleted { chapter: book.chapter(node.chapter).id.clone() });
     }
 }
 
@@ -598,6 +636,41 @@ mod tests {
         let wanted = wanted_items(&book, &progress);
         assert_eq!(wanted.len(), 1);
         assert_eq!((wanted[0].task.as_str(), wanted[0].missing, wanted[0].consume), ("a/give/planks", 16, true));
+    }
+
+    #[test]
+    fn an_admin_can_complete_and_reset_a_quest() {
+        let book = book("{}", &[CHAPTER]);
+        let mut progress = Progress::default();
+        assert_eq!(force_complete(&book, &mut progress, "steve", NOW, "a/none"), None);
+        assert_eq!(reset_quest(&book, &mut progress, "a/none"), None);
+        assert_eq!(reset_quest(&book, &mut progress, "a/hunt"), Some(false));
+
+        // Hunt is locked behind wood: forced, it completes anyway, with its automatic reward.
+        let out = force_complete(&book, &mut progress, "steve", NOW, "a/hunt").unwrap();
+        let levels = Effect::Reward { reward: "a/hunt/levels".into(), kind: RewardKind::XpLevels { levels: 1 } };
+        assert_eq!(out, Outcome { changed: true, effects: vec![quest_completed("a/hunt"), levels] });
+        assert_eq!((progress.task("a/hunt/zombies"), progress.task("a/hunt/ready")), (2, 1));
+        assert!(!progress.is_completed("a/wood"));
+        // Again: nothing more.
+        assert_eq!(force_complete(&book, &mut progress, "steve", NOW, "a/hunt"), Some(Outcome::default()));
+
+        assert_eq!(reset_quest(&book, &mut progress, "a/hunt"), Some(true));
+        assert_eq!(progress, Progress::default());
+
+        // Forcing a quest lets what waited on it complete: a flexible quest done ahead.
+        let chapter = r#"{ "id": "f", "title": "F", "progression": "flexible", "quests": [
+            { "id": "gate", "title": "t", "x": 0, "tasks": [ { "id": "ok", "type": "checkmark" } ] },
+            { "id": "after", "title": "t", "x": 1, "dependencies": ["gate"],
+              "tasks": [ { "id": "k", "type": "kill", "entity": "pig" } ] } ] }"#;
+        let book = self::book("{}", &[chapter]);
+        let mut progress = Progress::default();
+        run(&book, &mut progress, killed("pig"));
+        let out = force_complete(&book, &mut progress, "steve", NOW, "f/gate").unwrap();
+        assert_eq!(
+            out.effects,
+            [quest_completed("f/gate"), quest_completed("f/after"), Effect::ChapterCompleted { chapter: "f".into() }]
+        );
     }
 
     #[test]

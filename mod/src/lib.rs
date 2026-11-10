@@ -4,7 +4,8 @@
 //! the game's types (`*_glue.rs` and the hook helpers) are not listed here.
 //!
 //! The phase 1 modules (`hq_model`, `hq_validate`, `hq_logic`, `hq_progress`,
-//! `hq_store`) are listed here only, not yet in `horizon-mixin.toml`: the
+//! `hq_store`, `hq_net`, `hq_book`, `hq_commands`) are listed here only, not
+//! yet in `horizon-mixin.toml`: the
 //! game is built with `-D warnings`, and code no glue calls yet is dead code
 //! there. Each one joins the bundle with the glue that uses it (phase 2).
 
@@ -12,6 +13,8 @@
 pub mod hq_book;
 #[path = "../mixins/horizon_quests/hq_canvas.rs"]
 pub mod hq_canvas;
+#[path = "../mixins/horizon_quests/hq_commands.rs"]
+pub mod hq_commands;
 #[path = "../mixins/horizon_quests/hq_logic.rs"]
 pub mod hq_logic;
 #[path = "../mixins/horizon_quests/hq_meta.rs"]
