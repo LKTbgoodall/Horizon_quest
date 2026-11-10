@@ -1,6 +1,6 @@
 # Horizon Quests: the native mod
 
-The bundle the Horizon launcher builds into the game. Version 0.0.1 contains only the **phase 0 spikes**. They check that the platform can carry the graphical quest book before the real work starts.
+The bundle the Horizon launcher builds into the game. Version 0.0.2 adds the **server half** of phase 2 (quest engine, inventories, rewards, saving, `/quests`) to the **phase 0 spikes**, which checked that the platform can carry the graphical quest book.
 
 | Spike | What it proves | Hooks |
 |---|---|---|
@@ -50,16 +50,17 @@ cargo test
    Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order:
-   - [ ] **Build**: it succeeds. If not, send `native/build.log` (launcher data folder, or the launcher's "Build log" button).
-   - [ ] **Options > Mods**: there is a "Horizon Quests 0.0.1" row, with the key "Open the quest book: K".
-   - [ ] **Spike 1**: in a single-player world, the top-left corner shows `Horizon Quests 0.0.1 - K opens the quest book`.
-   - [ ] **Spike 2**: K opens the test book: 6 square nodes with item icons, linked by grey lines.
-     - drag with the mouse: the canvas pans;
-     - the wheel zooms around the pointer;
-     - a left click on a node gives it a gold frame and shows its name at the top right;
-     - Esc or K closes the book.
-   - [ ] **Spike 3**: the footer of the book says `NET OK: pong #1 received`, and chat shows `[Horizon Quests] the server half answered pong #1`. If it says `NET FAILED: ...` or keeps `retrying ping: ...`, send the exact text.
-   - [ ] **Spike 4**: `/quests` in chat answers `Horizon Quests 0.0.1 is running on this server. Hello <you>! ...`.
-   - [ ] Optional: open the world to LAN and join from a second client that has the mod. Check spikes 2 to 4 there too.
+3. Start the game and check, in order. Phase 0 (all passed on 2026-11-10, recheck quickly): the Options > Mods row now says **0.0.2**, the HUD hint, K opens the test book with `NET OK`.
+   Then **v0.0.2, the server half** (no real book yet: everything shows in chat). Use a **new single-player world** in Survival:
+   - [ ] **Build**: it succeeds. If not, send `native/build.log`: the server glue is compiled for the first time.
+   - [ ] **`/quests`**: the help, with `/quests progress`, `claim`, `check`, `submit` (and the admin forms for an operator).
+   - [ ] **`/quests progress`**: `Getting started: 0/11 quests` and ` - Welcome: open (...)`.
+   - [ ] **Checkmark**: `/quests check getting_started/welcome/ready`. Chat: `[Horizon Quests] Quest completed: ...`.
+   - [ ] **Items held**: cut 8 logs of any wood (a tag). Within a second of the last pickup, chat says the quest is completed. Then craft the next items the quests ask for (`/quests progress` lists them): crafting must also complete them.
+   - [ ] **Items from a chest**: put the items of an open quest in a chest first (creative or `/give` before the quest opens), then take them out: the quest completes within a second.
+   - [ ] **Rewards**: `/quests claim`. Chat: `Reward: ...` and the items or XP arrive. With a full inventory, the items drop at your feet.
+   - [ ] **Kill task** (if the pack has one open): kill the mob with a melee blow (bow kills are not counted yet).
+   - [ ] **Hand-in** (if the pack has one open): `/quests submit <task>` takes the items.
+   - [ ] **Saving**: leave the world and come back: `/quests progress` shows the same progress. The file is `saves/<world>/horizon-quests/progress/<your uuid>.json`.
+   - [ ] **Admin** (cheats on): `/quests complete <you> getting_started/<quest>`, `/quests reset <you> getting_started/<quest>`, `/quests validate`, `/quests reload`.
 4. Report back: what worked, what didn't, and screenshots of the book if possible.

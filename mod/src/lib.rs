@@ -27,6 +27,8 @@ pub mod hq_net;
 pub mod hq_progress;
 #[path = "../mixins/horizon_quests/hq_protocol.rs"]
 pub mod hq_protocol;
+#[path = "../mixins/horizon_quests/hq_session.rs"]
+pub mod hq_session;
 #[path = "../mixins/horizon_quests/hq_store.rs"]
 pub mod hq_store;
 #[path = "../mixins/horizon_quests/hq_validate.rs"]

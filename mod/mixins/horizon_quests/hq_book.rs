@@ -11,44 +11,67 @@
 // or a line that sticks out of the canvas ends up covered. Text and item
 // icons are only drawn where they fit whole: icons may not be drawn in the
 // same pass as the fills.
-
 use super::hq_canvas::{self as canvas, View};
 use super::hq_logic::{Book, QuestState, Status};
 use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, Shape, Task, TaskKind};
 use super::hq_net::ToServer;
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SHADE: u32 = 0xD010_1018;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const BAND: u32 = 0xFF20_2030;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SIDEBAR: u32 = 0xFF18_1822;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const PANEL: u32 = 0xFF1C_1C28;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const ROW_CURRENT: u32 = 0xFF34_344A;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const ROW_HOVER: u32 = 0xFF2A_2A3A;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const BUTTON: u32 = 0xFF3A_5A8A;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const BUTTON_HOVER: u32 = 0xFF4A_74B0;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const TOOLTIP: u32 = 0xF010_0818;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const NODE_FILL: u32 = 0xFF26_2632;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SELECTED: u32 = 0xFFFF_C040;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const LINE: u32 = 0xFF60_6070;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const LINE_DONE: u32 = 0xFF40_A050;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const BAR: u32 = 0xFF30_303C;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const INK: u32 = 0xFF_FFFF;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const DIM_INK: u32 = 0xA0_A0B0;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const GOLD_INK: u32 = 0xFF_C040;
 
 /// A line of text's height, a chapter row's, and the space left round
 /// things, in GUI pixels.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const TEXT: f32 = 10.0;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const ROW: f32 = 14.0;
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const PAD: f32 = 4.0;
 /// The panel's title bar.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const TITLE_BAR: f32 = 14.0;
 /// The room left round a chapter fitted to the canvas.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const MARGIN: f32 = 16.0;
 /// The icon shown for a quest that names none and whose first task has none.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const DEFAULT_ICON: &str = "minecraft:book";
 
 /// One thing to draw. In order: later ones cover earlier ones.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Draw {
     Fill { rect: [f32; 4], colour: u32 },
     Quad { corners: [[f32; 2]; 4], colour: u32 },
@@ -59,6 +82,7 @@ pub enum Draw {
 
 /// What a click does. Nodes are `Book` node indexes; ids are full ids.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Action {
     Chapter(usize),
     Quest(usize),
@@ -74,6 +98,7 @@ pub enum Action {
 
 /// What the glue does after a click.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Reaction {
     Nothing,
     Send(ToServer),
@@ -82,6 +107,7 @@ pub enum Reaction {
 
 /// The book's parts on screen, as `[x, y, w, h]`.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Regions {
     pub header: [f32; 4],
     pub sidebar: [f32; 4],
@@ -92,6 +118,7 @@ pub struct Regions {
 }
 
 /// The parts of a book filling `rect`, with or without the quest panel.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn regions(rect: [f32; 4], panel: bool) -> Regions {
     let [x, y, w, h] = rect;
     let body_y = y + canvas::HEADER;
@@ -109,6 +136,7 @@ pub fn regions(rect: [f32; 4], panel: bool) -> Regions {
 
 /// One frame's worth of book: what to draw and where clicks land.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Scene {
     pub regions: Regions,
     pub draws: Vec<Draw>,
@@ -119,6 +147,7 @@ pub struct Scene {
     pub panel_max_scroll: f32,
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Scene {
     /// What a click at `p` does.
     pub fn action_at(&self, p: [f32; 2]) -> Option<&Action> {
@@ -156,6 +185,7 @@ impl Scene {
 
 /// What the book is drawn from, this frame.
 #[derive(Clone, Copy)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Screen<'a> {
     pub book: &'a Book,
     pub progress: &'a Progress,
@@ -170,6 +200,7 @@ pub struct Screen<'a> {
 
 /// A row of the chapter list.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Row {
     /// A group's heading.
     Group(String),
@@ -178,6 +209,7 @@ pub enum Row {
 
 /// The chapter list: chapters without a group first, then each group of
 /// quests.json with its chapters. Hidden chapters are not listed.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn sidebar_rows(book: &Book) -> Vec<Row> {
     let file = book.file();
     let groups = &file.settings.groups;
@@ -197,6 +229,7 @@ pub fn sidebar_rows(book: &Book) -> Vec<Row> {
 
 /// The corners of a shape of this radius round `centre`, in the order
 /// `hq_canvas::line_quad` goes round its quads.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]> {
     let [cx, cy] = centre;
     let (sides, start) = match shape {
@@ -219,11 +252,13 @@ pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]
 
 /// A convex polygon with an even number of corners, as quads fanned from
 /// its first corner.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn polygon_quads(points: &[[f32; 2]]) -> Vec<[[f32; 2]; 4]> {
     (1..points.len().saturating_sub(2)).step_by(2).map(|i| [points[0], points[i], points[i + 1], points[i + 2]]).collect()
 }
 
 /// `text` cut into lines at most `width` wide, at spaces where it can.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn wrap(text: &str, width: f32, measure: &dyn Fn(&str) -> f32) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();
@@ -258,6 +293,7 @@ pub fn wrap(text: &str, width: f32, measure: &dyn Fn(&str) -> f32) -> Vec<String
 }
 
 /// `text`, shortened with `...` when it is wider than `width`.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn fit_text(text: &str, width: f32, measure: &dyn Fn(&str) -> f32) -> String {
     if measure(text) <= width {
         return text.to_owned();
@@ -274,6 +310,7 @@ pub fn fit_text(text: &str, width: f32, measure: &dyn Fn(&str) -> f32) -> String
 
 /// `minecraft:oak_log` → `Oak log`: a name for an id, until the book shows
 /// the game's own names.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn pretty(id: &str) -> String {
     let path = id.rsplit(':').next().unwrap_or(id);
     let name = path.rsplit('/').next().unwrap_or(path).replace('_', " ");
@@ -284,11 +321,13 @@ pub fn pretty(id: &str) -> String {
     }
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn counted(count: u32, name: &str) -> String {
     if count == 1 { name.to_owned() } else { format!("{count}x {name}") }
 }
 
 /// What a task asks, in a few words: its title, or one made from its type.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn task_label(task: &Task) -> String {
     if let Some(title) = task.title.as_deref().filter(|title| !title.trim().is_empty()) {
         return title.to_owned();
@@ -308,6 +347,7 @@ pub fn task_label(task: &Task) -> String {
 }
 
 /// What a reward gives, in a few words.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn reward_label(reward: &Reward) -> String {
     match &reward.kind {
         RewardKind::Item { item, count } => counted(*count, &pretty(item)),
@@ -318,6 +358,7 @@ pub fn reward_label(reward: &Reward) -> String {
 }
 
 /// The item a quest's node shows.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn quest_icon(quest: &Quest) -> &str {
     if let Some(icon) = &quest.icon {
         return icon;
@@ -330,6 +371,7 @@ pub fn quest_icon(quest: &Quest) -> &str {
 }
 
 /// A state's colour (a node's frame) and its name.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn state_look(state: QuestState) -> (u32, &'static str) {
     match state {
         QuestState::Locked => (0xFF50_505A, "Locked"),
@@ -341,6 +383,7 @@ pub fn state_look(state: QuestState) -> (u32, &'static str) {
 }
 
 /// A node's box on screen.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn node_box(view: &View, origin: [f32; 2], quest: &Quest, size: f32) -> [f32; 4] {
     let [sx, sy] = view.to_screen(origin, canvas::cell_centre([quest.x, quest.y]));
     let side = canvas::NODE * size * view.zoom;
@@ -348,6 +391,7 @@ fn node_box(view: &View, origin: [f32; 2], quest: &Quest, size: f32) -> [f32; 4]
 }
 
 /// The part of `a` inside `b`.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn intersect(a: [f32; 4], b: [f32; 4]) -> Option<[f32; 4]> {
     let (x0, y0) = (a[0].max(b[0]), a[1].max(b[1]));
     let (x1, y1) = ((a[0] + a[2]).min(b[0] + b[2]), (a[1] + a[3]).min(b[1] + b[3]));
@@ -355,6 +399,7 @@ fn intersect(a: [f32; 4], b: [f32; 4]) -> Option<[f32; 4]> {
 }
 
 /// Whether `inner` is wholly inside `outer`.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn contains(outer: [f32; 4], inner: [f32; 4]) -> bool {
     inner[0] >= outer[0]
         && inner[1] >= outer[1]
@@ -364,6 +409,7 @@ fn contains(outer: [f32; 4], inner: [f32; 4]) -> bool {
 
 /// The view that shows all of a chapter's visible quests in `area`, never
 /// zoomed in past 1.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn fit(book: &Book, chapter: usize, statuses: &[Status], area: [f32; 4]) -> View {
     if chapter >= book.file().chapters.len() {
         return View::default();
@@ -386,12 +432,14 @@ pub fn fit(book: &Book, chapter: usize, statuses: &[Status], area: [f32; 4]) -> 
 }
 
 /// A line of the quest panel.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 struct PanelRow {
     text: String,
     colour: u32,
     button: Option<(&'static str, Action)>,
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl PanelRow {
     fn new(text: impl Into<String>, colour: u32) -> Self {
         Self { text: text.into(), colour, button: None }
@@ -421,6 +469,7 @@ impl PanelRow {
 
 /// What the player looks at in the book: kept by the client between frames.
 #[derive(Clone, Debug, Default, PartialEq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct BookView {
     /// The chapter shown, and how its canvas is looked at.
     pub chapter: usize,
@@ -435,6 +484,7 @@ pub struct BookView {
     fitted: bool,
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl BookView {
     /// The book opens, or a new pack arrived: keep the place when there is
     /// one, else show the first chapter.
@@ -811,6 +861,7 @@ impl BookView {
 }
 
 /// A small box with `text` by the pointer, kept on screen.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn draw_tooltip(scene: &mut Scene, s: &Screen<'_>, text: &str) {
     let [x, y, w, h] = s.rect;
     let width = (s.measure)(text) + 6.0;

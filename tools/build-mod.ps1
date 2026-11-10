@@ -25,9 +25,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $ModId = "horizon_quests"
-$Version = "0.0.1"
 $Root = Split-Path -Parent $PSScriptRoot
 $Bundle = Join-Path $Root "mod\mixins\$ModId"
+# The version is the bundle manifest's, so the two never disagree.
+$Version = (Select-String -Path (Join-Path $Bundle "horizon-mixin.toml") -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
 $Out = Join-Path $Root "build"
 $Hnmod = Join-Path $Out "$ModId.hnmod"
 $InstanceDir = Join-Path $env:APPDATA "horizon\instances\$Instance"

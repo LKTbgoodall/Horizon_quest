@@ -16,5 +16,6 @@ Every important technical decision has its own note (template: `99 - Templates/T
 | 007 | [[ADR-007 Obsidian vault as project memory]] | ✅ accepted | 2026-11-10 |
 | 008 | [[ADR-008 Graphical client book first]] | ✅ accepted | 2026-11-10 |
 | 009 | [[ADR-009 MIT license and mod id horizon_quests]] | ✅ accepted | 2026-11-10 |
+| 010 | [[ADR-010 Item detection by polling plus triggers]] | ✅ accepted | 2026-11-10 |
 
 > 🟡 = proposed, waiting for Bastien. Set `status: accepted` in the frontmatter and update this table.

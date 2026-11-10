@@ -2,7 +2,6 @@
 // A chapter with an error is left out, not the whole pack; an error in
 // quests.json refuses the pack. Every problem is reported with where it is,
 // so a pack author can fix the file. Pure: no game types (it reads files).
-
 use super::hq_model::{
     Chapter, FORMAT_VERSION, Quest, QuestFile, RewardKind, Settings, TaskKind, dependency_id, quest_id, resource_id,
     valid_id,
@@ -11,10 +10,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::Path;
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SETTINGS_FILE: &str = "quests.json";
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const ID_RULE: &str = "an `id` made of lowercase letters, digits, `_`, `-` or `.`";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Severity {
     /// Worth fixing; the chapter still loads.
     Warning,
@@ -23,6 +25,7 @@ pub enum Severity {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Problem {
     pub severity: Severity,
     /// The file, and the quest in it: `chapters/01_start.json > first_wood`.
@@ -30,6 +33,7 @@ pub struct Problem {
     pub message: String,
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl fmt::Display for Problem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let kind = match self.severity {
@@ -43,11 +47,13 @@ impl fmt::Display for Problem {
 /// A pack as it loaded: the chapters that are sound, in book order, and
 /// everything found wrong on the way.
 #[derive(Clone, Debug, Default, PartialEq)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Loaded {
     pub file: QuestFile,
     pub problems: Vec<Problem>,
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Loaded {
     pub fn errors(&self) -> usize {
         self.problems.iter().filter(|p| p.severity == Severity::Error).count()
@@ -58,21 +64,25 @@ impl Loaded {
     }
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn error(place: &str, message: String) -> Problem {
     Problem { severity: Severity::Error, place: place.to_owned(), message }
 }
 
 /// A problem and the chapter it is in (None: quests.json).
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 struct Found {
     chapter: Option<usize>,
     problem: Problem,
 }
 
 #[derive(Default)]
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 struct Finder {
     found: Vec<Found>,
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Finder {
     fn add(&mut self, severity: Severity, chapter: Option<usize>, place: &str, message: impl Into<String>) {
         let problem = Problem { severity, place: place.to_owned(), message: message.into() };
@@ -90,6 +100,7 @@ impl Finder {
 
 /// The pack in folder `dir`. A missing quests.json means default settings, a
 /// missing `chapters` folder an empty book.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn load_dir(dir: &Path) -> Loaded {
     let settings = match std::fs::read_to_string(dir.join(SETTINGS_FILE)) {
         Ok(text) => Some(text),
@@ -126,6 +137,7 @@ pub fn load_dir(dir: &Path) -> Loaded {
 
 /// The pack made of quests.json's text (None: default settings) and the
 /// chapter files' (name, text), in file-name order.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
     let settings = match settings.map(|text| serde_json::from_str::<Settings>(without_bom(text))) {
         None => Settings::default(),
@@ -182,6 +194,7 @@ pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
 
 /// Writes the chapter's item and entity ids in full (`apple` becomes
 /// `minecraft:apple`), so the rest of the mod compares them as they are.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn write_ids_in_full(chapter: &mut Chapter) {
     fn full(id: &mut String) {
         if let Some(whole) = resource_id(id) {
@@ -205,15 +218,18 @@ fn write_ids_in_full(chapter: &mut Chapter) {
 }
 
 /// Notepad on Windows starts files with a byte-order mark, which is not JSON.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn without_bom(text: &str) -> &str {
     text.strip_prefix('\u{feff}').unwrap_or(text)
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn good_size(size: f32) -> bool {
     size.is_finite() && size > 0.0
 }
 
 /// Everything wrong with the pack. `chapters` are (place, chapter).
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn find(settings: &Settings, chapters: &[(String, Chapter)]) -> Vec<Found> {
     let mut f = Finder::default();
 
@@ -314,10 +330,12 @@ fn find(settings: &Settings, chapters: &[(String, Chapter)]) -> Vec<Found> {
 
 /// `chapters/01_start.json > first_wood`, or `… > quest #2` without a usable
 /// id.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn quest_place(chapter: &str, q: usize, quest: &Quest) -> String {
     if valid_id(&quest.id) { format!("{chapter} > {}", quest.id) } else { format!("{chapter} > quest #{}", q + 1) }
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn check_look(f: &mut Finder, c: usize, place: &str, icon: Option<&str>, size: Option<f32>, size_name: &str) {
     if let Some(icon) = icon.filter(|icon| resource_id(icon).is_none()) {
         f.error(Some(c), place, format!("icon `{icon}` is not an item id"));
@@ -328,6 +346,7 @@ fn check_look(f: &mut Finder, c: usize, place: &str, icon: Option<&str>, size: O
 }
 
 /// What is wrong inside one quest, its dependencies aside.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest) {
     if quest.title.trim().is_empty() {
         f.warning(Some(c), place, "the quest has no `title`");
@@ -380,6 +399,7 @@ fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest) {
 
 /// Which quests can never open because of a dependency cycle: those on one,
 /// and those between two. `edges[i]` lists what quest `i` depends on.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn caught_in_cycles(edges: &[Vec<usize>]) -> Vec<bool> {
     let mut alive = vec![true; edges.len()];
     // Take away, until nothing moves, the quests that depend on nothing left

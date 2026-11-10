@@ -41,16 +41,18 @@ updated: 2026-11-10
 
 > **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).
 
-## Phase 2: playable MVP (solo/LAN) 🎯 ⬅️ NEXT
-- [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`
-- [ ] Tasks: item (polling), checkmark, kill (`mob_killed`)
-- [ ] Rewards: item (`give_stack` + drop the rest), xp, levels
-- [ ] Saving in `<world>/horizon-quests/`
+## Phase 2: playable MVP (solo/LAN) 🎯 ⬅️ IN PROGRESS
+> Step 1 (server) coded on 2026-11-10 as v0.0.2: `hq_session` (pure, 9 tests) + `hq_server_glue`. "Coded" items wait for the in-game test before they are ticked.
+
+- [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`: **coded (v0.0.2), to test**
+- [ ] Tasks: item (polling + pickup/craft/furnace triggers, [[ADR-010 Item detection by polling plus triggers]]), checkmark (`/quests check` until the book), kill (`mob_killed`, melee only), hand-in (`/quests submit`): **coded (v0.0.2), to test**
+- [ ] Rewards: item (`give_stack`, the rest through `/give`, which drops it), xp, levels: **coded (v0.0.2), to test**
+- [ ] Saving in `<world>/horizon-quests/progress/<uuid>.json` (on every change, on leave, on close): **coded (v0.0.2), to test**. A pack in `<world>/horizon-quests/quests/` replaces the built-in example
 - [ ] Net sync: handshake, definitions, progress deltas, claim/submit/check requests re-validated by the server
 - [ ] **Graphical book**: chapter sidebar, pan/zoom canvas with shapes, icons and dependency lines, quest detail panel, claim and submit buttons
 - [ ] Opening: key (`native_mod_key`) and client command
 - [ ] Notifications: chat message and sound on completion
-- [ ] Admin commands → [[Commands and permissions]]
+- [ ] Commands: `/quests` help, progress, claim, check, submit, reload, validate, complete, reset, reset_all → [[Commands and permissions]]: **coded (v0.0.2), to test**
 - [ ] Test in solo and LAN on the home PC
 - [ ] **Release 0.1.0** (private testing)
 

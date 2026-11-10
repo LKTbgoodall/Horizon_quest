@@ -10,17 +10,18 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | Phase 0 ✅ (all 4 spikes pass in game, 2026-11-10); phase 1 (pure core) done; **phase 2 (glue) next** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]]: research, vault, decisions, mod skeleton + 4 spikes; then the whole pure core: model, loading and validation, logic, engine, store, net protocol, book layout, commands, example pack |
-| **Code** | `mod/` v0.0.1. In the bundle: the 4 spikes (glue never compiled yet, needs the home PC build). Outside the bundle for now (`src/lib.rs` only): `hq_model`, `hq_validate`, `hq_logic`, `hq_progress`, `hq_store`, `hq_net`, `hq_book`, `hq_commands`. **98 tests pass** |
+| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: step 1 (server half) coded as v0.0.2, **waiting for the in-game test** → [[Roadmap]] |
+| **Last session** | [[2026-11-10]]: research, vault, pure core, first in-game test (all 4 spikes pass), then phase 2 step 1: the server half (`hq_session` + `hq_server_glue`) |
+| **Code** | `mod/` v0.0.2. Every module is in the bundle now; the server glue (engine, inventories, rewards, saving, `/quests`) is **not compiled yet** (Bastien's build is its first compile). `allow(dead_code)` marks on items the glue does not call yet. **108 tests pass** |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | Nothing. Spike 3 passed, so ADR-008 holds |
+| **Blocking** | The in-game test of v0.0.2 |
 
 ## ➡️ Next step
-1. Optional: the LAN test (everything else in phase 0 is confirmed)
-2. Bastien: answer the design questions in [[Open questions]] § Decisions to make
-3. (Phase 0 test passed on 2026-11-10: nothing to fix)
-4. Phase 2: server glue (state, load, tick, events, save) → net sync → the real book (`hq_book` replaces the spike's drawing) → commands → [[Roadmap]]
+1. Bastien: `git pull`, `tools/build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.2: the server half)
+2. Fix what the build shows (`native/build.log`): the server glue is compiled for the first time there
+3. Phase 2 step 2: net sync (`hq_net`), server → book
+4. Phase 2 step 3: the real book (`hq_book` replaces the test book), then remove the `allow(dead_code)` marks
+5. Bastien: answer the design questions in [[Open questions]] § Decisions to make
 
 ## 🗺️ Vault map
 ### 01 · Project

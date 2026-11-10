@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.0.1"
+version = "0.0.2"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
@@ -27,6 +27,60 @@ id = "canvas"
 file = "crates/horizon-client/src/game.rs"
 name = "hq_canvas"
 source = "hq_canvas.rs"
+
+[[module]]
+id = "model"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_model"
+source = "hq_model.rs"
+
+[[module]]
+id = "validate"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_validate"
+source = "hq_validate.rs"
+
+[[module]]
+id = "logic"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_logic"
+source = "hq_logic.rs"
+
+[[module]]
+id = "progress"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_progress"
+source = "hq_progress.rs"
+
+[[module]]
+id = "store"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_store"
+source = "hq_store.rs"
+
+[[module]]
+id = "net"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_net"
+source = "hq_net.rs"
+
+[[module]]
+id = "book"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_book"
+source = "hq_book.rs"
+
+[[module]]
+id = "commands"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_commands"
+source = "hq_commands.rs"
+
+[[module]]
+id = "session"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_session"
+source = "hq_session.rs"
 
 # Glue: the code that touches the game.
 [[module]]
@@ -177,4 +231,88 @@ bindings = [
   { name = "player", ty = "&crate::game::native_server::NativeServerPlayer", value = "player" },
   { name = "command", ty = "&str", value = "command" },
   { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+# ---- Server: the quest engine (API 3, 4, 40, 57, 161, 228) ----
+
+[[injection]]
+id = "lifecycle"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_world_lifecycle"
+helper = "lifecycle.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "phase", ty = "horizon_client::mod_api::WorldPhase", value = "phase" },
+]
+
+[[injection]]
+id = "server_tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_server_tick"
+helper = "server_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "phase", ty = "horizon_client::mod_api::ServerTickPhase", value = "phase" },
+]
+
+[[injection]]
+id = "logged_in"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_logged_in"
+helper = "logged_in.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+[[injection]]
+id = "logged_out"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_logged_out"
+helper = "logged_out.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+]
+
+[[injection]]
+id = "picked_up"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_item_picked_up"
+helper = "picked_up.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+]
+
+[[injection]]
+id = "crafted"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_item_crafted"
+helper = "crafted.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+]
+
+[[injection]]
+id = "furnace_taken"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_furnace_extract"
+helper = "furnace_taken.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+]
+
+[[injection]]
+id = "mob_killed"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mob_killed"
+helper = "mob_killed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+  { name = "kind", ty = "&str", value = "kind" },
 ]

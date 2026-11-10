@@ -4,7 +4,7 @@
 /// The mod's id: its settings folder, its key lines, its net channel prefix.
 pub const ID: &str = "horizon_quests";
 pub const NAME: &str = "Horizon Quests";
-pub const VERSION: &str = "0.0.1";
+pub const VERSION: &str = "0.0.2";
 pub const DESCRIPTION: &str =
     "An FTB Quests-style quest book. Phase 0 spikes: press K for the test book, /quests on the server.";
 
@@ -15,7 +15,7 @@ pub const OPEN_KEY: &str = "open_book";
 pub const OPEN_KEY_LABEL: &str = "Open the quest book";
 pub const OPEN_KEY_DEFAULT: &str = "key.keyboard.k";
 
-/// `Horizon Quests 0.0.1`, as Options > Mods titles the row.
+/// `Horizon Quests 0.0.2`, as Options > Mods titles the row.
 pub fn title() -> String {
     format!("{NAME} {VERSION}")
 }
@@ -61,8 +61,8 @@ mod tests {
 
     #[test]
     fn texts_name_the_mod() {
-        assert_eq!(title(), "Horizon Quests 0.0.1");
-        assert_eq!(hud_hint("K"), "Horizon Quests 0.0.1 - K opens the quest book");
+        assert_eq!(title(), "Horizon Quests 0.0.2");
+        assert_eq!(hud_hint("K"), "Horizon Quests 0.0.2 - K opens the quest book");
         assert!(command_reply("Steve", 3).contains("Hello Steve!"));
         assert!(command_reply("Steve", 3).ends_with("so far: 3."));
     }

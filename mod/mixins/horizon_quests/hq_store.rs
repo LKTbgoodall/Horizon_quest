@@ -3,7 +3,6 @@
 // cannot be read is an error and is never overwritten, so a player's
 // progress is not lost to a bad save or a newer version of the mod. Pure: no
 // game types.
-
 use super::hq_model::{FORMAT_VERSION, Progress};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -11,10 +10,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// The mod's folder in a world's folder.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const FOLDER: &str = "horizon-quests";
 
 /// The value in the JSON file at `path`, or its default when there is no
 /// file. Err when the file is there but is not that.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn read_json<T: DeserializeOwned + Default>(path: &Path) -> Result<T, String> {
     match std::fs::read_to_string(path) {
         Ok(text) => serde_json::from_str(text.strip_prefix('\u{feff}').unwrap_or(&text))
@@ -25,6 +26,7 @@ pub fn read_json<T: DeserializeOwned + Default>(path: &Path) -> Result<T, String
 }
 
 /// Writes `value` as the JSON file at `path`, making its folder.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn save_json<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
     let text = serde_json::to_string_pretty(value).map_err(|e| format!("{}: {e}", path.display()))?;
     write_atomic(path, text.as_bytes()).map_err(|e| format!("{}: {e}", path.display()))
@@ -32,6 +34,7 @@ pub fn save_json<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
 
 /// Replaces the file at `path` in one step: a crash leaves the old file or
 /// the new one, never half of one.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     if let Some(folder) = path.parent() {
         std::fs::create_dir_all(folder)?;
@@ -48,12 +51,14 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
 
 /// Where team `team`'s progress is kept under the mod's folder `dir`. None
 /// when the team's id cannot be a file name.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn progress_path(dir: &Path, team: &str) -> Option<PathBuf> {
     let safe = (1..=64).contains(&team.len()) && team.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
     safe.then(|| dir.join("progress").join(format!("{team}.json")))
 }
 
 /// Team `team`'s progress: empty when it has no file yet.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn load_progress(dir: &Path, team: &str) -> Result<Progress, String> {
     let path = progress_path(dir, team).ok_or_else(|| format!("`{team}` cannot name a progress file"))?;
     let mut progress: Progress = read_json(&path)?;
@@ -69,6 +74,7 @@ pub fn load_progress(dir: &Path, team: &str) -> Result<Progress, String> {
     Ok(progress)
 }
 
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn save_progress(dir: &Path, team: &str, progress: &Progress) -> Result<(), String> {
     let path = progress_path(dir, team).ok_or_else(|| format!("`{team}` cannot name a progress file"))?;
     save_json(&path, progress)
@@ -76,12 +82,14 @@ pub fn save_progress(dir: &Path, team: &str, progress: &Progress) -> Result<(), 
 
 /// A player's UUID as files and progress name it:
 /// `069a79f4-44e9-4726-a5be-fca90e38aaf5`.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn uuid_string(uuid: u128) -> String {
     let hex = format!("{uuid:032x}");
     format!("{}-{}-{}-{}-{}", &hex[..8], &hex[8..12], &hex[12..16], &hex[16..20], &hex[20..])
 }
 
 /// The UUID `text` writes, with or without dashes.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn parse_uuid(text: &str) -> Option<u128> {
     let hex: String = text.chars().filter(|&c| c != '-').collect();
     if hex.len() != 32 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
