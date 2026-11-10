@@ -7,8 +7,20 @@ date: 2026-11-10
 
 Inspiration: [[FTB data model]]. On-disk format: [[Quest file format]].
 
-> [!note] Draft v0
-> These are indicative Rust structures. To be refined when coding `hq_model`. Fields marked `// V1` or `// V2` are not in the MVP.
+> [!important] Implemented (format version 1, 2026-11-10)
+> The MVP part is coded in `mod/mixins/horizon_quests/hq_model.rs`, **which is the reference**. The structures below are the original draft: fields marked `// V1` or `// V2` are **not in the code yet**, and the MVP fields differ in small ways listed here.
+>
+> What the code has, where it differs from the draft:
+> - **Ids**: short ids in the files (`[a-z0-9_.-]+`). Full ids are built: quest `chapter/quest`, task or reward `chapter/quest/child`. A dependency is `quest` (same chapter) or `chapter/quest`. Task ids and reward ids are unique within their quest.
+> - **Text** is plain `String` (see [[Open questions]]).
+> - `Settings` (`quests.json`): `version`, `progression`, `default_shape`, `default_size`, `auto_claim_rewards`, `detection_delay`, `groups`.
+> - `Chapter`: `progression`, `default_shape`, `default_size` are optional and fall back to the settings. No `links` or `images`.
+> - `Quest`: no `repeatable` or `sequential_tasks` yet. A quest **without tasks** completes as soon as its dependencies are met.
+> - `Visibility`: `always`, `until_deps_visible` (every dependency shows), `until_deps_complete` (dependencies met), `secret` (until completed). A completed quest always shows; a `hidden` chapter's quests never do.
+> - `TaskKind`: `item` (`item`, `count`, `consume`), `checkmark`, `kill` (`entity`, `count`). `ItemMatch` is `Id` or `Tag` (`#ns:tag`).
+> - `RewardKind`: `item`, `xp`, `xp_levels`. `auto_claim`: `default | disabled | enabled`. No `team` flag yet.
+> - `Progress` (the draft's `TeamProgress`): `version`, `started`, `completed`, `tasks`, `claimed` (reward → set of player UUID strings). Unknown ids are kept.
+> - Derived states (`hq_logic::QuestState`): `Locked`, `Available`, `InProgress`, `RewardsWaiting`, `Done`, plus `visible`.
 
 ## Identifiers
 - `QuestId`, `ChapterId`, `TaskId`, `RewardId`, `TableId`: **readable** strings (`"getting_started/first_wood"`) when written by hand, or a random 16-character hex when the editor generates them.

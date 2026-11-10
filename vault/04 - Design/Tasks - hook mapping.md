@@ -28,7 +28,10 @@ Sources: [[FTB task types]] × [[Horizon hooks and API]]
 | **Custom** | public API for other mods (`[dependencies]`) or the `/quests progress <player> <task> <n>` command | — | ✅ | V2 |
 
 ## Engine rules
-- A task only progresses if the quest is **startable** (Linear mode) or visible (Flexible mode). See [[FTB data model]].
+Coded in `hq_progress.rs` (2026-11-10) for item, hand-in, kill and checkmark tasks.
+- A task only progresses if the quest is **open** (dependencies met) in Linear mode, and **always** in Flexible mode (the quest then completes once its dependencies are met too). A completed quest no longer progresses. See [[FTB data model]] and [[Open questions]].
 - Counters are **per team**. An event from one member advances the whole team.
-- `Item` tasks without consume: progress = `min(count, max number found on an online member)`. It **does not regress** once the task is completed.
+- `Item` tasks without consume: progress = `min(count, number found)`; it follows the inventory up **and down** until the task reaches its goal, then it **does not regress**. (With teams: the max found on an online member.)
+- `Item` tasks with consume: only a "Submit" in the book counts; partial hand-ins add up.
+- A kill counts for **every** open quest that has a matching kill task. A quest opened by that very kill does not count it.
 - Sequential tasks (V1) only progress one at a time.

@@ -10,16 +10,17 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | 0: setup, spikes written, **waiting for the first in-game test** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]]: research, vault, decisions, Rust on the dev PC, mod skeleton + 4 spikes |
-| **Code** | `mod/` v0.0.1: 4 spikes in one bundle; pure modules tested (16 tests); the glue has never been compiled yet (needs the home PC build) |
+| **Phase** | 0 and 1 in parallel: phase 0 spikes written, **waiting for the first in-game test**; phase 1 (pure core) well under way → [[Roadmap]] |
+| **Last session** | [[2026-11-10]]: research, vault, decisions, mod skeleton + 4 spikes; then the pure core: model, loading and validation, logic, engine, store, example pack |
+| **Code** | `mod/` v0.0.1. In the bundle: the 4 spikes (glue never compiled yet, needs the home PC build). Outside the bundle for now (`src/lib.rs` only): `hq_model`, `hq_validate`, `hq_logic`, `hq_progress`, `hq_store`. **62 tests pass** |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | the home PC test. Spike 3 (mod messages in solo) decides whether ADR-008 holds |
+| **Blocking** | nothing blocks the pure work. The home PC test is still needed before any glue: spike 3 (mod messages in solo) decides whether ADR-008 holds |
 
 ## ➡️ Next step
-1. Bastien: `git pull` on the home PC, then the checklist in `mod/README.md` § Test in game
-2. Fix what the build or the test shows (`native/build.log`, screenshots, footer text of the book)
-3. Phase 1: `hq_model`, quest file loading, validation → [[Roadmap]]
+1. Bastien, when possible: `git pull` on the home PC, then the checklist in `mod/README.md` § Test in game (unchanged by phase 1)
+2. Bastien: answer the design questions in [[Open questions]] § Decisions to make
+3. Without the game: `hq_net` (protocol + chunking), real quests drawn from a `Book` in `hq_canvas` (sidebar, detail panel), `hq_commands` → [[Roadmap]] phase 1
+4. After the in-game test: fix what it shows, then phase 2 (server glue, then the book)
 
 ## 🗺️ Vault map
 ### 01 · Project

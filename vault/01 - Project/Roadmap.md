@@ -24,15 +24,20 @@ updated: 2026-11-10
 - [ ] **Spike 4, server command**: `/quests` answers in chat. Code written; **to test**
 
 ## Phase 1: pure logic core (without the game, `cargo test`)
-- [ ] `hq_model`: types + serde + loading of `quests.json` and `chapters/*.json`
-- [ ] Validation: duplicate ids, unknown dependencies, cycles
-- [ ] `hq_logic`: dependencies (4 modes + `min_required`), visibility, startable, linear/flexible
-- [ ] `hq_progress`: `QuestEvent` → progress → `Vec<Effect>`
-- [ ] `hq_rewards`: item, xp, xp_levels, claim, auto-claim, drop leftovers at the player's feet
-- [ ] `hq_store`: atomic JSON, migrations
+> Started on 2026-11-10 while the in-game test of phase 0 is still pending: this phase needs no game.
+> The phase 1 modules are in `src/lib.rs` only, **not in `horizon-mixin.toml` yet** (dead code would break the game build under `-D warnings`). Each joins the bundle with the glue that uses it.
+
+- [x] `hq_model`: types + serde for `quests.json`, chapters and progress (2026-11-10)
+- [x] `hq_validate`: loading of `quests.json` and `chapters/*.json` + validation: duplicate ids, unknown dependencies, cycles, bad items; a bad chapter is left out alone (2026-11-10)
+- [x] `hq_logic`: `Book` index, dependencies (4 modes + `min_required`), visibility, quest states, linear/flexible (2026-11-10)
+- [x] `hq_progress`: `QuestEvent` → progress → `Vec<Effect>`; item, hand-in, kill and checkmark tasks; completion in dependency order (2026-11-10)
+- [x] Rewards, pure part (in `hq_progress`, no separate `hq_rewards` needed yet): item, xp, xp_levels, claim, claim all, auto-claim, once per player (2026-11-10). Dropping leftovers at the player's feet is glue (phase 2)
+- [x] `hq_store`: atomic JSON, progress files per team, version check (2026-11-10). Still to do: background writer thread, `teams.json`, `audit.log`
 - [ ] `hq_net`: protocol messages, versioned, chunked under 30,000 bytes
-- [ ] Canvas math (pure): pan/zoom transform, hit testing, dependency line geometry, layout of the detail panel
-- [ ] Example chapter "Getting started" in `data/`, with a config option to turn it off
+- [ ] Canvas math (pure): pan/zoom transform ✅ (phase 0), hit testing ✅, dependency line geometry ✅; **still to do**: draw real quests from a `Book` (shapes, sizes, states), chapter sidebar and detail panel layout
+- [ ] `hq_commands`: parsing `/quests …` → pure outputs
+- [x] Example chapter "Getting started" in `data/quests/` (11 quests), with an end-to-end test that finishes it (2026-11-10)
+- [ ] Config option to turn the example chapter off
 
 ## Phase 2: playable MVP (solo/LAN) 🎯
 - [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`

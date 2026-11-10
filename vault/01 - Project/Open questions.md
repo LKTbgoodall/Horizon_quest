@@ -7,7 +7,16 @@ updated: 2026-11-10
 > Format: `- [ ] **Question**: context → lead`. Once resolved, check it off and note the answer with the date. If it leads to a decision, create an ADR.
 
 ## Decisions to make (Bastien)
-- [ ] **Quest text**: plain text in the quest files, or translation keys like FTB? In-game text is English-only for now, so plain text is enough to start → [[Horizon Quests data model]]
+> The code of 2026-11-10 (phase 1) took a default for each of these so it could move on. Each is cheap to change now, costly once packs and saves exist.
+
+- [ ] **Quest text**: plain text in the quest files, or translation keys like FTB? **Default taken: plain text** (`title`, `subtitle`, `description` are strings in the chapter file). In-game text is English-only for now → [[Horizon Quests data model]]
+- [ ] **A quest without tasks**: **default taken: it completes by itself as soon as its dependencies are met** (a milestone, or a welcome gift when it has no dependency). Alternative: refuse such quests at load
+- [ ] **Item tasks that do not take the items**: **default taken: progress follows the inventory and goes back down** if the player drops the items, until the task reaches its goal; then it stays done. Alternative: progress only ever goes up
+- [ ] **Default node shape**: **default taken: `square`** (what the spike draws with `native_quad`). FTB's default is a circle, which needs textures (V1 assets) or a polygon
+- [ ] **Rewards**: **default taken: claimed by hand in the book** (`auto_claim_rewards: false`), with a per-reward `auto_claim` override. Alternative: auto-claim by default
+- [ ] **Flexible progression**: **default taken: tasks count always**, even for a locked or hidden quest; the quest completes when its dependencies are met too. (The Tasks note said "if visible" before; a `secret` quest could then never progress.)
+- [ ] **Chapter tally** (`3/5` in the chapter list): **default taken: every non-optional quest counts**, hidden ones too, which hints that hidden quests exist. Alternative: count only visible quests
+- [ ] **Strict JSON** for quest files (no comments): fine for now? JSON5 is not in Horizon's lock
 
 ## Technical unknowns (to check in the code or with Horizon)
 ### 🔴 Critical for the graphical book ([[ADR-008 Graphical client book first]]): phase 0 spike

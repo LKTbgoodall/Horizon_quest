@@ -14,14 +14,20 @@ The bundle the Horizon launcher builds into the game. Version 0.0.1 contains onl
 mod/
 ├── Cargo.toml            # cargo test: the pure modules through src/lib.rs
 ├── src/lib.rs
+├── tests/example_pack.rs # loads the example pack and plays it to the end
 ├── compatibility.json    # game 26.3, hooks 313, pinned Horizon commit
 ├── LICENSE               # MIT
 └── mixins/horizon_quests/
     ├── horizon-mixin.toml
-    ├── hq_meta.rs, hq_protocol.rs, hq_canvas.rs   # pure, tested
+    ├── hq_meta.rs, hq_protocol.rs, hq_canvas.rs   # pure, tested, in the bundle
+    ├── hq_model.rs, hq_validate.rs, hq_logic.rs,
+    │   hq_progress.rs, hq_store.rs                # pure, tested, NOT in the bundle yet (phase 1)
     ├── hq_client_glue.rs, hq_server_glue.rs       # touch the game
-    └── *.rs                                       # one helper per hook
+    ├── *.rs                                       # one helper per hook
+    └── data/quests/                               # the example pack "Getting started"
 ```
+
+The phase 1 modules (quest files, rules, engine, saving) are only built by `cargo test` for now. They join `horizon-mixin.toml` together with the glue that calls them, because the game build refuses unused code.
 
 ## Unit tests (any PC with Rust)
 ```bash

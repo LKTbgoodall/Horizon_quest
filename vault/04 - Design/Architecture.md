@@ -52,21 +52,42 @@ flowchart LR
 4. **Polling** (inventory for item tasks while `player_inventory_changed` is ⏳, position, biome) runs on the tick with a configurable step (20 ticks by default, like `detection_delay` in FTB).
 5. **Saving** happens at the end of the tick if `dirty`, with a flush on world close (`native_world_lifecycle`) and on disconnect.
 
-## Modules (planned)
+## Modules
+Status on 2026-11-10: ✔ written and tested · ◻ planned.
+
+> [!warning] A pure module joins the bundle with its glue
+> The game is built with `-D warnings`, so a module nothing calls yet is dead code there and breaks the build. A new `hq_*.rs` is first listed in `mod/src/lib.rs` only (for `cargo test`); its `[[module]]` entry in `horizon-mixin.toml` is added in the same commit as the glue that uses it.
+
 | Module | Role | Pure? |
 |---|---|---|
-| `hq_model` | Types: `QuestFile`, `Chapter`, `Quest`, `Task`, `Reward`, `RewardTable`, `TeamProgress`… + serde (de)serialization | ✅ |
-| `hq_logic` | Dependency graph, cycle detection, visibility, "startable", progression modes | ✅ |
-| `hq_progress` | Engine: `QuestEvent` → task progress → completion → `Effect` | ✅ |
-| `hq_rewards` | Weighted draws, choice, team vs player, auto-claim | ✅ (injected RNG) |
-| `hq_teams` | Minimal teams: personal, party, progress merge and copy | ✅ |
-| `hq_commands` | Parsing `/quests …` → `Vec<Out>` | ✅ |
-| `hq_canvas` | Graphical book maths: pan/zoom transform, quest and line layout, hit testing, homemade widget layout | ✅ |
-| `hq_net` | Client ↔ server messages (versioned, < 30,000 bytes, chunked) | ✅ |
-| `hq_store` | Atomic JSON reads and writes, version migrations | ✅ (fs) |
-| `hq_import_ftb` | Import FTB JSON5/SNBT → our format (later) | ✅ |
-| `glue.rs` | Global state `static STATE: Mutex<Option<Hq>>`, hook wiring, effect application | ❌ |
-| `client_glue.rs` | Mod screen, canvas rendering, input, toasts | ❌ |
+| ✔ `hq_model` | Types: `Settings`, `Chapter`, `Quest`, `Task`, `Reward`, `QuestFile`, `Progress` + serde; id helpers (`quest_id`, `child_id`, `dependency_id`, `resource_id`) | ✅ |
+| ✔ `hq_validate` | `load` / `load_dir`: read a pack, report every `Problem` with its place, leave bad chapters out; cycle detection; writes item and entity ids in full | ✅ (fs) |
+| ✔ `hq_logic` | `Book`: the pack indexed, dependencies resolved, topological order; `dependencies_met`, `can_progress`, `statuses`, chapter tallies | ✅ |
+| ✔ `hq_progress` | Engine: `apply(book, progress, player, now, event) -> Outcome { changed, effects }`; `wanted_items`, `submit_request`; claims and auto-claim | ✅ |
+| ◻ `hq_rewards` | V1: weighted draws, choice, team vs player (the MVP's claims live in `hq_progress`) | ✅ (injected RNG) |
+| ◻ `hq_teams` | V1. Minimal teams: personal, party, progress merge and copy | ✅ |
+| ◻ `hq_commands` | Parsing `/quests …` → `Vec<Out>` | ✅ |
+| ✔ `hq_canvas` | Graphical book maths: pan/zoom transform, hit testing, line quads (phase 0). ◻ Real quests from a `Book`, sidebar and detail panel layout | ✅ |
+| ◻ `hq_net` | Client ↔ server messages (versioned, < 30,000 bytes, chunked). `hq_protocol` is its phase 0 spike (ping/pong) | ✅ |
+| ✔ `hq_store` | Atomic JSON reads and writes, `progress/<team>.json`, version check, UUID names. ◻ Writer thread, `teams.json`, `audit.log` | ✅ (fs) |
+| ◻ `hq_import_ftb` | Import FTB JSON5/SNBT → our format (later) | ✅ |
+| ✔ `hq_server_glue.rs` (spike) | Server half. ◻ Global state `static STATE: Mutex<Option<Hq>>`, hook wiring, effect application | ❌ |
+| ✔ `hq_client_glue.rs` (spike) | Mod screen, canvas rendering, input. ◻ The real book, toasts | ❌ |
+
+## How the glue drives the engine (phase 2)
+```
+hook (kill, book request…)      → push QuestEvent on the queue
+server tick, every detection_delay:
+    for each online player       → wanted_items(book, progress)
+                                    count them in the inventory → QuestEvent::ItemCount
+server tick, End phase:
+    drain the queue              → apply(book, &mut progress, player, now, &event)
+    outcome.changed              → hq_store::save_progress, send progress to the book
+    outcome.effects              → after the lock is released: give rewards, chat, sound
+book "Submit" request            → submit_request(book, progress, task) → take ≤ missing items
+                                    → QuestEvent::Submitted { task, count: taken }
+login, /quests reload            → QuestEvent::Refresh
+```
 
 ## State and threads
 - `static STATE: Mutex<Option<Hq>>`, lazily initialized from `native_world_dir()`. Reopened if the world changes, with poison-tolerant locks.
