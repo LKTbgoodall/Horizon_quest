@@ -4,6 +4,7 @@
 // progress is not lost to a bad save or a newer version of the mod. Pure: no
 // game types.
 use super::hq_model::{FORMAT_VERSION, Progress};
+use super::hq_teams::Teams;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::io::Write;
@@ -79,6 +80,28 @@ pub fn save_progress(dir: &Path, team: &str, progress: &Progress) -> Result<(), 
     let path = progress_path(dir, team).ok_or_else(|| format!("`{team}` cannot name a progress file"))?;
     save_json(&path, progress)
 }
+
+/// The world's parties (hq_teams): none when there is no file yet.
+pub fn load_teams(dir: &Path) -> Result<Teams, String> {
+    let path = dir.join(TEAMS_FILE);
+    let mut teams: Teams = read_json(&path)?;
+    if teams.version > FORMAT_VERSION {
+        return Err(format!(
+            "{}: written by a newer Horizon Quests (version {}, this one reads {FORMAT_VERSION})",
+            path.display(),
+            teams.version
+        ));
+    }
+    teams.version = FORMAT_VERSION;
+    Ok(teams)
+}
+
+pub fn save_teams(dir: &Path, teams: &Teams) -> Result<(), String> {
+    save_json(&dir.join(TEAMS_FILE), teams)
+}
+
+/// The parties' file in the mod's folder.
+pub const TEAMS_FILE: &str = "teams.json";
 
 /// A player's UUID as files and progress name it:
 /// `069a79f4-44e9-4726-a5be-fca90e38aaf5`.
@@ -160,6 +183,21 @@ mod tests {
             assert_eq!(progress_path(dir, bad), None, "{bad}");
             assert!(load_progress(dir, bad).is_err() && save_progress(dir, bad, &Progress::default()).is_err());
         }
+    }
+
+    #[test]
+    fn teams_round_trip_and_a_newer_file_is_refused() {
+        let dir = folder("teams");
+        assert_eq!(load_teams(&dir), Ok(Teams::default()));
+        let mut teams = Teams::default();
+        teams.create("steve", "Steve", "Miners", 1, &mut || 3).unwrap();
+        save_teams(&dir, &teams).unwrap();
+        assert_eq!(load_teams(&dir), Ok(teams));
+        std::fs::write(dir.join(TEAMS_FILE), r#"{ "version": 99 }"#).unwrap();
+        assert!(load_teams(&dir).unwrap_err().contains("newer Horizon Quests"));
+        std::fs::write(dir.join(TEAMS_FILE), "{ broken").unwrap();
+        assert!(load_teams(&dir).is_err());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

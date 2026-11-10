@@ -4,6 +4,8 @@
 // and the server tick looks at inventories and at where players stand, runs
 // the engine, gives rewards, tells the players, syncs their books over mod
 // messages (hq_net, channel "horizon_quests:book") and saves.
+// Progress is kept per team (hq_teams): a lone player's file is their UUID's,
+// a party's is its id's, and teams.json says who is in which party.
 // Server hooks run on the server thread; the state is behind a Mutex. The
 // tick holds it while it reads (inventories, item tags, the players' places),
 // which call no hook back; it is released before any helper that changes the
@@ -11,11 +13,11 @@
 // Only hooks and helpers of Horizon's catalog are called (native-hooks.json,
 // docs/native-mods.md): an engine method outside it may be private.
 
-use super::hq_commands::{self as commands, Command};
+use super::hq_commands::{self as commands, Command, TeamCommand};
 use super::hq_config::{self as config, ServerConfig};
 use super::hq_logic::Book;
 use super::hq_meta as meta;
-use super::hq_model::{ItemMatch, RewardKind};
+use super::hq_model::{ItemMatch, Progress, RewardKind};
 use super::hq_net::{self as net, ToClient, ToServer};
 use super::hq_progress::{self as engine, Effect, QuestEvent, Wanted};
 use super::hq_session::{self as session, Session, Verb};
@@ -116,8 +118,14 @@ fn open(game: &Game<'_>) -> State {
     let (loaded, source) = load_pack(dir.as_deref());
     let report = commands::report(&loaded, REPORT_LIMIT);
     log::info!("{}: quests from {source}: {}", meta::NAME, report.join(" | "));
+    let mut session = Session::new(Book::new(loaded.file));
+    let parties = dir.as_deref().map_or_else(|| Ok(Default::default()), store::load_teams);
+    if let Err(e) = &parties {
+        log::error!("{}: the parties are not readable, so they are off and the file stays as it is: {e}", meta::NAME);
+    }
+    session.set_parties(parties);
     State {
-        session: Session::new(Book::new(loaded.file)),
+        session,
         dir,
         report,
         pending: Vec::new(),
@@ -152,16 +160,26 @@ pub(super) fn lifecycle(game: &mut Game<'_>, phase: WorldPhase) {
     }
 }
 
-/// Writes every changed progress.
+/// Writes every changed progress, and the parties when they changed.
 fn save(s: &mut State) {
     let Some(dir) = s.dir.clone() else {
         return;
     };
-    for (uuid, progress) in s.session.take_dirty() {
-        if let Err(e) = store::save_progress(&dir, &store::uuid_string(uuid), &progress) {
-            log::error!("{}: could not save the progress of {}: {e}", meta::NAME, store::uuid_string(uuid));
+    for (team, progress) in s.session.take_dirty() {
+        if let Err(e) = store::save_progress(&dir, &team, &progress) {
+            log::error!("{}: could not save the progress of {team}: {e}", meta::NAME);
         }
     }
+    if let Some(parties) = s.session.take_parties()
+        && let Err(e) = store::save_teams(&dir, &parties)
+    {
+        log::error!("{}: could not save the parties: {e}", meta::NAME);
+    }
+}
+
+/// A team's progress as its file says, for a team none of whose members is on.
+fn load_team(dir: Option<&Path>, team: &str) -> Result<Progress, String> {
+    dir.map_or_else(|| Ok(Progress::default()), |dir| store::load_progress(dir, team))
 }
 
 pub(super) fn logged_in(game: &mut Game<'_>, player: u128, name: &str) {
@@ -175,12 +193,11 @@ pub(super) fn logged_in(game: &mut Game<'_>, player: u128, name: &str) {
     let Some(s) = guard.as_mut() else {
         return;
     };
-    let progress = match &s.dir {
-        Some(dir) => store::load_progress(dir, &store::uuid_string(player)),
-        None => Ok(Default::default()),
-    };
+    // Their team's progress: in play already when a member is on.
+    let team = s.session.team_of(player);
+    let progress = if s.session.team_loaded(&team) { Ok(Progress::default()) } else { load_team(s.dir.as_deref(), &team) };
     if let Err(e) = &progress {
-        log::error!("{}: {name}'s progress is not readable, it will not be saved: {e}", meta::NAME);
+        log::error!("{}: {name}'s progress ({team}) is not readable, it will not be saved: {e}", meta::NAME);
     }
     s.session.join(player, name, progress);
 }
@@ -193,11 +210,11 @@ pub(super) fn logged_out(game: &mut Game<'_>, player: u128) {
         s.senders.remove(&player);
         s.receivers.remove(&player);
         s.greeting.remove(&player);
-        if let Some(progress) = s.session.leave(player)
+        if let Some((team, progress)) = s.session.leave(player)
             && let Some(dir) = &s.dir
-            && let Err(e) = store::save_progress(dir, &store::uuid_string(player), &progress)
+            && let Err(e) = store::save_progress(dir, &team, &progress)
         {
-            log::error!("{}: could not save the progress of {}: {e}", meta::NAME, store::uuid_string(player));
+            log::error!("{}: could not save the progress of {team}: {e}", meta::NAME);
         }
     }
 }
@@ -493,8 +510,8 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
             let _ = sender.send(&reply);
             if protocol == net::PROTOCOL {
                 let _ = sender.send(&ToClient::Book { file: s.session.book().file().clone() });
-                if let Some(p) = s.session.player(player) {
-                    let _ = sender.send(&ToClient::Progress { player: session::player_id(player), progress: p.progress.clone() });
+                if let Some(progress) = s.session.progress(player) {
+                    let _ = sender.send(&ToClient::Progress { player: session::player_id(player), progress: progress.clone() });
                 }
             }
         }
@@ -611,6 +628,9 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
     if let Command::Reload = &command {
         return reload();
     }
+    if let Command::Team(team) = command {
+        return party(game, me, team);
+    }
     let mut guard = state();
     let Some(s) = guard.as_mut() else {
         return vec!["Horizon Quests is not running in this world.".to_owned()];
@@ -648,7 +668,38 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
             Ok(()) => vec![format!("Reset all of {player}'s progress.")],
             Err(e) => vec![e],
         },
-        Command::Check { .. } | Command::Submit { .. } | Command::Reload => Vec::new(),
+        Command::Check { .. } | Command::Submit { .. } | Command::Reload | Command::Team(_) => Vec::new(),
+    }
+}
+
+/// `/quests team ...`: the lines for the player who ran it. What others are
+/// told is sent once the lock is released; the progress that changed hands is
+/// saved on the next tick.
+fn party(game: &mut Game<'_>, me: u128, command: TeamCommand) -> Vec<String> {
+    let reply = {
+        let mut guard = state();
+        let Some(s) = guard.as_mut() else {
+            return vec!["Horizon Quests is not running in this world.".to_owned()];
+        };
+        let dir = s.dir.clone();
+        let load = |team: &str| load_team(dir.as_deref(), team);
+        match command {
+            TeamCommand::Info => return s.session.team_info(me),
+            TeamCommand::Create { name } => s.session.create_team(me, &name, session::now()),
+            TeamCommand::Invite { player } => s.session.invite(me, &player),
+            TeamCommand::Join { name } => s.session.join_team(me, &name, &load),
+            TeamCommand::Leave => s.session.leave_team(me, &load),
+            TeamCommand::Kick { player } => s.session.kick(me, &player, &load),
+        }
+    };
+    match reply {
+        Ok(reply) => {
+            for (uuid, line) in &reply.others {
+                tell(game, *uuid, line);
+            }
+            reply.lines
+        }
+        Err(line) => vec![line],
     }
 }
 

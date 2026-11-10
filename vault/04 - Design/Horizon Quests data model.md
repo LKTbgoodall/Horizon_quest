@@ -21,6 +21,7 @@ Inspiration: [[FTB data model]]. On-disk format: [[Quest file format]].
 > - `RewardKind`: `item`, `xp`, `xp_levels`; since v0.0.6 `command` (`command`, always as the console), `toast` (`text`), `random` (`table`), `choice` (`table`). A `Reward` has an optional `title`. `auto_claim`: `default | disabled | enabled`. No `team` flag yet.
 > - `RewardTable { id, entries }`, `TableEntry { weight (1), title, kind }` in `QuestFile.reward_tables` (v0.0.6). An entry's kind is never another table.
 > - `Progress` (the draft's `TeamProgress`): `version`, `started`, `completed`, `tasks`, `claimed` (reward → set of player UUID strings); since v0.0.6 `repeats` (quest → times it started over, instead of the draft's `repeat_ready_at`) and `advancements` (those seen done that a task names). `ever_completed` = completed now or started over at least once. Unknown ids are kept.
+> - Since v0.2.0, `hq_teams::Teams { version, parties }` in `teams.json`; `Party { name, owner, members (player id → name), invites (player id → name), created }`. A player's team is their party's id, else their own player id; `Progress` is unchanged and kept per team ([[ADR-012 Parties share one progress]]).
 > - Derived states (`hq_logic::QuestState`): `Locked`, `Available`, `InProgress`, `RewardsWaiting`, `Done`, plus `visible`.
 
 ## Identifiers

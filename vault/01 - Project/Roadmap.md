@@ -61,7 +61,7 @@ updated: 2026-11-10
 
 - [x] Tasks: craft, xp, dimension, location, advancement: coded (v0.0.6), **tested in game 2026-11-10**
 - [x] Rewards: command, choice, random, toast, reward tables: coded (v0.0.6), **tested in game 2026-11-10**. Toasts are drawn on our own HUD
-- [ ] Teams (parties): create, invite, join, leave, with FTB's merge rules
+- [ ] Teams (parties): create, invite, join, leave, kick, with FTB's copy / merge / keep-claims rules: coded (v0.2.0, [[ADR-012 Parties share one progress]]), to test in game (LAN)
 - [x] Repeatable and optional quests, sequential tasks: coded (v0.0.6), **tested in game 2026-11-10** ([[ADR-011 Repeatable quests start over]])
 - [ ] TOML config (`native_register_configs`)
 - [ ] Datapack quests (`NativeReloadListener`)

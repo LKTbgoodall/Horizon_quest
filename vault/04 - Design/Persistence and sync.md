@@ -20,8 +20,8 @@ API: [[Horizon hooks and API]] §1 and §4 · Decision: [[ADR-005 Progress as JS
 ## Progress files
 ```
 <world>/horizon-quests/
-├── teams.json                 ← teams, members, invitations
-├── progress/<team-id>.json    ← TeamProgress (one file per team)
+├── teams.json                 ← parties: name, owner, members (id → name), invitations (v0.2.0)
+├── progress/<team-id>.json    ← one file per team: <player uuid>.json alone, party-<16 hex>.json for a party
 ├── audit.log                  ← JSON lines: completions, claims (debug, anti-dupe)
 └── state.json                 ← schema version, timestamp
 ```

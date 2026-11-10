@@ -16,7 +16,7 @@ pub const NAME: &str = "quests";
 /// it needs (0: everyone) and what it does. Ids are full ids and contain
 /// `/`, so they are `text` arguments, which take the rest of the line.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-pub const USAGES: [(&str, u8, &str); 13] = [
+pub const USAGES: [(&str, u8, &str); 19] = [
     ("quests", 0, "show this help"),
     ("quests progress", 0, "list your open quests and how far they are"),
     ("quests claim", 0, "claim every reward waiting for you"),
@@ -25,6 +25,12 @@ pub const USAGES: [(&str, u8, &str); 13] = [
     ("quests check", 0, "list the checkmark tasks you can tick"),
     ("quests submit <task:text>", 0, "hand in the items of a task (its quest's id is enough)"),
     ("quests submit", 0, "list the tasks you can hand items in for"),
+    ("quests team", 0, "show your party and the invitations you have"),
+    ("quests team create <name:word>", 0, "start a party: your progress becomes its shared progress"),
+    ("quests team invite <player:word>", 0, "invite a player to your party (owner)"),
+    ("quests team join <name:word>", 0, "join a party that invited you: what you did is added to it"),
+    ("quests team leave", 0, "leave your party and go back to your own progress"),
+    ("quests team kick <player:word>", 0, "remove a member from your party (owner)"),
     ("quests reload", 2, "read the quest files again"),
     ("quests validate", 2, "list the problems in the quest files"),
     ("quests complete <player:word> <quest:text>", 2, "complete a quest for a player"),
@@ -41,6 +47,7 @@ pub enum Command {
     Book,
     Check { task: String },
     Submit { task: String },
+    Team(TeamCommand),
     Reload,
     Validate,
     Complete { player: String, quest: String },
@@ -48,12 +55,29 @@ pub enum Command {
     ResetAll { player: String },
 }
 
+/// `/quests team ...`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TeamCommand {
+    Info,
+    Create { name: String },
+    Invite { player: String },
+    Join { name: String },
+    Leave,
+    Kick { player: String },
+}
+
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Command {
     /// The op level the command needs.
     pub fn level(&self) -> u8 {
         match self {
-            Command::Help | Command::Progress | Command::Claim | Command::Book | Command::Check { .. } | Command::Submit { .. } => 0,
+            Command::Help
+            | Command::Progress
+            | Command::Claim
+            | Command::Book
+            | Command::Check { .. }
+            | Command::Submit { .. }
+            | Command::Team(_) => 0,
             Command::Reload | Command::Validate | Command::Complete { .. } | Command::Reset { .. } => 2,
             Command::ResetAll { .. } => 3,
         }
@@ -79,14 +103,27 @@ pub fn parse(line: &str) -> Option<Result<Command, String>> {
         ["submit"] => Command::Submit { task: String::new() },
         ["check", task] => Command::Check { task: (*task).to_owned() },
         ["submit", task] => Command::Submit { task: (*task).to_owned() },
+        ["team"] => Command::Team(TeamCommand::Info),
+        ["team", "create", name] => Command::Team(TeamCommand::Create { name: (*name).to_owned() }),
+        ["team", "invite", player] => Command::Team(TeamCommand::Invite { player: (*player).to_owned() }),
+        ["team", "join", name] => Command::Team(TeamCommand::Join { name: (*name).to_owned() }),
+        ["team", "leave"] => Command::Team(TeamCommand::Leave),
+        ["team", "kick", player] => Command::Team(TeamCommand::Kick { player: (*player).to_owned() }),
         ["reload"] => Command::Reload,
         ["validate"] => Command::Validate,
         ["complete", player, quest] => Command::Complete { player: (*player).to_owned(), quest: (*quest).to_owned() },
         ["reset", player, quest] => Command::Reset { player: (*player).to_owned(), quest: (*quest).to_owned() },
         ["reset_all", player] => Command::ResetAll { player: (*player).to_owned() },
-        [verb, ..] => {
-            // A known verb with the wrong arguments gets its usage.
-            let usage = USAGES.iter().find(|(usage, ..)| usage.split_whitespace().nth(1) == Some(verb));
+        [verb, rest @ ..] => {
+            // A known verb with the wrong arguments gets its usage: the
+            // form that names the same second word too, when one does.
+            let second = |usage: &str, n| usage.split_whitespace().nth(n).map(str::to_owned);
+            let same = |usage: &&(&str, u8, &str)| second(usage.0, 1).as_deref() == Some(*verb);
+            let usage = USAGES
+                .iter()
+                .filter(same)
+                .find(|(usage, ..)| rest.first().is_some_and(|w| second(usage, 2).as_deref() == Some(*w)))
+                .or_else(|| USAGES.iter().find(same));
             return Some(Err(match usage {
                 Some((usage, ..)) => format!("Usage: /{}", plain(usage)),
                 None => format!("Unknown command. Try /{NAME} help."),
@@ -211,6 +248,12 @@ mod tests {
         assert_eq!(ok("quests complete Steve a/q"), Command::Complete { player: "Steve".into(), quest: "a/q".into() });
         assert_eq!(ok("quests reset Steve a/q"), Command::Reset { player: "Steve".into(), quest: "a/q".into() });
         assert_eq!(ok("quests reset_all Steve"), Command::ResetAll { player: "Steve".into() });
+        assert_eq!(ok("quests team"), Command::Team(TeamCommand::Info));
+        assert_eq!(ok("quests team create Miners"), Command::Team(TeamCommand::Create { name: "Miners".into() }));
+        assert_eq!(ok("quests team invite Alex"), Command::Team(TeamCommand::Invite { player: "Alex".into() }));
+        assert_eq!(ok("quests team join Miners"), Command::Team(TeamCommand::Join { name: "Miners".into() }));
+        assert_eq!(ok("quests team leave"), Command::Team(TeamCommand::Leave));
+        assert_eq!(ok("quests team kick Alex"), Command::Team(TeamCommand::Kick { player: "Alex".into() }));
     }
 
     #[test]
@@ -227,6 +270,10 @@ mod tests {
         assert_eq!(err("quests complete Steve"), "Usage: /quests complete <player> <quest>");
         assert_eq!(err("quests claim now"), "Usage: /quests claim");
         assert_eq!(err("quests help me"), "Unknown command. Try /quests help.");
+        // A team form with the wrong arguments gets its own usage.
+        assert_eq!(err("quests team create"), "Usage: /quests team create <name>");
+        assert_eq!(err("quests team invite a b"), "Usage: /quests team invite <player>");
+        assert_eq!(err("quests team dance"), "Usage: /quests team");
     }
 
     #[test]
@@ -265,9 +312,15 @@ mod tests {
                 "/quests check: list the checkmark tasks you can tick",
                 "/quests submit <task>: hand in the items of a task (its quest's id is enough)",
                 "/quests submit: list the tasks you can hand items in for",
+                "/quests team: show your party and the invitations you have",
+                "/quests team create <name>: start a party: your progress becomes its shared progress",
+                "/quests team invite <player>: invite a player to your party (owner)",
+                "/quests team join <name>: join a party that invited you: what you did is added to it",
+                "/quests team leave: leave your party and go back to your own progress",
+                "/quests team kick <player>: remove a member from your party (owner)",
             ]
         );
-        assert_eq!(help(2).len(), 12);
+        assert_eq!(help(2).len(), 18);
         assert_eq!(help(4).len(), USAGES.len());
         assert_eq!(help(4).last().unwrap(), "/quests reset_all <player>: reset all of a player's progress");
     }

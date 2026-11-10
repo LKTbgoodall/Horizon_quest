@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.1.2"
+version = "0.2.0"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
@@ -51,6 +51,12 @@ id = "store"
 file = "crates/horizon-client/src/game.rs"
 name = "hq_store"
 source = "hq_store.rs"
+
+[[module]]
+id = "teams"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_teams"
+source = "hq_teams.rs"
 
 [[module]]
 id = "net"

@@ -30,5 +30,7 @@ pub mod hq_progress;
 pub mod hq_session;
 #[path = "../mixins/horizon_quests/hq_store.rs"]
 pub mod hq_store;
+#[path = "../mixins/horizon_quests/hq_teams.rs"]
+pub mod hq_teams;
 #[path = "../mixins/horizon_quests/hq_validate.rs"]
 pub mod hq_validate;
