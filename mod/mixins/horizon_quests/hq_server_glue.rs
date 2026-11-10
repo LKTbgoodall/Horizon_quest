@@ -17,8 +17,8 @@ use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::{ItemMatch, RewardKind};
 use super::hq_net::{self as net, ToClient, ToServer};
-use super::hq_progress::{Effect, QuestEvent, Wanted};
-use super::hq_session::{self as session, Session};
+use super::hq_progress::{self as engine, Effect, QuestEvent, Wanted};
+use super::hq_session::{self as session, Session, Verb};
 use super::hq_store as store;
 use super::hq_validate::{self as validate, Loaded};
 use super::native_configs::{NativeConfig, NativeConfigFile, NativeConfigKind};
@@ -258,7 +258,7 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
     if !matches!(phase, ServerTickPhase::ServerTickEnd { .. }) || !game.native_on(meta::ID) {
         return;
     }
-    let (actions, outgoing) = {
+    let (actions, outgoing, probes) = {
         let mut guard = state();
         let Some(s) = guard.as_mut() else {
             return;
@@ -270,8 +270,16 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         // The hub's players are listed once, and only when a task waits for
         // where someone stands.
         let mut guests: Option<Vec<NativeServerPlayer>> = None;
+        let mut probes = Vec::new();
         for uuid in s.session.advance() {
             look_at_inventory(game, &mut s.session, uuid);
+            let probe = s.session.probe(uuid);
+            if probe != engine::Probe::default()
+                && let Some(player) = s.session.player(uuid)
+                && session::safe_name(&player.name)
+            {
+                probes.push((uuid, player.name.clone(), probe));
+            }
             if s.session.observe(uuid) {
                 let guests = guests.get_or_insert_with(|| game.native_server_players());
                 if let Some((dimension, position)) = place(game, guests, uuid) {
@@ -315,7 +323,7 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         let senders = &s.senders;
         s.greeting.retain(|uuid| senders.get(uuid).is_some_and(|sender| sender.waiting() > 0));
 
-        (actions, outgoing)
+        (actions, outgoing, probes)
     };
     for action in actions {
         if let Some(line) = &action.line {
@@ -323,6 +331,22 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         }
         if let Some((title, reward)) = action.reward {
             give(game, action.uuid, &action.name, title.as_deref(), reward);
+        }
+    }
+    // Levels and advancements Horizon does not tell (the single-player
+    // host's): asked of vanilla's selectors, once the lock is released.
+    for (uuid, name, probe) in probes {
+        let mut asks = |line: Option<String>| line.is_some_and(|line| game.native_run_command(&line));
+        let level = probe.level.map(|goal| engine::probe_level(goal, &mut |l| asks(session::level_probe_command(&name, l))));
+        let done: Vec<String> =
+            probe.advancements.into_iter().filter(|a| asks(session::advancement_probe_command(&name, a))).collect();
+        if let Some(s) = state().as_mut() {
+            if let Some(level) = level {
+                s.session.set_level(uuid, i32::try_from(level).unwrap_or(i32::MAX));
+            }
+            for advancement in done {
+                s.session.advancement_done(uuid, &advancement);
+            }
         }
     }
     for (uuid, frames) in outgoing {
@@ -552,7 +576,21 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
     let me = player.uuid;
     if let Command::Submit { task } = &command {
         // Inside the player's own command: their state is in place.
-        return submit(game, me, task, false);
+        return match pick_task(me, Verb::Submit, task) {
+            Ok(task) => submit(game, me, &task, false),
+            Err(lines) => lines,
+        };
+    }
+    if let Command::Check { task } = &command {
+        return match pick_task(me, Verb::Check, task) {
+            Ok(task) => {
+                if let Some(s) = state().as_mut() {
+                    s.session.push(me, QuestEvent::Check { task });
+                }
+                Vec::new()
+            }
+            Err(lines) => lines,
+        };
     }
     if let Command::Reload = &command {
         return reload();
@@ -570,10 +608,6 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
         Command::Progress => s.session.summary(me),
         Command::Claim => {
             s.session.push(me, QuestEvent::ClaimAll);
-            Vec::new()
-        }
-        Command::Check { task } => {
-            s.session.push(me, QuestEvent::Check { task });
             Vec::new()
         }
         Command::Validate => s.report.clone(),
@@ -594,7 +628,35 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
             Ok(()) => vec![format!("Reset all of {player}'s progress.")],
             Err(e) => vec![e],
         },
-        Command::Submit { .. } | Command::Reload => Vec::new(),
+        Command::Check { .. } | Command::Submit { .. } | Command::Reload => Vec::new(),
+    }
+}
+
+/// The task `/quests check` or `/quests submit` acts on: what the player
+/// typed, made a full id. Typed nothing: the one task open to them, else Err
+/// with the list of those they can name.
+fn pick_task(me: u128, verb: Verb, typed: &str) -> Result<String, Vec<String>> {
+    let guard = state();
+    let Some(s) = guard.as_ref() else {
+        return Err(vec!["Horizon Quests is not running in this world.".to_owned()]);
+    };
+    if !typed.trim().is_empty() {
+        return Ok(s.session.resolve(me, verb, typed));
+    }
+    let open = s.session.open_for(me, verb);
+    let (none, header, name) = match verb {
+        Verb::Check => ("No checkmark task is open to you.", "Tick one with /quests check <id>:", "check"),
+        Verb::Submit => ("No task waits for items you hand in.", "Hand in with /quests submit <id>:", "submit"),
+    };
+    match open.as_slice() {
+        [] => Err(vec![none.to_owned()]),
+        [(id, _)] => Ok(id.clone()),
+        _ => {
+            let mut lines = vec![header.to_owned()];
+            lines.extend(open.iter().map(|(id, title)| format!(" - {id} ({title})")));
+            lines.push(format!("A quest's id alone is enough when it has one such task: /quests {name} <quest>."));
+            Err(lines)
+        }
     }
 }
 

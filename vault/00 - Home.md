@@ -11,15 +11,15 @@ updated: 2026-11-10
 | | |
 |---|---|
 | **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded, review fixes in v0.0.4, config file in v0.0.5: **everything that needs no game is done, waiting for the in-game test (solo + LAN)** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]] § Session 13: **v0.0.6 finished and merged into `main`** (glue, manifest, client toasts, 25 new tests). Found and fixed a build break of v0.0.4 / v0.0.5 (`native_as_player` is private at the pin). New `tools/check-glue.ps1` type-checks the glue against the real Horizon source: **clean**. **133 + 2 tests pass** |
-| **Code** | `mod/` v0.0.6. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book` (protocol 2), inventory polling, 9 task types, 7 reward types, reward tables, repeatable quests, tasks in order, HUD toasts, saving, `/quests`. Two example chapters |
+| **Last session** | [[2026-11-10]] § Session 14: **first in-game test of v0.0.6** (solo): build, book, checkmarks, item tasks, claims, hand-in, saving, config and "Daily bread" work. Fixed in **v0.0.7**: experience-level and advancement tasks for the single-player host (hooks 347 / 249 never fire for the host → vanilla selectors through `native_run_command`), `/quests check` / `submit` without argument and with short ids. **137 + 2 tests pass**, glue type-checks |
+| **Code** | `mod/` v0.0.7. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book` (protocol 2), inventory polling, 9 task types, 7 reward types, reward tables, repeatable quests, tasks in order, HUD toasts, saving, `/quests`. Two example chapters |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | Nothing known: the in-game test of v0.0.6 (solo, then LAN). **v0.0.4 and v0.0.5 never compiled: do not test them.** Watch the single-player host's inventory and place reads, and `native_player_logged_in` for the host ([[Open questions]]) |
+| **Blocking** | Nothing known: the retest of v0.0.7 in solo ("Seasoned", "Stone age", `/quests check`, location, Nether), then LAN. The host's inventory and `native_player_logged_in` for the host are confirmed working; the host's place is still to see ([[Open questions]]) |
 | **In progress** | Nothing half done. Next steps of phase 3, one version each, after the in-game test: teams, more config, datapack quests, book polish, assets |
 
 ## ➡️ Next step
 0. Claude, before any in-game test request: `powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1` must end with "The glue type-checks" ([[Build, test and tools]])
-1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.6: solo, config file, the "Further afield" chapter, then LAN)
+1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then retest in solo what v0.0.7 fixed ("Seasoned" with `/xp add @s 5 levels`, "Stone age", `/quests check` alone), the rest of "Further afield" (location, Nether), then the LAN section of `mod/README.md`
 2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
 3. Fix what the build shows if any (`native/build.log`)
 4. If every box is ticked: phase 2 done, release 0.1.0 (private testing), then the rest of phase 3 (teams first)

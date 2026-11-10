@@ -223,6 +223,82 @@ pub fn watch(book: &Book, progress: &Progress) -> Watch {
     watch
 }
 
+/// What the glue asks the server about a player whose level and
+/// advancements are not heard as they change (Horizon tells neither for the
+/// host of a single-player world): the highest level an open experience task
+/// wants, and the advancements open tasks still wait for.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Probe {
+    pub level: Option<u32>,
+    pub advancements: Vec<String>,
+}
+
+pub fn probe(book: &Book, progress: &Progress) -> Probe {
+    let mut probe = Probe::default();
+    for (n, t) in open_tasks(book, progress) {
+        match &book.quest(n).tasks[t].kind {
+            TaskKind::XpLevels { levels } => probe.level = probe.level.max(Some(*levels)),
+            TaskKind::Advancement { advancement } if !probe.advancements.contains(advancement) => {
+                probe.advancements.push(advancement.clone());
+            }
+            _ => {}
+        }
+    }
+    probe
+}
+
+/// The open tasks `pick` keeps: (full task id, quest title), in book order.
+pub fn open_tasks_where(book: &Book, progress: &Progress, pick: &dyn Fn(&TaskKind) -> bool) -> Vec<(String, String)> {
+    open_tasks(book, progress)
+        .into_iter()
+        .filter(|&(n, t)| pick(&book.quest(n).tasks[t].kind))
+        .map(|(n, t)| (book.task_id(n, t), book.quest(n).title.clone()))
+        .collect()
+}
+
+/// The task a player means by `typed` in a command: a full id as it is;
+/// else the one open task `pick` keeps whose id ends with `typed` (`ready`,
+/// `welcome/ready`) or whose quest is `typed` (`welcome`,
+/// `getting_started/welcome`). Anything else comes back as typed, for the
+/// engine to refuse.
+pub fn resolve_task(book: &Book, progress: &Progress, typed: &str, pick: &dyn Fn(&TaskKind) -> bool) -> String {
+    let typed = typed.trim();
+    if typed.is_empty() || book.find_task(typed).is_some() {
+        return typed.to_owned();
+    }
+    let tail = format!("/{typed}");
+    let mut found: Vec<String> = open_tasks(book, progress)
+        .into_iter()
+        .filter(|&(n, t)| pick(&book.quest(n).tasks[t].kind))
+        .filter(|&(n, t)| {
+            let quest = &book.nodes()[n].id;
+            book.task_id(n, t).ends_with(&tail) || quest == typed || quest.ends_with(&tail)
+        })
+        .map(|(n, t)| book.task_id(n, t))
+        .collect();
+    found.dedup();
+    match found.as_slice() {
+        [one] => one.clone(),
+        _ => typed.to_owned(),
+    }
+}
+
+/// The highest level in `0..=goal` that `reached(level)` says the player has,
+/// asking as few times as it can (a binary search: `reached` holds up to the
+/// player's level and not past it).
+pub fn probe_level(goal: u32, reached: &mut dyn FnMut(u32) -> bool) -> u32 {
+    let (mut low, mut high) = (0, goal);
+    while low < high {
+        let mid = low + (high - low).div_ceil(2);
+        if reached(mid) {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    low
+}
+
 /// The player asks to hand items in for `task`: what to take from them (at
 /// most `missing`), then report with `Submitted`.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -1257,5 +1333,59 @@ mod tests {
         let claim = QuestEvent::Claim { reward: "c/q/pick".into(), choice: Some(0) };
         assert_eq!(run(&bare, &mut progress, claim), refused(Refusal::NoTable));
         assert!(progress.claimed.is_empty());
+    }
+
+    #[test]
+    fn a_probe_asks_for_open_levels_and_advancements_only() {
+        let book = later();
+        let mut progress = Progress::default();
+        assert_eq!(probe(&book, &progress), Probe { level: Some(5), advancements: vec![] });
+        run(&book, &mut progress, QuestEvent::Level { level: 9 });
+        let after = probe(&book, &progress);
+        assert_eq!(after.level, None);
+        assert_eq!(after.advancements.len(), 1);
+        assert!(after.advancements[0].ends_with("story/mine_stone"), "{after:?}");
+        run(&book, &mut progress, QuestEvent::Advancement { advancement: after.advancements[0].clone() });
+        assert_eq!(probe(&book, &progress), Probe::default());
+    }
+
+    #[test]
+    fn a_task_can_be_named_short_in_a_command() {
+        let book = book("{}", &[CHAPTER]);
+        let mut progress = Progress::default();
+        let tick = |kind: &TaskKind| *kind == TaskKind::Checkmark;
+        let open: Vec<String> = open_tasks_where(&book, &progress, &tick).into_iter().map(|(id, _)| id).collect();
+        assert_eq!(open, ["a/bonus/ok"]);
+        for typed in ["bonus", "a/bonus", "ok", "bonus/ok", " a/bonus/ok "] {
+            assert_eq!(resolve_task(&book, &progress, typed, &tick), "a/bonus/ok", "{typed}");
+        }
+        // A full id stays as typed, open or not, for the engine to judge.
+        assert_eq!(resolve_task(&book, &progress, "a/hunt/ready", &tick), "a/hunt/ready");
+        assert_eq!(resolve_task(&book, &progress, "nope", &tick), "nope");
+        assert_eq!(resolve_task(&book, &progress, "ready", &tick), "ready");
+
+        run(&book, &mut progress, items("a/wood/logs", 8));
+        let open: Vec<String> = open_tasks_where(&book, &progress, &tick).into_iter().map(|(id, _)| id).collect();
+        assert_eq!(open, ["a/hunt/ready", "a/bonus/ok"]);
+        assert_eq!(resolve_task(&book, &progress, "hunt", &tick), "a/hunt/ready");
+        assert_eq!(resolve_task(&book, &progress, "ready", &tick), "a/hunt/ready");
+        // "a" names no quest and ends no id: left alone.
+        assert_eq!(resolve_task(&book, &progress, "a", &tick), "a");
+        let task = resolve_task(&book, &progress, "hunt", &tick);
+        let out = run(&book, &mut progress, check(&task));
+        assert_eq!(out.effects, [task_completed("a/hunt/ready")]);
+    }
+
+    #[test]
+    fn a_level_is_found_in_few_questions() {
+        for (level, goal) in [(0, 5), (3, 5), (5, 5), (30, 5), (7, 0), (12, 100)] {
+            let mut asked = 0;
+            let found = probe_level(goal, &mut |l| {
+                asked += 1;
+                level >= l
+            });
+            assert_eq!(found, level.min(goal), "level {level}, goal {goal}");
+            assert!(asked <= 7, "{asked} questions for goal {goal}");
+        }
     }
 }

@@ -16,12 +16,14 @@ pub const NAME: &str = "quests";
 /// it needs (0: everyone) and what it does. Ids are full ids and contain
 /// `/`, so they are `text` arguments, which take the rest of the line.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-pub const USAGES: [(&str, u8, &str); 10] = [
+pub const USAGES: [(&str, u8, &str); 12] = [
     ("quests", 0, "show this help"),
     ("quests progress", 0, "list your open quests and how far they are"),
     ("quests claim", 0, "claim every reward waiting for you"),
-    ("quests check <task:text>", 0, "tick a checkmark task"),
-    ("quests submit <task:text>", 0, "hand in the items of a task"),
+    ("quests check <task:text>", 0, "tick a checkmark task (its quest's id is enough)"),
+    ("quests check", 0, "list the checkmark tasks you can tick"),
+    ("quests submit <task:text>", 0, "hand in the items of a task (its quest's id is enough)"),
+    ("quests submit", 0, "list the tasks you can hand items in for"),
     ("quests reload", 2, "read the quest files again"),
     ("quests validate", 2, "list the problems in the quest files"),
     ("quests complete <player:word> <quest:text>", 2, "complete a quest for a player"),
@@ -70,6 +72,8 @@ pub fn parse(line: &str) -> Option<Result<Command, String>> {
         [] | ["help"] => Command::Help,
         ["progress"] => Command::Progress,
         ["claim"] => Command::Claim,
+        ["check"] => Command::Check { task: String::new() },
+        ["submit"] => Command::Submit { task: String::new() },
         ["check", task] => Command::Check { task: (*task).to_owned() },
         ["submit", task] => Command::Submit { task: (*task).to_owned() },
         ["reload"] => Command::Reload,
@@ -207,12 +211,14 @@ mod tests {
 
     #[test]
     fn other_lines_and_bad_forms() {
+        let ok = |line: &str| parse(line).unwrap().unwrap();
         for line in ["", "quest", "questsx claim", "say quests", "q"] {
             assert_eq!(parse(line), None, "{line}");
         }
         let err = |line: &str| parse(line).unwrap().unwrap_err();
         assert_eq!(err("quests dance"), "Unknown command. Try /quests help.");
-        assert_eq!(err("quests check"), "Usage: /quests check <task>");
+        assert_eq!(ok("quests check"), Command::Check { task: String::new() });
+        assert_eq!(ok("quests submit"), Command::Submit { task: String::new() });
         assert_eq!(err("quests check a b"), "Usage: /quests check <task>");
         assert_eq!(err("quests complete Steve"), "Usage: /quests complete <player> <quest>");
         assert_eq!(err("quests claim now"), "Usage: /quests claim");
@@ -250,11 +256,13 @@ mod tests {
                 "/quests: show this help",
                 "/quests progress: list your open quests and how far they are",
                 "/quests claim: claim every reward waiting for you",
-                "/quests check <task>: tick a checkmark task",
-                "/quests submit <task>: hand in the items of a task",
+                "/quests check <task>: tick a checkmark task (its quest's id is enough)",
+                "/quests check: list the checkmark tasks you can tick",
+                "/quests submit <task>: hand in the items of a task (its quest's id is enough)",
+                "/quests submit: list the tasks you can hand items in for",
             ]
         );
-        assert_eq!(help(2).len(), 9);
+        assert_eq!(help(2).len(), 11);
         assert_eq!(help(4).len(), USAGES.len());
         assert_eq!(help(4).last().unwrap(), "/quests reset_all <player>: reset all of a player's progress");
     }

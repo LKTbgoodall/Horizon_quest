@@ -192,6 +192,28 @@ impl Session {
         self.push(uuid, QuestEvent::At { dimension: entity_id(dimension), position });
     }
 
+    /// What to ask the server about the player's level and advancements:
+    /// Horizon does not tell them as they change for the host of a
+    /// single-player world, so the glue asks on each look.
+    pub fn probe(&self, uuid: u128) -> engine::Probe {
+        self.players.get(&uuid).map(|p| engine::probe(&self.book, &p.progress)).unwrap_or_default()
+    }
+
+    /// The open tasks of the player a command can name for `verb`
+    /// (`check`: checkmarks, `submit`: hand-ins): (full id, quest title).
+    pub fn open_for(&self, uuid: u128, verb: Verb) -> Vec<(String, String)> {
+        self.players.get(&uuid).map(|p| engine::open_tasks_where(&self.book, &p.progress, &|k| verb.takes(k))).unwrap_or_default()
+    }
+
+    /// The full id of the task the player typed for `verb` (a short id is
+    /// enough when it names one open task).
+    pub fn resolve(&self, uuid: u128, verb: Verb, typed: &str) -> String {
+        match self.players.get(&uuid) {
+            Some(p) => engine::resolve_task(&self.book, &p.progress, typed, &|k| verb.takes(k)),
+            None => typed.trim().to_owned(),
+        }
+    }
+
     /// One server tick went by: the players to look at now (their
     /// inventory, where they stand).
     pub fn advance(&mut self) -> Vec<u128> {
@@ -396,6 +418,36 @@ pub fn item_events(wanted: &[Wanted], stacks: &[(&str, u32)], in_tag: &dyn Fn(&s
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn entity_id(kind: &str) -> String {
     resource_id(kind).unwrap_or_else(|| kind.to_owned())
+}
+
+/// The task commands that name a task.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Verb {
+    Check,
+    Submit,
+}
+
+impl Verb {
+    /// Whether a task of this kind is one the verb acts on.
+    pub fn takes(self, kind: &TaskKind) -> bool {
+        match self {
+            Verb::Check => *kind == TaskKind::Checkmark,
+            Verb::Submit => matches!(kind, TaskKind::Item { consume: true, .. }),
+        }
+    }
+}
+
+/// The console line that succeeds when player `name` has reached `level`
+/// (vanilla's `level=` selector), and fails otherwise.
+pub fn level_probe_command(name: &str, level: u32) -> Option<String> {
+    safe_name(name).then(|| format!("execute if entity @a[name={name},level={level}..]"))
+}
+
+/// The console line that succeeds when player `name` has done
+/// `advancement` (vanilla's `advancements=` selector), and fails otherwise.
+pub fn advancement_probe_command(name: &str, advancement: &str) -> Option<String> {
+    let advancement = resource_id(advancement)?;
+    safe_name(name).then(|| format!("execute if entity @a[name={name},advancements={{{advancement}=true}}]"))
 }
 
 /// The console line that gives what a full inventory left over: vanilla's
@@ -746,6 +798,21 @@ mod tests {
     }
 
     #[test]
+    fn a_probe_and_short_ids_follow_the_open_tasks() {
+        let mut s = work();
+        assert_eq!(s.probe(7).level, Some(3));
+        assert_eq!(s.probe(8), engine::Probe::default());
+        // What a probe of the level found counts as a level heard.
+        s.set_level(7, 3);
+        s.process(2);
+        assert!(completed(&s, "w/grow"));
+        assert_eq!(s.probe(7).level, None);
+        assert!(s.open_for(7, Verb::Check).is_empty());
+        assert_eq!(s.resolve(7, Verb::Check, " nothing "), "nothing");
+        assert_eq!(s.resolve(8, Verb::Submit, "x"), "x");
+    }
+
+    #[test]
     fn a_level_heard_earlier_counts_when_its_task_opens() {
         let mut s = work();
         s.set_level(7, 9);
@@ -819,6 +886,15 @@ mod tests {
         assert_eq!(clear_command("a b", "bread", 3), None);
         assert_eq!(clear_command("Steve", "bread 1", 3), None);
         assert_eq!(clear_command("Steve", "bread", 0), None);
+
+        assert_eq!(level_probe_command("Steve_1", 5).as_deref(), Some("execute if entity @a[name=Steve_1,level=5..]"));
+        assert_eq!(level_probe_command("@a", 5), None);
+        assert_eq!(
+            advancement_probe_command("Steve", "story/mine_stone").as_deref(),
+            Some("execute if entity @a[name=Steve,advancements={minecraft:story/mine_stone=true}]")
+        );
+        assert_eq!(advancement_probe_command("Steve", "story/mine stone"), None);
+        assert_eq!(advancement_probe_command("a,b", "story/mine_stone"), None);
 
         assert_eq!(
             reward_command("/effect give {player} minecraft:speed 30", "Steve", 7).as_deref(),

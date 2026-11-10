@@ -98,7 +98,7 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 | Player death | `native_player_died` | ✅ API 40 |
 | **Break a block** | `native_destroy_block` (player state injected; ⚠ smp does not read the block id) | ✅ API 14 |
 | Place a block | `native_place_block` | ✅ API 14 |
-| **Advancement** | `native_player_advancement_done(player, name, advancement)` | ✅ API 249 |
+| **Advancement** | `native_player_advancement_done(player, name, advancement)`. **Not called for the host of a single-player world** (fires only while a guest's state is swapped in: `lan_acting_uuid` is None for the host). Fallback: `native_run_command("execute if entity @a[name=X,advancements={id=true}]")` returns whether it succeeded (verified in source 2026-11-10) | ✅ API 249 (guests only) |
 | | `native_player_advancement_progress` (320), `native_player_advancement_criterion_grant` (339) | ✅ |
 | **Dimension** | `native_player_changed_dimension(player, name, from, to)`. ⚠ **Not heard outside a dedicated server** at `fdc87ae`: we poll the player's place instead (v0.0.6) | ✅ API 154 |
 | | `native_player_portal` (271), `native_player_teleported` (170) | ✅ |
@@ -108,7 +108,7 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 | **Structure** | ❌ **not documented** | ❌ |
 | **Stat** | `native_player_stat_award(player, name, stat_type, stat, value, cancel)` | ✅ API 321 |
 | | reading `native_player_stats(uuid)`, `native_player_stat(...)` | ⏳ |
-| **XP** | `native_player_xp_change` (394), `native_player_level_change(player, name, from: i32, to: i32)` (347, after the new level is applied; a guest's state is swapped in). Reading the level without an event: `NativeServerPlayer.xp_level` is ⏳ (`@API:server_player_state@`) | ✅ |
+| **XP** | `native_player_xp_change` (394), `native_player_level_change(player, name, from: i32, to: i32)` (347, after the new level is applied; a guest's state is swapped in). **347 is never called for the single-player host** (`native_player_level_changed` needs `lan_acting_uuid`, set only for guests; seen in game 2026-11-10: `/xp add` did not move the task). Fallback used since v0.0.7: `native_run_command` (API 21, returns true when the command succeeded, works on the integrated server of every single-player world) with `execute if entity @a[name=X,level=N..]`, binary search up to the task's goal. The selector reads the host's own state for the host (`Target::Player`). Reading the level without an event: `NativeServerPlayer.xp_level` is ⏳ (`@API:server_player_state@`) | ✅ |
 | **Craft** | `native_item_crafted(player, recipe: &str, stack: &ItemStack)` (161, after the take); `native_furnace_extract(player, name, pos, item: &str, count: u32)` (228, no player swapped in) | ✅ |
 | Use an item | `native_use_item` (13), `native_use_item_on` (13), `native_living_entity_use_item_finish` (90, eat/drink) | ✅ |
 | Interact with an entity | `native_interact_entity` (29) | ✅ |
