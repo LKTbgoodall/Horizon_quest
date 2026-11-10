@@ -14,9 +14,10 @@ updated: 2026-11-10
 | **Last session** | [[2026-11-10]]: phase 2 steps 2 & 3: wired `hq_net` and `hq_book` into `hq_server_glue` and `hq_client_glue` (v0.0.3). Real interactive quest book with pan/zoom, chapters, panel, claim buttons and net synchronization. **109 tests pass** |
 | **Code** | `mod/` v0.0.3. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | The in-game test of v0.0.3 |
+| **Blocking** | v0.0.3 as pushed should not build (dead spike code in `hq_canvas.rs`) and has two logic bugs (claims never shown in the book; book hand-in takes the host's items): see [[2026-11-10]] § Session 9. Fix first, then the in-game test |
 
 ## ➡️ Next step
+0. Fix the review findings of [[2026-11-10]] § Session 9 (items 1 to 3 at least) as v0.0.4
 1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.3: the full playable book)
 2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
 3. Fix what the build shows if any (`native/build.log`)
