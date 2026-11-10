@@ -11,11 +11,14 @@ updated: 2026-11-10
 
 ## Technical unknowns (to check in the code or with Horizon)
 ### 🔴 Critical for the graphical book ([[ADR-008 Graphical client book first]]): phase 0 spike
-- [ ] **Mod messages in solo**: do `native_net_send_to_server` / `native_net_from_client` work between the window game and the integrated server?
-- [ ] **Mod screen**: does `native_mod_screen_open` + `native_screen_render_post` + the `native_screen_mouse_*_pre` hooks work as documented? Real signatures of `native_fill`, `native_text`, `native_sprite`, `native_item_stack`, `native_quad`?
-- [ ] **2D clip/scissor** for the canvas: is there an undocumented helper (`gui_paint`?)
-- [ ] **A single client + server bundle**: how to cleanly separate the two states in the same mod instance?
-- [ ] Which screen-input hooks are missing from the typed trait (`screen_key_pressed_pre`, `screen_char_typed_pre`, `screen_mouse_scrolled_pre`…) and must be bound as mixin helpers?
+- [ ] **Mod messages in solo**: do `native_net_send_to_server` / `native_net_from_client` work between the window game and the integrated server? ⚠ The code returns an error when the window game has no `remote` connection (`"the server carries no mod messages"`), and we don't know yet whether single player uses one → **spike 3** answers it (the book's footer shows the exact error)
+- [ ] **Mod screen behaviour in game**: drawing, icons, drag, wheel, click → **spike 2**. (Signatures are known now: [[Horizon hooks and API]] § 0.)
+- [ ] **2D clip/scissor** for the canvas: is there an undocumented helper (`gui_paint`?). For now the book culls by hand (`hq_canvas::overlaps`)
+
+## Answered by reading the code (2026-11-10)
+- [x] *Real signatures of the screen and drawing helpers?* → [[Horizon hooks and API]] § 0. Screen hooks take `&self`; the mod screen's `rect` is the whole window.
+- [x] *A single client + server bundle: how to separate the two states?* → client state in a `thread_local!` (window thread), server state in statics (atomics / `Mutex`); every client hook checks `native_window()` or `native_mod_screen()`. See `mod/mixins/horizon_quests/hq_client_glue.rs` and `hq_server_glue.rs`.
+- [x] *Do we need the typed trait for screen input?* → No: we use mixin injections on the `Game::native_*` targets (smp style, [[ADR-004 Mixin bundle style like smp]]), and every hook we need has a target.
 
 ### Other
 - [ ] **Dedicated server**: the public doc says "Not there yet", but `native-mods.md` documents `--server-output`. Is it usable today? → test later (solo/LAN comes first)

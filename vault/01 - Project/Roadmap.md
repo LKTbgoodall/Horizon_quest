@@ -15,13 +15,13 @@ updated: 2026-11-10
 - [x] Validate ADRs 002 to 006 (2026-11-10)
 - [x] License (MIT) and mod id (`horizon_quests`) (2026-11-10, [[ADR-009 MIT license and mod id horizon_quests]])
 - [x] Rust on the dev PC: rustup, stable 1.99.1 `x86_64-pc-windows-gnu` (same as Horizon's launcher), for `cargo test` (2026-11-10)
-- [ ] Re-clone the references into `ext/` (horizon: docs + `native-hooks.json` + `crates/horizon-client/src/game/native_hooks.rs`; horizon-mods)
-- [ ] Check the real hook and helper signatures in `native_hooks.rs` → update [[Horizon hooks and API]]
-- [ ] Mod skeleton: `mod/` with `Cargo.toml`, `compatibility.json`, `LICENSE` (MIT), `mixins/horizon_quests/horizon-mixin.toml`
-- [ ] **Spike 1, hello world**: copy `coords-hud`, rename it, build it on the home PC and see it in game
-- [ ] **Spike 2, mod screen**: a key opens a mod screen that draws a box, text and an item icon, and reacts to drag and scroll
-- [ ] **Spike 3, mod messages in solo**: the client sends `ping`, the server half answers `pong` → the result decides if ADR-008 holds as is
-- [ ] **Spike 4, server command**: `/quests` answers in chat (smp's `register.rs` + `command.rs` pattern)
+- [x] References cloned into `ext/` (gitignored): `horizon` sparse at `1453e0e` (2026-11-10) + `horizon-mods` (2026-11-10)
+- [x] Real signatures checked in `native_hooks.rs` (`NATIVE_HOOKS_API` 415) → [[Horizon hooks and API]] § 0 (2026-11-10)
+- [x] Mod skeleton in `mod/` (v0.0.1, hooks 313, MIT), 16 unit tests pass with `-D warnings` (2026-11-10)
+- [ ] **Spike 1, hello world**: Options > Mods row + HUD hint. Code written; **to test on the home PC** (see `mod/README.md`)
+- [ ] **Spike 2, test book**: K opens a mod screen with 6 demo nodes, icons, lines; drag pans, wheel zooms, click selects. Code written; **to test**
+- [ ] **Spike 3, mod messages in solo**: opening the book pings the server half, which answers pong (footer + chat). Code written; **to test**. The result decides if ADR-008 holds as is
+- [ ] **Spike 4, server command**: `/quests` answers in chat. Code written; **to test**
 
 ## Phase 1: pure logic core (without the game, `cargo test`)
 - [ ] `hq_model`: types + serde + loading of `quests.json` and `chapters/*.json`

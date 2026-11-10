@@ -1,0 +1,14 @@
+[package]
+name = "horizon-mod-horizon-quests"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "Horizon Quests: an FTB Quests-style quest book for Horizon, as a native mod."
+
+# The mod's pure logic and its tests: the same files the bundle adds to the
+# game as modules of `crate::game`, reached here through src/lib.rs.
+[lib]
+path = "src/lib.rs"
+
+[dependencies]

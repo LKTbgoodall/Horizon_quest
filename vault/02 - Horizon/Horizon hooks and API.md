@@ -8,10 +8,65 @@ verified_on: 2026-11-10
 Back: [[Horizon - Overview]] · Concrete examples: [[Example - smp mod (patterns to reuse)]]
 
 > [!warning] Legend
-> - **API N**: requires `"hooks": N` at minimum. The current level on main is **≥ 415** (NF says 409 on Nov 5, NM documents up to 415). `smp` targets 413.
+> - **API N**: requires `"hooks": N` at minimum. `NATIVE_HOOKS_API` is **415** at Horizon `1453e0e` (2026-11-10). `smp` targets 413; our mod targets 313.
 > - **⏳ pending**: documented in the form `@API:name@`, with no number for now, and **absent from the `native-hooks.json` snapshot**. It **cannot** be targeted yet. Recheck on every Horizon update: [[Open questions]].
 > - Many signatures (`native_hud`, `native_fill`, `native_text`, `native_sprite`, `native_key`…) are **not documented**: you have to read `crates/horizon-client/src/game/native_hooks.rs` in Horizon's code.
 > - `NM:1234` references point to lines of `docs/native-mods.md` in the horizon repository.
+
+## 0. Verified signatures (read in `ext/horizon`, commit `1453e0e`, 2026-11-10)
+All of these are methods of `Game<'_>` in `crates/horizon-client/src/game/native_hooks.rs` (helpers are `pub(super)`, so modules under `crate::game` can call them). Injection target: `horizon_client::game::native_hooks::Game<'_>::<name>`. Working bindings are in `mod/mixins/horizon_quests/horizon-mixin.toml`.
+
+**Hooks** (`&self` ones can't mutate the game: keep state in a `thread_local!` on the client, atomics or a `Mutex` on the server)
+```rust
+fn native_tick(&mut self)                                   // every Game; check native_window()
+fn native_server_tick(&mut self, context: &NativeLifecycleContext, phase: ServerTickPhase)
+fn native_hud(&mut self, batch: &mut HudBatch, corners: &mut Corners)
+fn native_key(&mut self, key: &str, pressed: bool)          // "key.keyboard.k"; fires on any screen (chat too!)
+fn native_mods(&mut self, mods: &mut Vec<NativeMod>)        // NativeMod { id, title, description, keys: Vec<[String; 3]> }
+fn native_command(&mut self, command: &str, ran: &mut bool) // client-side command
+fn native_screen_render_post(&self, batch: &mut HudBatch, screen: &NativeScreenView<'_>)
+fn native_screen_mouse_button_pressed_pre(&self, screen: &NativeScreenView<'_>, button: i32, modifiers: u32, canceled: &mut bool)
+fn native_screen_mouse_button_released_pre(&self, screen, button: i32, modifiers: u32, canceled: &mut bool)
+fn native_screen_mouse_dragged_pre(&self, screen, button: i32, delta: [f32; 2], modifiers: u32, canceled: &mut bool) // API 123
+fn native_screen_mouse_scrolled_pre(&self, screen, scroll: [f64; 2], modifiers: u32, canceled: &mut bool)            // API 93
+fn native_screen_key_pressed_pre(&self, screen, key: &str, repeat: bool, modifiers: u32, canceled: &mut bool)       // API 104
+fn native_register_commands(&mut self, commands: &mut Vec<NativeCommand>)
+fn native_perform_command(&mut self, player: &NativeServerPlayer, command: &str, ran: &mut bool)
+fn native_net_from_client(&mut self, player: u128, channel: &str, data: &[u8])  // server, tick after arrival
+fn native_net_from_server(&mut self, channel: &str, data: &[u8])               // window only
+```
+⏳ `_v2` variants of the drag and scroll hooks lend `&mut self` (`screen_mouse_input_v2`), but they are not numbered yet.
+
+**Helpers**
+```rust
+fn native_mod_screen_open(&mut self, mod_id: &str) -> bool  // only over Playing, with a player, on the window
+fn native_mod_screen_close(&mut self, mod_id: &str)
+fn native_mod_screen(&self) -> Option<&str>
+fn native_fill(&self, batch: &mut HudBatch, rect: [f32; 4], argb: u32)
+fn native_quad(&self, batch: &mut HudBatch, points: [[f32; 2]; 4], argb: u32)
+fn native_text(&self, batch: &mut HudBatch, text: &str, at: [f32; 2], rgb: u32, shadow: bool)
+fn native_text_width(&self, text: &str) -> f32
+fn native_item_stack(&self, batch: &mut HudBatch, stack: &ItemStack, at: [f32; 2], size: f32) -> bool // API 313
+fn native_item_model(&self, batch, item: &str, model: &str, at: [f32; 2], size: f32) -> bool        // API 111
+fn native_cursor(&self) -> [f32; 2]
+fn native_mod_key(&self, mod_id: &str, name: &str, default: &str) -> String
+fn native_playing(&self) -> bool      // playing with nothing over the world
+fn native_window(&self) -> bool       // this Game is the window's
+fn native_chat(&mut self, text: &str) // a client-side chat line
+fn native_net_send_to_server(&mut self, channel: &str, data: &[u8]) -> Result<(), String>        // needs self.remote, joined
+fn native_net_send_to_player(&mut self, player: u128, channel: &str, data: &[u8]) -> Result<(), String>
+fn native_feedback(&mut self, line: Text)        // inside perform_command
+fn native_tell(&mut self, uuid: u128, line: Text) -> bool
+```
+**Types**:
+- `NativeScreenView { id, menu, title, rect, slots, mouse, partial_tick }`: `rect` is the **whole window** for a mod screen.
+- `ItemStack { item: Arc<str>, count: u32, damage: u32, extra: Option<Box<StackData>> }` (`horizon_client::items`).
+- `Text::literal(impl Into<String>)`.
+- `NativeCommand::new(usage)` / `::op(usage, level)`.
+- `NativeServerPlayer { uuid, name, permission, dimension, position, game_mode, health, yaw, pitch, entity_id, address, … }`.
+- Paths used in helpers: `crate::game::Game<'_>`, `crate::game::native_server::{NativeCommand, NativeServerPlayer}`, `crate::game::native_hooks::NativeMod`, `horizon_client::hud::HudBatch`, `horizon_client::extras_hud::Corners`, `horizon_client::extras::Corner`, `horizon_client::mod_api::NativeScreenView<'_>`.
+- A target function's body has no `cfg` and no macros (horizon-mixins refuses them); helpers and modules may use them.
+- Other files: `crates/horizon-client/src/game/native_text_field.rs` (a text field helper, to look at for the editor) and `native_permissions.rs`.
 
 ## 1. Network and client ↔ server sync
 | Need | API | Status |

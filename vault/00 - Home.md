@@ -10,16 +10,16 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | 0: setup → [[Roadmap]] |
-| **Last session** | [[2026-11-10]]: research, vault, repo pushed, all project decisions taken, Rust installed on the dev PC |
-| **Code** | none yet (the repo holds only docs) |
+| **Phase** | 0: setup, spikes written, **waiting for the first in-game test** → [[Roadmap]] |
+| **Last session** | [[2026-11-10]]: research, vault, decisions, Rust on the dev PC, mod skeleton + 4 spikes |
+| **Code** | `mod/` v0.0.1: 4 spikes in one bundle; pure modules tested (16 tests); the glue has never been compiled yet (needs the home PC build) |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | nothing; the phase 0 spikes will tell whether the graphical book works as planned |
+| **Blocking** | the home PC test. Spike 3 (mod messages in solo) decides whether ADR-008 holds |
 
 ## ➡️ Next step
-1. Re-clone the references into `ext/` and read the real signatures in `native_hooks.rs`
-2. Mod skeleton in `mod/` (MIT `LICENSE`, `horizon-mixin.toml`, `compatibility.json`)
-3. Spikes 1 to 4 → [[Roadmap]] phase 0 (hello world, mod screen, mod messages in solo, `/quests`), tested by Bastien on the home PC → [[Build, test and tools]] § Two-PC workflow
+1. Bastien: `git pull` on the home PC, then the checklist in `mod/README.md` § Test in game
+2. Fix what the build or the test shows (`native/build.log`, screenshots, footer text of the book)
+3. Phase 1: `hq_model`, quest file loading, validation → [[Roadmap]]
 
 ## 🗺️ Vault map
 ### 01 · Project
