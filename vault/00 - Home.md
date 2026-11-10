@@ -15,8 +15,10 @@ updated: 2026-11-10
 | **Code** | `mod/` v0.0.5. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
 | **Blocking** | Nothing known: the in-game test of v0.0.5 (solo, then LAN). Watch the single-player host's inventory reads and `native_player_logged_in` for the host ([[Open questions]]) |
+| **In progress** | **v0.0.6 (phase 3, first step), half done on branch `wip/v0.0.6`**: new tasks (craft, xp levels, dimension, location, advancement), new rewards (command, toast, random, choice), reward tables, repeatable quests, sequential tasks. Pure modules done, **glue not adapted yet, no new tests** → [[2026-11-10]] § Session 12 has the exact to-do list. `main` is still v0.0.5 |
 
 ## ➡️ Next step
+0. Claude: `git checkout wip/v0.0.6`, then finish v0.0.6 as listed in [[2026-11-10]] § Session 12 (glue, mixin manifest, tests, control compile, docs), merge into `main`. Teams, config, datapack, book polish and assets come after, one step each
 1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.5: solo, config file, then LAN)
 2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
 3. Fix what the build shows if any (`native/build.log`)

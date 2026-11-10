@@ -57,10 +57,12 @@ updated: 2026-11-10
 - [ ] **Release 0.1.0** (private testing)
 
 ## Phase 3: V1
-- [ ] Tasks: craft, xp, dimension, location, advancement
-- [ ] Rewards: command, choice, random, toast, reward tables
+> Started on 2026-11-10 while phase 2 still waits for its in-game test. v0.0.6 (the three items marked below) is **half done on branch `wip/v0.0.6`**: pure modules written, glue and tests left → [[2026-11-10]] § Session 12.
+
+- [ ] Tasks: craft, xp, dimension, location, advancement: **engine coded on `wip/v0.0.6`, glue to do**
+- [ ] Rewards: command, choice, random, toast, reward tables: **engine coded on `wip/v0.0.6`, glue to do**
 - [ ] Teams (parties): create, invite, join, leave, with FTB's merge rules
-- [ ] Repeatable and optional quests, sequential tasks
+- [ ] Repeatable and optional quests, sequential tasks: **engine coded on `wip/v0.0.6`, glue to do**
 - [ ] TOML config (`native_register_configs`)
 - [ ] Datapack quests (`NativeReloadListener`)
 - [ ] Book polish: search, tracked quest in the HUD, `show_recipes`, client toasts
