@@ -273,7 +273,7 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         let mut probes = Vec::new();
         for uuid in s.session.advance() {
             look_at_inventory(game, &mut s.session, uuid);
-            let probe = s.session.probe(uuid);
+            let probe = s.session.take_probe(uuid);
             if probe != engine::Probe::default()
                 && let Some(player) = s.session.player(uuid)
                 && session::safe_name(&player.name)

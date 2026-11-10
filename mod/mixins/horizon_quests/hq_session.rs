@@ -50,6 +50,9 @@ pub struct Session {
     next_look: HashMap<u128, u64>,
     /// Players to look at on the next tick whatever their turn.
     poked: HashSet<u128>,
+    /// The tick from which each player's level and advancements may be
+    /// asked again: at most once per `detection_delay`, pokes or not.
+    next_probe: HashMap<u128, u64>,
     /// The state of the random bits handed to the engine (random rewards).
     roll: u64,
 }
@@ -65,6 +68,7 @@ impl Session {
             tick: 0,
             next_look: HashMap::new(),
             poked: HashSet::new(),
+            next_probe: HashMap::new(),
             roll: seed,
         }
     }
@@ -102,6 +106,7 @@ impl Session {
     pub fn leave(&mut self, uuid: u128) -> Option<Progress> {
         self.next_look.remove(&uuid);
         self.poked.remove(&uuid);
+        self.next_probe.remove(&uuid);
         self.queue.retain(|(who, _)| *who != uuid);
         let player = self.players.remove(&uuid)?;
         (player.dirty && player.saveable).then_some(player.progress)
@@ -194,9 +199,19 @@ impl Session {
 
     /// What to ask the server about the player's level and advancements:
     /// Horizon does not tell them as they change for the host of a
-    /// single-player world, so the glue asks on each look.
-    pub fn probe(&self, uuid: u128) -> engine::Probe {
-        self.players.get(&uuid).map(|p| engine::probe(&self.book, &p.progress)).unwrap_or_default()
+    /// single-player world, so the glue asks when it looks at them. Nothing
+    /// when they were asked less than `detection_delay` ticks ago: a pickup
+    /// pokes a look at the inventory, not a new question.
+    pub fn take_probe(&mut self, uuid: u128) -> engine::Probe {
+        if self.next_probe.get(&uuid).is_some_and(|&next| self.tick < next) {
+            return engine::Probe::default();
+        }
+        let probe = self.players.get(&uuid).map(|p| engine::probe(&self.book, &p.progress)).unwrap_or_default();
+        if probe != engine::Probe::default() {
+            let delay = u64::from(self.book.settings().detection_delay.max(1));
+            self.next_probe.insert(uuid, self.tick + delay);
+        }
+        probe
     }
 
     /// The open tasks of the player a command can name for `verb`
@@ -800,13 +815,26 @@ mod tests {
     #[test]
     fn a_probe_and_short_ids_follow_the_open_tasks() {
         let mut s = work();
-        assert_eq!(s.probe(7).level, Some(3));
-        assert_eq!(s.probe(8), engine::Probe::default());
+        s.advance();
+        assert_eq!(s.take_probe(7).level, Some(3));
+        assert_eq!(s.take_probe(8), engine::Probe::default());
+        // Asked again before the delay (a pickup's poke): nothing to ask.
+        s.poke(7);
+        s.advance();
+        assert_eq!(s.take_probe(7), engine::Probe::default());
+        // The default delay is 20 ticks: asked again on the 21st.
+        for _ in 0..19 {
+            s.advance();
+        }
+        assert_eq!(s.take_probe(7).level, Some(3));
         // What a probe of the level found counts as a level heard.
         s.set_level(7, 3);
         s.process(2);
         assert!(completed(&s, "w/grow"));
-        assert_eq!(s.probe(7).level, None);
+        for _ in 0..20 {
+            s.advance();
+        }
+        assert_eq!(s.take_probe(7).level, None);
         assert!(s.open_for(7, Verb::Check).is_empty());
         assert_eq!(s.resolve(7, Verb::Check, " nothing "), "nothing");
         assert_eq!(s.resolve(8, Verb::Submit, "x"), "x");
