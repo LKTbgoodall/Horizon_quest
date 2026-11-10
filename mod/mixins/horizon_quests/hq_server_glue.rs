@@ -10,6 +10,7 @@ use super::hq_commands::{self as commands, Command};
 use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::{ItemMatch, RewardKind};
+use super::hq_net::{self as net, ToClient, ToServer};
 use super::hq_progress::{Effect, QuestEvent};
 use super::hq_protocol as proto;
 use super::hq_session::{self as session, Session};
@@ -21,6 +22,7 @@ use crate::game::native_server::{NativeCommand, NativeServerPlayer};
 use horizon_client::items::ItemStack;
 use horizon_client::mod_api::{ServerTickPhase, WorldPhase};
 use horizon_client::text::Text;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering::Relaxed};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -40,6 +42,10 @@ struct State {
     /// Effects decided outside the tick (an admin command), carried out on
     /// the next one, where every player is in reach.
     pending: Vec<(u128, Effect)>,
+    /// Outgoing net senders to online players (hq_net).
+    senders: HashMap<u128, net::Sender>,
+    /// Incoming net receivers from online players (hq_net).
+    receivers: HashMap<u128, net::Receiver>,
 }
 
 /// How many problems a report lists in chat.
@@ -70,7 +76,14 @@ fn open(game: &Game<'_>) -> State {
     let (loaded, source) = load_pack(dir.as_deref());
     let report = commands::report(&loaded, REPORT_LIMIT);
     log::info!("{}: quests from {source}: {}", meta::NAME, report.join(" | "));
-    State { session: Session::new(Book::new(loaded.file)), dir, report, pending: Vec::new() }
+    State {
+        session: Session::new(Book::new(loaded.file)),
+        dir,
+        report,
+        pending: Vec::new(),
+        senders: HashMap::new(),
+        receivers: HashMap::new(),
+    }
 }
 
 fn tell(game: &mut Game<'_>, uuid: u128, line: &str) {
@@ -133,12 +146,15 @@ pub fn logged_out(game: &mut Game<'_>, player: u128) {
     if !game.native_on(meta::ID) {
         return;
     }
-    if let Some(s) = state().as_mut()
-        && let Some(progress) = s.session.leave(player)
-        && let Some(dir) = &s.dir
-        && let Err(e) = store::save_progress(dir, &store::uuid_string(player), &progress)
-    {
-        log::error!("{}: could not save the progress of {}: {e}", meta::NAME, store::uuid_string(player));
+    if let Some(s) = state().as_mut() {
+        s.senders.remove(&player);
+        s.receivers.remove(&player);
+        if let Some(progress) = s.session.leave(player)
+            && let Some(dir) = &s.dir
+            && let Err(e) = store::save_progress(dir, &store::uuid_string(player), &progress)
+        {
+            log::error!("{}: could not save the progress of {}: {e}", meta::NAME, store::uuid_string(player));
+        }
     }
 }
 
@@ -172,7 +188,7 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
     if !matches!(phase, ServerTickPhase::ServerTickEnd { .. }) || !game.native_on(meta::ID) {
         return;
     }
-    let actions = {
+    let (actions, outgoing) = {
         let mut guard = state();
         let Some(s) = guard.as_mut() else {
             return;
@@ -182,6 +198,14 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         }
         let mut effects = std::mem::take(&mut s.pending);
         effects.extend(s.session.process(session::now()));
+
+        // Sync changed progress to clients over hq_net before saving clears dirty
+        for (uuid, name, progress) in s.session.dirty_players() {
+            if let Some(sender) = s.senders.get_mut(&uuid) {
+                let _ = sender.send(&ToClient::Progress { player: name, progress });
+            }
+        }
+
         let book = s.session.book();
         let actions: Vec<Action> = effects
             .into_iter()
@@ -196,7 +220,16 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
             })
             .collect();
         save(s);
-        actions
+
+        let mut outgoing = Vec::new();
+        for (&uuid, sender) in &mut s.senders {
+            let frames = sender.tick();
+            if !frames.is_empty() {
+                outgoing.push((uuid, frames));
+            }
+        }
+
+        (actions, outgoing)
     };
     for action in actions {
         if let Some(line) = &action.line {
@@ -204,6 +237,21 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         }
         if let Some(reward) = action.reward {
             give(game, action.uuid, &action.name, reward);
+        }
+    }
+    for (uuid, frames) in outgoing {
+        let mut put_back = Vec::new();
+        for frame in frames {
+            if let Err(_) = game.native_net_send_to_player(uuid, net::CHANNEL, &frame) {
+                put_back.push(frame);
+            }
+        }
+        if !put_back.is_empty() {
+            if let Some(s) = state().as_mut()
+                && let Some(sender) = s.senders.get_mut(&uuid)
+            {
+                sender.put_back(put_back);
+            }
         }
     }
 }
@@ -251,19 +299,85 @@ fn give(game: &mut Game<'_>, uuid: u128, name: &str, reward: RewardKind) {
     }
 }
 
-/// A mod message from a player's client: answer a ping with its pong.
+/// A mod message from a player's client: answers pings (spike 3) or handles
+/// book requests (hq_net) on channel "horizon_quests:book".
 pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]) {
-    if channel != proto::CHANNEL || !game.native_on(meta::ID) {
+    if !game.native_on(meta::ID) {
         return;
     }
-    let Some(reply) = proto::decode(data).and_then(proto::answer) else {
-        return;
-    };
-    match game.native_net_send_to_player(player, proto::CHANNEL, &proto::encode(reply)) {
-        Ok(()) => {
-            PONGS.fetch_add(1, Relaxed);
+    if channel == proto::CHANNEL {
+        let Some(reply) = proto::decode(data).and_then(proto::answer) else {
+            return;
+        };
+        match game.native_net_send_to_player(player, proto::CHANNEL, &proto::encode(reply)) {
+            Ok(()) => {
+                PONGS.fetch_add(1, Relaxed);
+            }
+            Err(e) => log::warn!("{}: could not answer a ping: {e}", meta::NAME),
         }
-        Err(e) => log::warn!("{}: could not answer a ping: {e}", meta::NAME),
+        return;
+    }
+    if channel != net::CHANNEL {
+        return;
+    }
+
+    let to_server = {
+        let mut guard = state();
+        let Some(s) = guard.as_mut() else {
+            return;
+        };
+        let receiver = s.receivers.entry(player).or_insert_with(|| net::Receiver::new(net::SERVER_MAX_PARTS));
+        match receiver.push::<ToServer>(data) {
+            Ok(Some(msg)) => msg,
+            Ok(None) => return,
+            Err(e) => {
+                log::warn!("{}: bad net frame from {player}: {e}", meta::NAME);
+                return;
+            }
+        }
+    };
+
+    match to_server {
+        ToServer::Hello { protocol, version: _ } => {
+            let mut guard = state();
+            let Some(s) = guard.as_mut() else {
+                return;
+            };
+            let sender = s.senders.entry(player).or_default();
+            let reply = net::greet(protocol, meta::VERSION);
+            let _ = sender.send(&reply);
+            if protocol == net::PROTOCOL {
+                let _ = sender.send(&ToClient::Book { file: s.session.book().file().clone() });
+                if let Some(p) = s.session.player(player) {
+                    let _ = sender.send(&ToClient::Progress { player: p.name.clone(), progress: p.progress.clone() });
+                }
+            }
+        }
+        ToServer::Check { task } => {
+            if let Some(s) = state().as_mut() {
+                s.session.push(player, QuestEvent::Check { task });
+            }
+        }
+        ToServer::Claim { reward } => {
+            if let Some(s) = state().as_mut() {
+                s.session.push(player, QuestEvent::Claim { reward });
+            }
+        }
+        ToServer::ClaimAll => {
+            if let Some(s) = state().as_mut() {
+                s.session.push(player, QuestEvent::ClaimAll);
+            }
+        }
+        ToServer::Submit { task } => {
+            let lines = submit(game, player, &task);
+            if let Some(line) = lines.first() {
+                let mut guard = state();
+                if let Some(s) = guard.as_mut() {
+                    let sender = s.senders.entry(player).or_default();
+                    let _ = sender.send(&ToClient::Notice { text: line.clone() });
+                }
+            }
+        }
     }
 }
 
@@ -391,8 +505,12 @@ fn reload() -> Vec<String> {
     if refused {
         lines.push("Nothing was changed: the quests in use stay.".to_owned());
     } else {
+        let file = loaded.file.clone();
         s.session.set_book(Book::new(loaded.file));
         s.report = report;
+        for sender in s.senders.values_mut() {
+            let _ = sender.send(&ToClient::Book { file: file.clone() });
+        }
     }
     lines
 }

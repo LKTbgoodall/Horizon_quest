@@ -10,18 +10,17 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: step 1 (server half) coded as v0.0.2, **waiting for the in-game test** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]]: research, vault, pure core, first in-game test (all 4 spikes pass), then phase 2 step 1: the server half (`hq_session` + `hq_server_glue`) |
-| **Code** | `mod/` v0.0.2. Every module is in the bundle now; the server glue (engine, inventories, rewards, saving, `/quests`) is **not compiled yet** (Bastien's build is its first compile). `allow(dead_code)` marks on items the glue does not call yet. **108 tests pass** |
+| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded as v0.0.3, **waiting for the in-game test** → [[Roadmap]] |
+| **Last session** | [[2026-11-10]]: phase 2 steps 2 & 3: wired `hq_net` and `hq_book` into `hq_server_glue` and `hq_client_glue` (v0.0.3). Real interactive quest book with pan/zoom, chapters, panel, claim buttons and net synchronization. **109 tests pass** |
+| **Code** | `mod/` v0.0.3. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | The in-game test of v0.0.2 |
+| **Blocking** | The in-game test of v0.0.3 |
 
 ## ➡️ Next step
-1. Bastien: `git pull`, `tools/build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.2: the server half)
-2. Fix what the build shows (`native/build.log`): the server glue is compiled for the first time there
-3. Phase 2 step 2: net sync (`hq_net`), server → book
-4. Phase 2 step 3: the real book (`hq_book` replaces the test book), then remove the `allow(dead_code)` marks
-5. Bastien: answer the design questions in [[Open questions]] § Decisions to make
+1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.3: the full playable book)
+2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
+3. Fix what the build shows if any (`native/build.log`)
+4. Release 0.1.0 preparation (polishing, settings toggle)
 
 ## 🗺️ Vault map
 ### 01 · Project

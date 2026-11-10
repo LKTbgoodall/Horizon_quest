@@ -171,6 +171,19 @@ impl Session {
         out
     }
 
+    /// Every player whose progress changed since last sync/save.
+    #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
+    pub fn dirty_players(&self) -> Vec<(u128, String, Progress)> {
+        let mut out = Vec::new();
+        for (&uuid, player) in &self.players {
+            if player.dirty {
+                out.push((uuid, player.name.clone(), player.progress.clone()));
+            }
+        }
+        out.sort_unstable_by_key(|(uuid, _, _)| *uuid);
+        out
+    }
+
     /// `/quests complete`: what it did, or why not.
     pub fn force_complete(&mut self, uuid: u128, quest: &str, now: u64) -> Result<Vec<Effect>, String> {
         let player = self.players.get_mut(&uuid).ok_or("That player is not on.")?;
@@ -381,6 +394,19 @@ mod tests {
         s.push(7, QuestEvent::Killed { entity: entity_id("minecraft:zombie") });
         let effects = s.process(1);
         assert!(effects.contains(&(7, Effect::QuestCompleted { quest: "c/zombie".into() })), "{effects:?}");
+    }
+
+    #[test]
+    fn dirty_players_reports_changed_players() {
+        let mut s = session();
+        s.join(7, "Steve", Ok(Progress::default()));
+        s.push(7, QuestEvent::Killed { entity: "minecraft:zombie".into() });
+        assert!(s.dirty_players().is_empty());
+        s.process(1);
+        let dirty = s.dirty_players();
+        assert_eq!(dirty.len(), 1);
+        assert_eq!(dirty[0].0, 7);
+        assert_eq!(dirty[0].1, "Steve");
     }
 
     #[test]

@@ -4,9 +4,9 @@
 /// The mod's id: its settings folder, its key lines, its net channel prefix.
 pub const ID: &str = "horizon_quests";
 pub const NAME: &str = "Horizon Quests";
-pub const VERSION: &str = "0.0.2";
+pub const VERSION: &str = "0.0.3";
 pub const DESCRIPTION: &str =
-    "An FTB Quests-style quest book. Phase 0 spikes: press K for the test book, /quests on the server.";
+    "An FTB Quests-style quest book. Phase 2: graphical quest book, net sync, server engine.";
 
 /// The key that opens the quest book: its name in `horizon-mods.txt`, its
 /// label in Options > Mods, and its default. K is free in vanilla (L opens
@@ -61,8 +61,8 @@ mod tests {
 
     #[test]
     fn texts_name_the_mod() {
-        assert_eq!(title(), "Horizon Quests 0.0.2");
-        assert_eq!(hud_hint("K"), "Horizon Quests 0.0.2 - K opens the quest book");
+        assert_eq!(title(), format!("{NAME} {VERSION}"));
+        assert_eq!(hud_hint("K"), format!("{NAME} {VERSION} - K opens the quest book"));
         assert!(command_reply("Steve", 3).contains("Hello Steve!"));
         assert!(command_reply("Steve", 3).ends_with("so far: 3."));
     }

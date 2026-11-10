@@ -1,13 +1,12 @@
 # Horizon Quests: the native mod
 
-The bundle the Horizon launcher builds into the game. Version 0.0.2 adds the **server half** of phase 2 (quest engine, inventories, rewards, saving, `/quests`) to the **phase 0 spikes**, which checked that the platform can carry the graphical quest book.
+The bundle the Horizon launcher builds into the game. Version 0.0.3 adds the **graphical quest book** (`hq_book`) and **real network synchronization** (`hq_net`) to the quest engine (`hq_session`, `hq_server_glue`), replacing the temporary spike screen with the full interactive quest UI.
 
-| Spike | What it proves | Hooks |
+| Feature | What it provides | Hooks / Modules |
 |---|---|---|
-| 1. HUD hint | the bundle builds and runs in the client | `native_mods`, `native_hud` |
-| 2. Test book | a mod screen can draw a pan/zoom canvas with item icons and lines, and take clicks, drags and the wheel | `native_key`, `native_mod_screen_open`, `native_screen_render_post`, `native_screen_mouse_*_pre`, `native_item_stack`, `native_quad` |
-| 3. Ping/pong | mod messages work between the window and the integrated server in single player | `native_net_send_to_server`, `native_net_from_client`, `native_net_send_to_player`, `native_net_from_server` |
-| 4. `/quests` | the server half registers and answers a command | `native_register_commands`, `native_perform_command` |
+| **Graphical Book** | Interactive quest canvas: chapter sidebar, zoom, pan, quest details panel, buttons | `hq_book`, `hq_client_glue`, `native_mod_screen_open`, `native_screen_render_post`, input hooks |
+| **Network Sync** | Reliable framing (<=30KB frames, 16 frames/tick) for definitions, progress, actions | `hq_net`, channel `horizon_quests:book`, `native_net_send_*`, `native_net_from_*` |
+| **Server Engine** | Tasks (inventory, craft, furnace, kill, checkmark), rewards, atomic JSON saves, `/quests` | `hq_server_glue`, `hq_session`, `hq_progress`, `hq_store` |
 
 ## Layout
 ```
@@ -50,17 +49,15 @@ cargo test
    Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order. Phase 0 (all passed on 2026-11-10, recheck quickly): the Options > Mods row now says **0.0.2**, the HUD hint, K opens the test book with `NET OK`.
-   Then **v0.0.2, the server half** (no real book yet: everything shows in chat). Use a **new single-player world** in Survival:
-   - [ ] **Build**: it succeeds. If not, send `native/build.log`: the server glue is compiled for the first time.
-   - [ ] **`/quests`**: the help, with `/quests progress`, `claim`, `check`, `submit` (and the admin forms for an operator).
-   - [ ] **`/quests progress`**: `Getting started: 0/11 quests` and ` - Welcome: open (...)`.
-   - [ ] **Checkmark**: `/quests check getting_started/welcome/ready`. Chat: `[Horizon Quests] Quest completed: ...`.
-   - [ ] **Items held**: cut 8 logs of any wood (a tag). Within a second of the last pickup, chat says the quest is completed. Then craft the next items the quests ask for (`/quests progress` lists them): crafting must also complete them.
-   - [ ] **Items from a chest**: put the items of an open quest in a chest first (creative or `/give` before the quest opens), then take them out: the quest completes within a second.
-   - [ ] **Rewards**: `/quests claim`. Chat: `Reward: ...` and the items or XP arrive. With a full inventory, the items drop at your feet.
-   - [ ] **Kill task** (if the pack has one open): kill the mob with a melee blow (bow kills are not counted yet).
-   - [ ] **Hand-in** (if the pack has one open): `/quests submit <task>` takes the items.
-   - [ ] **Saving**: leave the world and come back: `/quests progress` shows the same progress. The file is `saves/<world>/horizon-quests/progress/<your uuid>.json`.
-   - [ ] **Admin** (cheats on): `/quests complete <you> getting_started/<quest>`, `/quests reset <you> getting_started/<quest>`, `/quests validate`, `/quests reload`.
-4. Report back: what worked, what didn't, and screenshots of the book if possible.
+3. Start the game and check, in order. The Options > Mods row now says **0.0.3**.
+   Use a **new single-player world** in Survival:
+   - [ ] **Build**: it succeeds. If not, send `native/build.log`.
+   - [ ] **Open the Book (K)**: opens the real graphical quest book! You should see the chapters on the left sidebar ("Getting started"), the canvas with quest nodes, dependency lines, icons. The HUD hint disappears while the book is open.
+   - [ ] **Pan & Zoom**: drag to pan the canvas, mouse wheel to zoom in and out.
+   - [ ] **Quest selection**: clicking a quest opens its details panel on the right with description, tasks, and reward previews.
+   - [ ] **Checkmark task**: select the "Welcome" quest and click the confirmation button. It marks as completed and sends updates to the server.
+   - [ ] **Inventory task**: gather 8 logs. The quest completes and updates on both the server and in the graphical book in real time.
+   - [ ] **Claim rewards**: click the claim button in the quest panel. Items and XP arrive; leftovers drop at your feet if inventory is full.
+   - [ ] **Saving**: leave the world and rejoin: pressing K reloads your progress accurately from `saves/<world>/horizon-quests/progress/<your uuid>.json`.
+   - [ ] **`/quests` commands**: `/quests progress`, `check`, `claim`, `submit`, `reload`, `validate` continue to work alongside the graphical book.
+4. Report back: what worked, what didn't, and screenshots of the book!
