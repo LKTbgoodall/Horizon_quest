@@ -33,11 +33,13 @@ updated: 2026-11-10
 - [x] `hq_progress`: `QuestEvent` → progress → `Vec<Effect>`; item, hand-in, kill and checkmark tasks; completion in dependency order (2026-11-10)
 - [x] Rewards, pure part (in `hq_progress`, no separate `hq_rewards` needed yet): item, xp, xp_levels, claim, claim all, auto-claim, once per player (2026-11-10). Dropping leftovers at the player's feet is glue (phase 2)
 - [x] `hq_store`: atomic JSON, progress files per team, version check (2026-11-10). Still to do: background writer thread, `teams.json`, `audit.log`
-- [ ] `hq_net`: protocol messages, versioned, chunked under 30,000 bytes
-- [ ] Canvas math (pure): pan/zoom transform ✅ (phase 0), hit testing ✅, dependency line geometry ✅; **still to do**: draw real quests from a `Book` (shapes, sizes, states), chapter sidebar and detail panel layout
-- [ ] `hq_commands`: parsing `/quests …` → pure outputs
+- [x] `hq_net`: `ToServer` / `ToClient` messages (JSON), protocol version, frames under 30,000 bytes, `Sender` paced at 16 frames a tick, `Receiver` that trusts nothing (2026-11-10)
+- [x] `hq_book`: the whole book as a draw list + click zones: regions (header, chapter list, canvas, quest panel, footer), nodes with shapes / sizes / state colours, dependency lines, fit-to-canvas, text wrapping, buttons (Check, Submit, Claim, Claim all), tooltip, click / drag / wheel handling (2026-11-10)
+- [x] `hq_commands`: `/quests` forms, op levels, help, validation report, chat lines for effects; `force_complete` and `reset_quest` in `hq_progress` (2026-11-10)
 - [x] Example chapter "Getting started" in `data/quests/` (11 quests), with an end-to-end test that finishes it (2026-11-10)
-- [ ] Config option to turn the example chapter off
+- [ ] Config option to turn the example chapter off (needs `native_register_configs`: glue, phase 2)
+
+> **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).
 
 ## Phase 2: playable MVP (solo/LAN) 🎯
 - [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`

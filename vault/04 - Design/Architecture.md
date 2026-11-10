@@ -66,9 +66,10 @@ Status on 2026-11-10: ✔ written and tested · ◻ planned.
 | ✔ `hq_progress` | Engine: `apply(book, progress, player, now, event) -> Outcome { changed, effects }`; `wanted_items`, `submit_request`; claims and auto-claim | ✅ |
 | ◻ `hq_rewards` | V1: weighted draws, choice, team vs player (the MVP's claims live in `hq_progress`) | ✅ (injected RNG) |
 | ◻ `hq_teams` | V1. Minimal teams: personal, party, progress merge and copy | ✅ |
-| ◻ `hq_commands` | Parsing `/quests …` → `Vec<Out>` | ✅ |
-| ✔ `hq_canvas` | Graphical book maths: pan/zoom transform, hit testing, line quads (phase 0). ◻ Real quests from a `Book`, sidebar and detail panel layout | ✅ |
-| ◻ `hq_net` | Client ↔ server messages (versioned, < 30,000 bytes, chunked). `hq_protocol` is its phase 0 spike (ping/pong) | ✅ |
+| ✔ `hq_commands` | `/quests`: `USAGES` to register, `parse` / `parse_for` (op level), `help`, `report` (validate, reload), `announce` (chat lines for effects) | ✅ |
+| ✔ `hq_canvas` | Canvas maths: pan/zoom `View`, hit testing, line quads (phase 0, in the bundle) | ✅ |
+| ✔ `hq_book` | The real book: `BookView::scene(&Screen) -> Scene { draws, zones }` (draw list + click zones), regions, shapes, text wrapping, panel, buttons; `click` / `drag` / `scroll` → `Reaction` | ✅ |
+| ✔ `hq_net` | `ToServer` / `ToClient` (JSON, `PROTOCOL` 1, channel `horizon_quests:book`), frames ≤ 30,000 bytes, `Sender` (16 frames a tick), `Receiver`. `hq_protocol` is its phase 0 spike (ping/pong) | ✅ |
 | ✔ `hq_store` | Atomic JSON reads and writes, `progress/<team>.json`, version check, UUID names. ◻ Writer thread, `teams.json`, `audit.log` | ✅ (fs) |
 | ◻ `hq_import_ftb` | Import FTB JSON5/SNBT → our format (later) | ✅ |
 | ✔ `hq_server_glue.rs` (spike) | Server half. ◻ Global state `static STATE: Mutex<Option<Hq>>`, hook wiring, effect application | ❌ |
@@ -88,6 +89,21 @@ book "Submit" request            → submit_request(book, progress, task) → ta
                                     → QuestEvent::Submitted { task, count: taken }
 login, /quests reload            → QuestEvent::Refresh
 ```
+
+## How the client glue drives the book (phase 2)
+```
+key K                            → native_mod_screen_open; view.open(&screen); Sender.send(Hello)
+window tick                      → for frame in sender.tick(): native_net_send_to_server (put_back on error)
+native_net_from_server           → receiver.push(frame) → ToClient:
+                                     Book { file }      → Book::new(file); view.open(&screen)
+                                     Progress { .. }    → keep it
+                                     Notice { text }    → view.notice = text
+native_screen_render_post        → view.scene(&screen).draws → native_fill / native_quad / native_text / native_item_stack
+mouse pressed / dragged / wheel  → view.click / drag / scroll(&screen)
+                                     Reaction::Send(msg) → sender.send(&msg);  Reaction::Close → native_mod_screen_close
+```
+`Screen` = the book, the progress, the player's name, the window rect, the pointer, and `&|text| game.native_text_width(text)`.
+The server side mirrors it: one `Sender` and one `Receiver::new(SERVER_MAX_PARTS)` per player; `ToServer` → `hq_net::request_event` → the event queue (`Submit` goes through `submit_request` first).
 
 ## State and threads
 - `static STATE: Mutex<Option<Hq>>`, lazily initialized from `native_world_dir()`. Reopened if the world changes, with poison-tolerant locks.

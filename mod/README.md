@@ -21,7 +21,8 @@ mod/
     ├── horizon-mixin.toml
     ├── hq_meta.rs, hq_protocol.rs, hq_canvas.rs   # pure, tested, in the bundle
     ├── hq_model.rs, hq_validate.rs, hq_logic.rs,
-    │   hq_progress.rs, hq_store.rs                # pure, tested, NOT in the bundle yet (phase 1)
+    │   hq_progress.rs, hq_store.rs, hq_net.rs,
+    │   hq_book.rs, hq_commands.rs                 # pure, tested, NOT in the bundle yet (phase 1)
     ├── hq_client_glue.rs, hq_server_glue.rs       # touch the game
     ├── *.rs                                       # one helper per hook
     └── data/quests/                               # the example pack "Getting started"

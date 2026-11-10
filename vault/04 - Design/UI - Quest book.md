@@ -11,6 +11,15 @@ Reference: [[FTB editor and UI]] · API: [[Horizon hooks and API]] §5 · Decisi
 > [!important] Decision (2026-11-10)
 > The MVP ships the **graphical book** directly (Horizon client with the mod). The chest-menu book is **not planned**; it stays described at the end of this note as an optional fallback for vanilla clients.
 
+> [!important] Coded, pure, in `hq_book.rs` (2026-11-10): not seen in game yet
+> `BookView::scene(&Screen)` returns a **draw list** (`Fill`, `Quad`, `Text`, `Item`) and **click zones**; `click`, `drag` and `scroll` handle input. The glue will only carry the draws out. What it does, as built:
+> - Regions: header 24 px (chapter title, subtitle, tally, close), chapter list (22 % of the width, 70 to 130 px), canvas, quest panel when a quest is selected (34 %, 110 to 200 px), footer 14 px ("Claim all (n)", the server's last notice, help).
+> - Chapter list: ungrouped chapters, then each group with its chapters; icon, title, `done/total`; hidden chapters are not listed.
+> - Canvas: dependency lines (grey, green once the dependency is completed; only inside the chapter), nodes as fans of quads for the 5 shapes, frame in the state's colour (locked grey, available white, in progress yellow, rewards waiting blue, done green), gold ring when selected, item icon, tooltip with the title on hover. Opening a chapter fits it to the canvas (never zoomed in past 1).
+> - Panel: title bar with a close button; subtitle, state, "Needs:" for a locked quest, description (wrapped), tasks with `[x]` marks, counts and **Check** / **Submit** buttons, rewards with **Claim** buttons or "(claimed)". Scrolls with the wheel. Opening it does not move the quests on screen.
+> - No clip: the canvas is drawn first and the opaque bands cover what spills out; icons and text are only drawn where they fit whole.
+> - Names of items and entities are made from their ids (`minecraft:oak_log` → "Oak log") until the book can ask the game for real names.
+
 ## Layout (MVP)
 ```
 ┌────────────┬─────────────────────────────────────────────┬──────────────────┐

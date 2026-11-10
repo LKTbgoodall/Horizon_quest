@@ -10,17 +10,17 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | 0 and 1 in parallel: phase 0 spikes written, **waiting for the first in-game test**; phase 1 (pure core) well under way → [[Roadmap]] |
-| **Last session** | [[2026-11-10]]: research, vault, decisions, mod skeleton + 4 spikes; then the pure core: model, loading and validation, logic, engine, store, example pack |
-| **Code** | `mod/` v0.0.1. In the bundle: the 4 spikes (glue never compiled yet, needs the home PC build). Outside the bundle for now (`src/lib.rs` only): `hq_model`, `hq_validate`, `hq_logic`, `hq_progress`, `hq_store`. **62 tests pass** |
+| **Phase** | Phase 1 (pure core) **done as far as it goes without the game**; phase 0 spikes written and still **waiting for the first in-game test** → [[Roadmap]] |
+| **Last session** | [[2026-11-10]]: research, vault, decisions, mod skeleton + 4 spikes; then the whole pure core: model, loading and validation, logic, engine, store, net protocol, book layout, commands, example pack |
+| **Code** | `mod/` v0.0.1. In the bundle: the 4 spikes (glue never compiled yet, needs the home PC build). Outside the bundle for now (`src/lib.rs` only): `hq_model`, `hq_validate`, `hq_logic`, `hq_progress`, `hq_store`, `hq_net`, `hq_book`, `hq_commands`. **98 tests pass** |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | nothing blocks the pure work. The home PC test is still needed before any glue: spike 3 (mod messages in solo) decides whether ADR-008 holds |
+| **Blocking** | **the home PC test**. Everything left is glue, and no glue has been compiled yet. Spike 3 (mod messages in solo) decides whether ADR-008 holds |
 
 ## ➡️ Next step
-1. Bastien, when possible: `git pull` on the home PC, then the checklist in `mod/README.md` § Test in game (unchanged by phase 1)
+1. Bastien: `git pull` on the home PC, then the checklist in `mod/README.md` § Test in game (unchanged by phase 1)
 2. Bastien: answer the design questions in [[Open questions]] § Decisions to make
-3. Without the game: `hq_net` (protocol + chunking), real quests drawn from a `Book` in `hq_canvas` (sidebar, detail panel), `hq_commands` → [[Roadmap]] phase 1
-4. After the in-game test: fix what it shows, then phase 2 (server glue, then the book)
+3. Fix what the build or the test shows (`native/build.log`, screenshots, footer text of the book)
+4. Phase 2: server glue (state, load, tick, events, save) → net sync → the real book (`hq_book` replaces the spike's drawing) → commands → [[Roadmap]]
 
 ## 🗺️ Vault map
 ### 01 · Project

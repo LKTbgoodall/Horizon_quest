@@ -29,7 +29,14 @@ API: [[Horizon hooks and API]] §1 and §4 · Decision: [[ADR-005 Progress as JS
 - Read: missing file → default. Corrupted file → **error, the feature disables itself, and we never overwrite** (smp rule).
 - Migrations: a `version` field in each file, and `hq_store::migrate()`.
 
-## Horizon client sync (V2)
+## Horizon client sync: as coded in `hq_net.rs` (2026-11-10, MVP)
+- Channel `horizon_quests:book`, `PROTOCOL` 1. Messages are JSON (`serde_json`), not compressed.
+- Book → server (`ToServer`): `Hello { protocol, version }`, `Check { task }`, `Submit { task }`, `Claim { reward }`, `ClaimAll`.
+- Server → book (`ToClient`): `Welcome` or `Incompatible { protocol, version }`, `Book { file }` (the whole pack, on joining and after a reload), `Progress { player, progress }` (whole, after every change), `Notice { text }` (a refusal).
+- A message is cut into **frames** of at most 30,000 bytes: `transfer u32 | index u16 | count u16 | bytes`, little endian. `Sender` lets **16 frames a tick** out (Horizon allows 32) and takes back those that could not leave. `Receiver` puts messages back together; a frame out of order or of a wrong size drops the message under way. The server accepts 1 part per message from a book, the book up to 512 from the server.
+- Not done yet: progress deltas, compression (`flate2`), `Track`, the editor's messages.
+
+## Horizon client sync: first design (kept for reference)
 - Channel `horizon_quests:sync` (mod messages, API 40). Constraints: ≤ 30,000 bytes per message and ≤ 32 messages per tick.
 - Protocol (versioned):
   1. client → `Hello { proto_version, mod_version }` on connection. The server replies `Welcome` or `Incompatible` (Horizon has **no** native handshake);

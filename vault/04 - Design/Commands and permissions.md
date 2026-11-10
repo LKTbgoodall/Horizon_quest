@@ -9,6 +9,25 @@ Reference: [[FTB commands]] · API: [[Horizon hooks and API]] §6 · Pattern: [[
 
 > Reminder: one usage-string is registered **per form**. Parsing is done by hand in `hq_commands` (pure), which returns `Vec<Out>`.
 
+## As coded in `hq_commands.rs` (2026-11-10, MVP)
+| Usage-string | Level | Effect |
+|---|---|---|
+| `quests` (or `quests help`) | 0 | the help, limited to what the player may use |
+| `quests claim` | 0 | claim every reward waiting |
+| `quests check <task:text>` | 0 | tick a checkmark task |
+| `quests submit <task:text>` | 0 | hand in the items of a task |
+| `quests reload` | 2 | read the quest files again, then the report |
+| `quests validate` | 2 | the report: counts, then errors, then warnings |
+| `quests complete <player:word> <quest:text>` | 2 | `hq_progress::force_complete` |
+| `quests reset <player:word> <quest:text>` | 2 | `hq_progress::reset_quest` |
+| `quests reset_all <player:word>` | 3 | a fresh `Progress` |
+
+- Ids are **full ids** (`chapter/quest/task`), declared as `text` in case `word` refuses `/` (to test).
+- `parse_for(line, permission)` re-checks the op level; a wrong form answers its usage.
+- Not coded: `open`, `track`, `claim <quest>` (the book does these), teams, lock, edit, import.
+
+The tables below are the first design, kept for the later phases.
+
 ## Players (level 0)
 | Usage-string | Effect | Phase |
 |---|---|---|

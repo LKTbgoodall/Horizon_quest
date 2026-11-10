@@ -29,6 +29,10 @@ updated: 2026-11-10
 - [x] *A single client + server bundle: how to separate the two states?* → client state in a `thread_local!` (window thread), server state in statics (atomics / `Mutex`); every client hook checks `native_window()` or `native_mod_screen()`. See `mod/mixins/horizon_quests/hq_client_glue.rs` and `hq_server_glue.rs`.
 - [x] *Do we need the typed trait for screen input?* → No: we use mixin injections on the `Game::native_*` targets (smp style, [[ADR-004 Mixin bundle style like smp]]), and every hook we need has a target.
 
+- [ ] **Are item icons drawn in the same pass as fills?** `hq_book` covers what spills out of the canvas with opaque bands drawn after it. If `native_item_stack` icons are drawn in a later pass they would show over the bands, so `hq_book` only draws an icon that is wholly inside the canvas. Look at spike 2: pan a node under the header band and see whether its icon shows through
+- [ ] **Quad winding**: does `native_quad` care which way round the corners go? `hq_book::shape_points` goes round like `hq_canvas::line_quad` (the spike's lines). If the spike's lines show, shapes will too
+- [ ] **Command arguments with `/`**: full ids are `chapter/quest/task`. `hq_commands::USAGES` declares them as `text` (rest of the line) in case `word` refuses `/` → test `/quests check getting_started/welcome/ready` in phase 2
+
 ### Other
 - [ ] **Dedicated server**: the public doc says "Not there yet", but `native-mods.md` documents `--server-output`. Is it usable today? → test later (solo/LAN comes first)
 - [ ] **Exact signatures** of `native_hud`, `native_key`, `native_mod_key`… → read `crates/horizon-client/src/game/native_hooks.rs`
