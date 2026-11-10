@@ -30,6 +30,7 @@ const NODE_FILL: u32 = 0xFF26_2632;
 const SELECTED: u32 = 0xFFFF_C040;
 const LINE: u32 = 0xFF60_6070;
 const LINE_DONE: u32 = 0xFF40_A050;
+const BAR: u32 = 0xFF30_303C;
 const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0xA0_A0B0;
 const GOLD_INK: u32 = 0xFF_C040;
@@ -95,7 +96,7 @@ pub fn regions(rect: [f32; 4], panel: bool) -> Regions {
     let [x, y, w, h] = rect;
     let body_y = y + canvas::HEADER;
     let body_h = (h - canvas::HEADER - canvas::FOOTER).max(0.0);
-    let sidebar_w = (w * 0.22).clamp(70.0, 130.0).min(w.max(0.0));
+    let sidebar_w = (w * 0.25).clamp(90.0, 150.0).min(w.max(0.0));
     let panel_w = if panel { (w * 0.34).clamp(110.0, 200.0).min((w - sidebar_w).max(0.0)) } else { 0.0 };
     Regions {
         header: [x, y, w, canvas::HEADER],
@@ -470,7 +471,8 @@ impl BookView {
     }
 
     /// Opens quest `n`'s panel, or closes the panel. The panel takes room
-    /// from the canvas: the view moves so the quests stay where they are.
+    /// from the canvas: the view moves so the quests stay where they are,
+    /// then just enough for the selected quest not to end up under the panel.
     fn select(&mut self, s: &Screen<'_>, selected: Option<usize>) {
         let statuses = s.book.statuses(s.progress, s.player);
         let origin = |view: &Self| {
@@ -484,6 +486,17 @@ impl BookView {
         let after = origin(self);
         self.view.pan[0] += (after[0] - before[0]) / self.view.zoom;
         self.view.pan[1] += (after[1] - before[1]) / self.view.zoom;
+
+        if let Some(n) = self.shown_selection(s.book, &statuses) {
+            let area = regions(s.rect, true).canvas;
+            let b = node_box(&self.view, canvas::centre(area), s.book.quest(n), s.book.nodes()[n].size);
+            // How far the node, and a little room round it, sticks out of the canvas.
+            let out = |low: f32, high: f32, from: f32, to: f32| {
+                if high + PAD > to { high + PAD - to } else { (low - PAD - from).min(0.0) }
+            };
+            self.view.pan[0] += out(b[0], b[0] + b[2], area[0], area[0] + area[2]) / self.view.zoom;
+            self.view.pan[1] += out(b[1], b[1] + b[3], area[1], area[1] + area[3]) / self.view.zoom;
+        }
     }
 
     /// A left click at the pointer.
@@ -600,7 +613,9 @@ impl BookView {
             }
             scene.polygon(node.shape, centre, radius, state_look(statuses[n].state).0);
             scene.polygon(node.shape, centre, (radius - 1.5).max(0.0), NODE_FILL);
-            let icon = (b[2] * 0.6).clamp(4.0, 64.0);
+            // A diamond has less room inside than the other shapes.
+            let share = if node.shape == Shape::Diamond { 0.45 } else { 0.6 };
+            let icon = (b[2] * share).clamp(4.0, 64.0);
             let at = [centre[0] - icon / 2.0, centre[1] - icon / 2.0];
             if contains(area, [at[0], at[1], icon, icon]) {
                 scene.draws.push(Draw::Item { item: quest_icon(quest).to_owned(), at, size: icon });
@@ -642,13 +657,15 @@ impl BookView {
                         scene.draws.push(Draw::Item { item: icon.clone(), at: [left, rect[1] + 2.0], size: 10.0 });
                         left += 13.0;
                     }
-                    let (done, total) = s.book.chapter_tally(*c, s.progress);
-                    let tally = format!("{done}/{total}");
-                    let tally_w = (s.measure)(&tally);
                     let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
-                    let room = x + w - PAD - tally_w - PAD - left;
-                    scene.text(fit_text(name, room, s.measure), [left, rect[1] + 3.0], INK);
-                    scene.text(tally, [x + w - PAD - tally_w, rect[1] + 3.0], DIM_INK);
+                    scene.text(fit_text(name, x + w - PAD - left, s.measure), [left, rect[1] + 2.0], INK);
+                    // How far the chapter is, as a thin bar under its name.
+                    let (done, total) = s.book.chapter_tally(*c, s.progress);
+                    let track = [x + PAD, rect[1] + ROW - 2.5, w - 2.0 * PAD, 1.5];
+                    scene.fill(track, BAR);
+                    if done > 0 {
+                        scene.fill([track[0], track[1], track[2] * done as f32 / total as f32, track[3]], LINE_DONE);
+                    }
                     scene.zones.push((rect, Action::Chapter(*c)));
                 }
             }
@@ -987,9 +1004,22 @@ mod tests {
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
 
         let shown = texts(&scene);
-        for text in ["Alpha", "The first one", "0/3", "Main story", "Beta", "0/1"] {
+        for text in ["Alpha", "The first one", "0/3", "Main story", "Beta"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
+        // Each listed chapter has a progress bar, empty for now.
+        let bars = |scene: &Scene, colour: u32| {
+            let list = scene.regions.sidebar;
+            scene
+                .draws
+                .iter()
+                .filter(|draw| matches!(draw, Draw::Fill { rect, colour: c } if *c == colour && rect[3] == 1.5 && contains(list, *rect)))
+                .count()
+        };
+        assert_eq!((bars(&scene, BAR), bars(&scene, LINE_DONE)), (2, 0));
+        // Beta's only quest has no task: once the engine has run, its bar is full.
+        let done = progress_after(&book, &[QuestEvent::Refresh]);
+        assert_eq!(bars(&view.scene(&screen(&book, &done, NOWHERE)), LINE_DONE), 1);
         // One icon per visible quest, and the chapter's in the list.
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
         assert_eq!(icons, 3);
@@ -1053,6 +1083,24 @@ mod tests {
     }
 
     #[test]
+    fn a_quest_selected_where_the_panel_opens_slides_into_view() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        // The second quest is on the right, where the panel will be.
+        let at = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
+        assert!(canvas::inside(regions(RECT, true).panel.unwrap(), at));
+        click(&mut view, &book, &progress, &Action::Quest(1));
+
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let (rect, _) = scene.zones.iter().find(|(_, action)| *action == Action::Quest(1)).unwrap();
+        assert!(contains(scene.regions.canvas, *rect), "{rect:?} in {:?}", scene.regions.canvas);
+        assert_eq!(rect[2], canvas::NODE);
+        // Its icon is drawn: it is whole.
+        let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
+        assert_eq!(icons, 3);
+    }
+
+    #[test]
     fn buttons_send_requests() {
         let book = book();
         let mut progress = Progress::default();
@@ -1087,7 +1135,9 @@ mod tests {
         assert!(texts(&scene).contains(&"5 XP (claimed)"));
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
 
-        // The next quest is open now, and takes a hand-in.
+        // The next quest is open now, and takes a hand-in. It sits under the
+        // panel: close the panel to reach it.
+        click(&mut view, &book, &progress, &Action::Deselect);
         click(&mut view, &book, &progress, &Action::Quest(1));
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         // Too long for one row with its button: the text wraps, the button goes below.

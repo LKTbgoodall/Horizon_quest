@@ -20,6 +20,24 @@ Reference: [[FTB editor and UI]] · API: [[Horizon hooks and API]] §5 · Decisi
 > - No clip: the canvas is drawn first and the opaque bands cover what spills out; icons and text are only drawn where they fit whole.
 > - Names of items and entities are made from their ids (`minecraft:oak_log` → "Oak log") until the book can ask the game for real names.
 
+## Previews (drawn without the game)
+Made by `cargo run --example book_preview` in `mod/` (`mod/examples/book_preview.rs`): it runs `hq_book` on a few situations and writes each draw list as an SVG in `previews/`. **Real**: every position, size, colour, text and button. **Stand-ins**: the font, and the item icons (boxes with initials; the game draws the real icons). Run it again after any change to `hq_book`.
+
+A new player opens the book:
+![[book-1-first-open.svg]]
+
+A click on a quest opens its panel:
+![[book-2-quest-panel.svg]]
+
+Later (green done, blue rewards waiting, yellow in progress, white open, grey locked):
+![[book-3-in-progress.svg]]
+
+A hand-in task, the hidden last quest revealed, a refusal in the footer:
+![[book-4-hand-in.svg]]
+
+Another pack: chapter groups, the five shapes, sizes:
+![[book-5-shapes-and-groups.svg]]
+
 ## Layout (MVP)
 ```
 ┌────────────┬─────────────────────────────────────────────┬──────────────────┐
