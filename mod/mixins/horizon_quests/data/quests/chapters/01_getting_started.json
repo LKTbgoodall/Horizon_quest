@@ -1,0 +1,142 @@
+{
+  "id": "getting_started",
+  "title": "Getting started",
+  "subtitle": "Your first days in a new world",
+  "icon": "minecraft:oak_sapling",
+  "quests": [
+    {
+      "id": "welcome",
+      "title": "Welcome",
+      "subtitle": "How this book works",
+      "description": [
+        "This is your quest book. Each node on the page is a quest, and the lines show which quest opens which.",
+        "Click a quest to read it. When its tasks are done, come back here to claim the rewards.",
+        "Tick the box below to begin."
+      ],
+      "icon": "minecraft:writable_book",
+      "x": 0, "y": 0,
+      "tasks": [ { "id": "ready", "type": "checkmark", "title": "I have read this" } ],
+      "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
+    },
+    {
+      "id": "first_wood",
+      "title": "Timber",
+      "description": [
+        "Everything starts with a tree. Gather a few logs; any kind of wood will do."
+      ],
+      "x": 2, "y": 0,
+      "dependencies": ["welcome"],
+      "tasks": [ { "id": "logs", "type": "item", "item": "#minecraft:logs", "count": 8 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 10 } ]
+    },
+    {
+      "id": "crafting_table",
+      "title": "A place to work",
+      "description": [
+        "Turn a log into planks, and four planks into a crafting table. Most recipes need one."
+      ],
+      "x": 4, "y": 0,
+      "dependencies": ["first_wood"],
+      "tasks": [ { "id": "table", "type": "item", "item": "minecraft:crafting_table" } ],
+      "rewards": [ { "id": "apples", "type": "item", "item": "minecraft:apple", "count": 4 } ]
+    },
+    {
+      "id": "wooden_pickaxe",
+      "title": "First pickaxe",
+      "description": [
+        "Planks and sticks make a wooden pickaxe. It will not last, but it gets you to stone."
+      ],
+      "x": 6, "y": -1,
+      "dependencies": ["crafting_table"],
+      "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:wooden_pickaxe" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 15 } ]
+    },
+    {
+      "id": "stone",
+      "title": "Into the rock",
+      "description": [
+        "Dig down a little and bring back some cobblestone. Stone tools are faster and sturdier than wooden ones."
+      ],
+      "x": 8, "y": -1,
+      "dependencies": ["wooden_pickaxe"],
+      "tasks": [ { "id": "cobblestone", "type": "item", "item": "minecraft:cobblestone", "count": 16 } ],
+      "rewards": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 8 } ]
+    },
+    {
+      "id": "furnace",
+      "title": "Heat",
+      "description": [
+        "Eight cobblestone in a ring make a furnace. Use it to cook food and to smelt ore."
+      ],
+      "x": 10, "y": -1,
+      "dependencies": ["stone"],
+      "tasks": [ { "id": "furnace", "type": "item", "item": "minecraft:furnace" } ],
+      "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 8 } ]
+    },
+    {
+      "id": "iron",
+      "title": "Iron",
+      "description": [
+        "Look for iron ore in caves and cliffs, then smelt it. Three ingots are enough for a pickaxe."
+      ],
+      "x": 12, "y": -1,
+      "dependencies": ["furnace"],
+      "tasks": [ { "id": "ingots", "type": "item", "item": "minecraft:iron_ingot", "count": 3 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "bed",
+      "title": "A place to sleep",
+      "description": [
+        "Three wool and three planks make a bed. Sleeping skips the night and sets where you come back to."
+      ],
+      "x": 6, "y": 1,
+      "dependencies": ["crafting_table"],
+      "tasks": [ { "id": "bed", "type": "item", "item": "#minecraft:beds" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
+    },
+    {
+      "id": "first_night",
+      "title": "Things in the dark",
+      "description": [
+        "Monsters come out when it gets dark. Stand your ground against a few zombies."
+      ],
+      "icon": "minecraft:wooden_sword",
+      "x": 8, "y": 1,
+      "dependencies": ["bed"],
+      "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 3 } ],
+      "rewards": [
+        { "id": "steak", "type": "item", "item": "minecraft:cooked_beef", "count": 4 },
+        { "id": "level", "type": "xp_levels", "levels": 1 }
+      ]
+    },
+    {
+      "id": "leftovers",
+      "title": "Leftovers",
+      "subtitle": "Optional",
+      "description": [
+        "Zombies leave rotten flesh behind. Hand some in and get something more useful for it.",
+        "This quest takes the items: press Submit while you carry them."
+      ],
+      "x": 10, "y": 1,
+      "optional": true,
+      "dependencies": ["first_night"],
+      "tasks": [ { "id": "flesh", "type": "item", "item": "minecraft:rotten_flesh", "count": 8, "consume": true } ],
+      "rewards": [ { "id": "emeralds", "type": "item", "item": "minecraft:emerald", "count": 2 } ]
+    },
+    {
+      "id": "settled",
+      "title": "Settled in",
+      "description": [
+        "Tools, light, a bed, and you made it through the night. You are ready for what comes next."
+      ],
+      "icon": "minecraft:iron_pickaxe",
+      "x": 14, "y": 0,
+      "shape": "diamond",
+      "size": 1.5,
+      "dependencies": ["iron", "first_night"],
+      "visibility": "until_deps_complete",
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    }
+  ]
+}

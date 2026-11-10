@@ -1,0 +1,81 @@
+//! The example pack shipped in the bundle's `data/quests`: it must load
+//! without a single problem, and a player must be able to finish it.
+
+use horizon_mod_horizon_quests::hq_logic::{Book, QuestState};
+use horizon_mod_horizon_quests::hq_model::{Progress, TaskKind};
+use horizon_mod_horizon_quests::hq_progress::{Effect, QuestEvent, apply, submit_request, wanted_items};
+use horizon_mod_horizon_quests::hq_validate::load_dir;
+use std::path::Path;
+
+fn example() -> Book {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("mixins/horizon_quests/data/quests");
+    let loaded = load_dir(&dir);
+    let problems: Vec<String> = loaded.problems.iter().map(|p| p.to_string()).collect();
+    assert_eq!(problems, Vec::<String>::new());
+    Book::new(loaded.file)
+}
+
+#[test]
+fn the_example_pack_is_sound() {
+    let book = example();
+    let chapters: Vec<&str> = book.file().chapters.iter().map(|c| c.id.as_str()).collect();
+    assert_eq!(chapters, ["getting_started"]);
+    assert_eq!(book.nodes().len(), 11);
+
+    // A new player sees every quest but the last (a surprise), and only the
+    // first is open.
+    let statuses = book.statuses(&Progress::default(), "steve");
+    let hidden: Vec<&str> =
+        (0..statuses.len()).filter(|&n| !statuses[n].visible).map(|n| book.nodes()[n].id.as_str()).collect();
+    assert_eq!(hidden, ["getting_started/settled"]);
+    let open: Vec<&str> = (0..statuses.len())
+        .filter(|&n| statuses[n].state != QuestState::Locked)
+        .map(|n| book.nodes()[n].id.as_str())
+        .collect();
+    assert_eq!(open, ["getting_started/welcome"]);
+}
+
+#[test]
+fn the_example_pack_can_be_finished() {
+    let book = example();
+    let mut progress = Progress::default();
+    let mut effects = Vec::new();
+    let mut now = 0;
+    let mut play = |progress: &mut Progress, event: QuestEvent| {
+        now += 1;
+        effects.extend(apply(&book, progress, "steve", now, &event).effects);
+    };
+
+    // Do each quest's tasks the way the glue would report them, dependencies first.
+    for &n in book.order() {
+        let quest = book.quest(n);
+        for (t, task) in quest.tasks.iter().enumerate() {
+            let id = book.task_id(n, t);
+            match &task.kind {
+                TaskKind::Item { consume: false, .. } => {
+                    assert!(wanted_items(&book, &progress).iter().any(|w| w.task == id), "{id} is not wanted");
+                    play(&mut progress, QuestEvent::ItemCount { task: id, count: task.kind.goal() });
+                }
+                TaskKind::Item { consume: true, .. } => {
+                    let wanted = submit_request(&book, &progress, &id).unwrap();
+                    play(&mut progress, QuestEvent::Submitted { task: id, count: wanted.missing });
+                }
+                TaskKind::Kill { entity, count } => {
+                    for _ in 0..*count {
+                        play(&mut progress, QuestEvent::Killed { entity: entity.clone() });
+                    }
+                }
+                TaskKind::Checkmark => play(&mut progress, QuestEvent::Check { task: id }),
+            }
+        }
+        assert!(progress.is_completed(&book.nodes()[n].id), "{} did not complete", book.nodes()[n].id);
+    }
+    play(&mut progress, QuestEvent::ClaimAll);
+
+    let chapter_done = Effect::ChapterCompleted { chapter: "getting_started".into() };
+    assert_eq!(effects.iter().filter(|e| **e == chapter_done).count(), 1);
+    assert!(!effects.iter().any(|e| matches!(e, Effect::Refused(_))), "{effects:?}");
+    let rewards = effects.iter().filter(|e| matches!(e, Effect::Reward { .. })).count();
+    assert_eq!(rewards, book.nodes().iter().enumerate().map(|(n, _)| book.quest(n).rewards.len()).sum::<usize>());
+    assert!(book.statuses(&progress, "steve").iter().all(|s| s.visible && s.state == QuestState::Done));
+}

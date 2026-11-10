@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "progression": "linear",
+  "default_shape": "square",
+  "default_size": 1.0,
+  "auto_claim_rewards": false,
+  "detection_delay": 20,
+  "groups": []
+}
