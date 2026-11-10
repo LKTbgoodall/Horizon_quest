@@ -975,16 +975,17 @@ impl BookView {
             }
             let mut left = x + PAD;
             if let Some(item) = &row.item {
-                if !item.starts_with('#') {
-                    scene.draws.push(Draw::Item { item: item.clone(), at: [left, top], size: 9.0 });
-                    left += ICON_ROW;
-                }
-                // The icon and the text open the item's recipes.
+                // The icon and the text open the item's recipes. The hover
+                // shade goes first, under the icon.
                 let link = [x + PAD, top, (right - x - PAD).max(0.0), TEXT];
                 if canvas::inside(link, s.mouse) {
                     scene.fill(link, ROW_HOVER);
                 }
                 scene.zones.push((link, Action::ShowRecipe(item.clone())));
+                if !item.starts_with('#') {
+                    scene.draws.push(Draw::Item { item: item.clone(), at: [left, top], size: 9.0 });
+                    left += ICON_ROW;
+                }
             }
             let text = fit_text(&row.text, right - left, s.measure);
             scene.text(text, [left, top + 1.0], row.colour);
@@ -1747,6 +1748,23 @@ mod tests {
         // Nothing makes it: the view says so.
         view.recipe = Some(RecipeOverlay { title: "Bedrock".into(), ..RecipeOverlay::default() });
         assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"No recipe makes this item."));
+    }
+
+    #[test]
+    fn hovering_an_item_row_keeps_its_icon_on_top() {
+        let (book, progress) = (book(), progress_after(&book(), &[QuestEvent::Check { task: "a/start/ok".into() }]));
+        let mut view = opened(&book, &progress);
+        click(&mut view, &book, &progress, &Action::Quest(1));
+        let show = Action::ShowRecipe("minecraft:oak_planks".into());
+        let over = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &show).unwrap();
+        let scene = view.scene(&screen(&book, &progress, over));
+        let shade = scene.draws.iter().position(|d| matches!(d, Draw::Fill { colour, .. } if *colour == ROW_HOVER)).unwrap();
+        let icon = scene
+            .draws
+            .iter()
+            .position(|d| matches!(d, Draw::Item { item, size, .. } if item == "minecraft:oak_planks" && *size == 9.0))
+            .unwrap();
+        assert!(shade < icon, "the hover shade ({shade}) is drawn before the icon ({icon})");
     }
 
     #[test]
