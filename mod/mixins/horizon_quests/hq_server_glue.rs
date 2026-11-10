@@ -343,6 +343,11 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
                 let _ = sender.send(&ToClient::Progress { player: id, progress });
             }
         }
+        for (uuid, name) in s.session.take_party_changes() {
+            if let Some(sender) = s.senders.get_mut(&uuid) {
+                let _ = sender.send(&ToClient::Party { name });
+            }
+        }
 
         let book = s.session.book();
         let mut actions: Vec<Action> = effects
@@ -537,6 +542,7 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
                 if let Some(progress) = s.session.progress(player) {
                     let _ = sender.send(&ToClient::Progress { player: session::player_id(player), progress: progress.clone() });
                 }
+                let _ = sender.send(&ToClient::Party { name: s.session.party_of(player) });
             }
         }
         ToServer::Check { task } => {

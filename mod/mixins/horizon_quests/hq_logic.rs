@@ -248,7 +248,7 @@ impl Book {
             let open = self.dependencies_met(n, progress);
             let state = if completed {
                 let waiting =
-                    quest.rewards.iter().any(|reward| !progress.has_claimed(&child_id(&node.id, &reward.id), player));
+                    quest.rewards.iter().any(|reward| !progress.claimed_for(&child_id(&node.id, &reward.id), player, reward.team));
                 if waiting { QuestState::RewardsWaiting } else { QuestState::Done }
             } else if !open {
                 QuestState::Locked

@@ -103,6 +103,8 @@ pub struct Session {
     /// The state of the random bits handed to the engine (random rewards).
     roll: u64,
     rules: Rules,
+    /// Players whose party changed since their book was last told.
+    party_changed: HashSet<u128>,
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -124,6 +126,7 @@ impl Session {
             next_probe: HashMap::new(),
             roll: seed,
             rules: Rules::default(),
+            party_changed: HashSet::new(),
         }
     }
 
@@ -639,6 +642,7 @@ impl Session {
         let old = std::mem::replace(&mut player.team, team.to_owned());
         player.unsynced = true;
         player.held.clear();
+        self.party_changed.insert(uuid);
         if !self.players.values().any(|p| p.team == old)
             && let Some(left) = self.teams.remove(&old)
             && left.dirty
@@ -746,6 +750,20 @@ impl Session {
             others.push((target_uuid, format!("You were removed from the party {name}: you are back on your own progress.")));
         }
         Ok(TeamReply { lines, others })
+    }
+
+    /// The name of the player's party, None when they play on their own.
+    pub fn party_of(&self, uuid: u128) -> Option<String> {
+        let id = self.parties.party_of(&player_id(uuid))?;
+        self.parties.party(id).map(|p| p.name.clone())
+    }
+
+    /// The players whose party changed since this was last asked, and its
+    /// name now, for their books.
+    pub fn take_party_changes(&mut self) -> Vec<(u128, Option<String>)> {
+        let mut changed: Vec<u128> = std::mem::take(&mut self.party_changed).into_iter().filter(|u| self.players.contains_key(u)).collect();
+        changed.sort_unstable();
+        changed.into_iter().map(|u| (u, self.party_of(u))).collect()
     }
 
     /// Err when the server turned parties off.
@@ -1512,6 +1530,50 @@ mod tests {
         let effects = s.process(7);
         assert!(effects.contains(&(7, Effect::Refused(engine::Refusal::AlreadyClaimed))));
         assert!(effects.iter().any(|(u, e)| *u == 8 && matches!(e, Effect::Reward { .. })), "{effects:?}");
+    }
+
+    #[test]
+    fn a_team_reward_is_claimed_once_for_the_whole_party() {
+        let chapter = r#"{ "id": "t", "title": "T", "quests": [ { "id": "camp", "title": "Camp",
+            "tasks": [ { "id": "ok", "type": "checkmark" } ],
+            "rewards": [ { "id": "chest", "type": "item", "item": "chest", "team": true },
+                         { "id": "xp", "type": "xp", "points": 5 } ] } ] }"#;
+        let loaded = load(None, &[("t.json", chapter)]);
+        assert_eq!(loaded.errors(), 0, "{:?}", loaded.problems);
+        let mut s = Session::new(Book::new(loaded.file));
+        s.join(7, "Steve", Ok(Progress::default()));
+        s.join(8, "Alex", Ok(Progress::default()));
+        s.create_team(7, "Miners", 1).unwrap();
+        s.invite(7, "Alex").unwrap();
+        s.join_team(8, "Miners", &no_file).unwrap();
+        s.push(8, QuestEvent::Check { task: "t/camp/ok".into() });
+        s.process(2);
+        s.push(7, QuestEvent::ClaimAll);
+        let effects = s.process(3);
+        let given = |effects: &[(u128, Effect)], uuid: u128| effects.iter().filter(|(u, e)| *u == uuid && matches!(e, Effect::Reward { .. })).count();
+        assert_eq!(given(&effects, 7), 2, "{effects:?}");
+        // Alex gets only the per-player reward: the chest went to Steve for the party.
+        s.push(8, QuestEvent::ClaimAll);
+        let effects = s.process(4);
+        assert_eq!(given(&effects, 8), 1, "{effects:?}");
+        s.push(8, QuestEvent::Claim { reward: "t/camp/chest".into(), choice: None });
+        assert_eq!(s.process(5), [(8, Effect::Refused(engine::Refusal::AlreadyClaimed))]);
+        let progress = s.progress(8).unwrap();
+        assert_eq!(s.book().statuses(progress, &player_id(8))[0].state, QuestState::Done);
+    }
+
+    #[test]
+    fn books_hear_when_their_party_changes() {
+        let mut s = two();
+        assert!(s.take_party_changes().is_empty());
+        s.create_team(7, "Miners", 1).unwrap();
+        assert_eq!(s.take_party_changes(), [(7, Some("Miners".to_owned()))]);
+        s.invite(7, "Alex").unwrap();
+        assert!(s.take_party_changes().is_empty());
+        s.join_team(8, "Miners", &no_file).unwrap();
+        s.leave_team(7, &no_file).unwrap();
+        assert_eq!(s.take_party_changes(), [(7, None), (8, Some("Miners".to_owned()))]);
+        assert_eq!(s.party_of(8).as_deref(), Some("Miners"));
     }
 
     #[test]

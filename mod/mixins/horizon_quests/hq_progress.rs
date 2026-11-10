@@ -437,7 +437,9 @@ pub fn apply(book: &Book, progress: &mut Progress, who: &Actor<'_>, event: &Ques
             let refusal = match book.find_reward(reward) {
                 None => Some(Refusal::UnknownReward),
                 Some((n, _)) if !progress.is_completed(&book.nodes()[n].id) => Some(Refusal::NotCompleted),
-                Some(_) if progress.has_claimed(reward, who.player) => Some(Refusal::AlreadyClaimed),
+                Some((n, r)) if progress.claimed_for(reward, who.player, book.quest(n).rewards[r].team) => {
+                    Some(Refusal::AlreadyClaimed)
+                }
                 Some((n, r)) => claim(book, progress, who.player, n, r, *choice, &mut roll, &mut out).err(),
             };
             out.effects.extend(refusal.map(Effect::Refused));
@@ -449,7 +451,7 @@ pub fn apply(book: &Book, progress: &mut Progress, who: &Actor<'_>, event: &Ques
                     continue;
                 }
                 for (r, reward) in book.quest(n).rewards.iter().enumerate() {
-                    if progress.has_claimed(&book.reward_id(n, r), who.player) {
+                    if progress.claimed_for(&book.reward_id(n, r), who.player, reward.team) {
                         continue;
                     }
                     if matches!(reward.kind, RewardKind::Choice { .. }) {
@@ -666,7 +668,7 @@ fn complete(
         // A choice is the player's to make: never given by itself.
         if auto
             && !matches!(reward.kind, RewardKind::Choice { .. })
-            && !progress.has_claimed(&book.reward_id(n, r), player)
+            && !progress.claimed_for(&book.reward_id(n, r), player, reward.team)
         {
             let _ = claim(book, progress, player, n, r, None, roll, out);
         }

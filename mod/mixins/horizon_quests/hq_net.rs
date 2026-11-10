@@ -20,7 +20,7 @@ pub const CHANNEL: &str = "horizon_quests:book";
 /// The version of these messages. A book and a server of different versions
 /// do not talk.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-pub const PROTOCOL: u32 = 2;
+pub const PROTOCOL: u32 = 3;
 
 /// The most bytes one mod message carries.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -85,6 +85,9 @@ pub enum ToClient {
         #[serde(default)]
         icon: Option<String>,
     },
+    /// The player's party, for the book's header: on joining and whenever
+    /// it changes. None: they play on their own.
+    Party { name: Option<String> },
 }
 
 /// The server's answer to a book's `Hello`.
@@ -349,6 +352,8 @@ mod tests {
             ToClient::Progress { player: "steve".into(), progress },
             ToClient::Notice { text: "There is nothing to claim.".into() },
             ToClient::Toast { title: "Quest completed".into(), text: "Timber".into(), icon: Some("minecraft:oak_log".into()) },
+            ToClient::Party { name: Some("Miners".into()) },
+            ToClient::Party { name: None },
             greet(PROTOCOL, "0.1.0"),
         ] {
             assert_eq!(carry(&message, CLIENT_MAX_PARTS).0, Ok(Some(message.clone())));

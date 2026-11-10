@@ -65,7 +65,7 @@ updated: 2026-11-10
 - [x] Repeatable and optional quests, sequential tasks: coded (v0.0.6), **tested in game 2026-11-10** ([[ADR-011 Repeatable quests start over]])
 - [ ] TOML config (`native_register_configs`): coded (v0.3.0): server `parties`, `party_size`, `detection_delay`, `completion_messages`; client file `toasts`, `toast_seconds`; players looked at on ticks of their own. To test in game
 - [ ] Datapack quests (`NativeReloadListener`): coded (v0.4.0), example data pack in `examples/quest-datapack/`. To test in game
-- [ ] Book polish (Bastien's choices, 2026-11-10): **tracked quest on the HUD, top-left corner**; **the party's name in the book** (members and the rest go in a party tab outside the book, later); **our own recipe view** for a task's item (later: use JEI's when it is installed); **team rewards** as an option (`"team": true`: one member claims for the whole party). No search for now. Client toasts done in v0.0.6
+- [ ] Book polish: coded (v0.5.0), to test in game. Bastien's choices (2026-11-10): **tracked quest on the HUD, top-left corner**; **the party's name in the book** (members and the rest go in a party tab outside the book, later); **our own recipe view** for a task's item (later: use JEI's when it is installed); **team rewards** as an option (`"team": true`: one member claims for the whole party). No search for now. Client toasts done in v0.0.6
 - [ ] Assets (combined `.hmod`): shape textures, icon
 - [ ] **First public release on playhorizon.dev** → [[Publishing and mod policy]]
 

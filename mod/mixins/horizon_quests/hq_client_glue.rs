@@ -11,6 +11,7 @@ use super::hq_model::Progress;
 use super::hq_net::{self as net, ToClient, ToServer};
 use super::native_claimed_items::NativeModEvent;
 use super::native_configs::{NativeConfig, NativeConfigFile, NativeConfigKind};
+use super::native_hooks::{NativeRecipe, NativeRecipeKind};
 use crate::game::Game;
 use horizon_client::extras::Corner;
 use horizon_client::extras_hud::Corners;
@@ -56,6 +57,11 @@ struct ClientState {
     waited: Option<u32>,
     /// Toasts the server sent, shown on the HUD one at a time.
     toasts: book_ui::Toasts,
+    /// The player's settings (the tracked quest) were read for this world.
+    settings_read: bool,
+    /// A `Hello` went out on joining the world, so the tracked quest and
+    /// toasts work before the book is first opened.
+    greeted: bool,
 }
 
 impl ClientState {
@@ -71,6 +77,8 @@ impl ClientState {
             close_requested: false,
             waited: None,
             toasts: book_ui::Toasts::default(),
+            settings_read: false,
+            greeted: false,
         }
     }
 
@@ -97,11 +105,30 @@ fn open_key(game: &Game<'_>) -> String {
     game.native_mod_key(meta::ID, meta::OPEN_KEY, meta::OPEN_KEY_DEFAULT)
 }
 
-/// The toast on show, in the top-right corner, hidden while the book is
-/// open.
+/// The player's setting that keeps the tracked quest (a full quest id).
+const TRACKED_SETTING: &str = "tracked";
+/// The most recipes the recipe view lists for one item.
+const RECIPE_LIMIT: usize = 64;
+
+/// The tracked quest in the top-left corner and the toast on show in the
+/// top-right one, hidden while the book is open.
 pub(super) fn hud(game: &mut Game<'_>, batch: &mut HudBatch, corners: &mut Corners) {
     if !game.native_on(meta::ID) || ours(game) || game.native_player().is_none() {
         return;
+    }
+    if game.native_corner_shown(Corner::TopLeft) {
+        let measure = |text: &str| game.native_text_width(text);
+        let draws = with(|s| {
+            let (Some(book), Some(quest)) = (&s.book, &s.view.tracked) else {
+                return None;
+            };
+            let [w, h] = book_ui::tracked_size(book, &s.progress, &s.player, quest, &measure)?;
+            let (x, y) = corners.place(Corner::TopLeft, w, h);
+            Some(book_ui::tracked_draws(book, &s.progress, &s.player, quest, [x, y], &measure))
+        });
+        if let Some(draws) = draws {
+            paint(game, batch, draws);
+        }
     }
     if game.native_corner_shown(Corner::TopRight)
         && let Some(toast) = with(|s| s.toasts.current().cloned())
@@ -193,6 +220,31 @@ pub(super) fn tick(game: &mut Game<'_>) {
         with(|s| s.close_requested = false);
         game.native_mod_screen_close(meta::ID);
     }
+    // Once per world: the tracked quest from the player's settings, and a
+    // Hello so the pack and the progress come without opening the book.
+    if !with(|s| s.settings_read) {
+        let tracked = game.native_setting(meta::ID, TRACKED_SETTING).filter(|quest| !quest.is_empty());
+        with(|s| {
+            s.view.tracked = tracked;
+            s.settings_read = true;
+        });
+    }
+    if with(|s| !s.greeted && s.book.is_none()) && game.native_playing() {
+        with(|s| {
+            let _ = s.sender.send(&ToServer::Hello { protocol: net::PROTOCOL, version: meta::VERSION.into() });
+            s.greeted = true;
+        });
+    }
+    // The recipes the player asked for, looked up where the game lets us.
+    if let Some(wanted) = with(|s| s.view.recipe_wanted.take()) {
+        let overlay = recipe_overlay(game, &wanted);
+        with(|s| s.view.recipe = Some(overlay));
+    }
+    with(|s| {
+        if let Some(recipe) = &mut s.view.recipe {
+            recipe.clock = recipe.clock.wrapping_add(1);
+        }
+    });
     // A toast's time only runs while the HUD shows it: not under the book.
     let hud_in_view = !ours(game);
     with(|s| {
@@ -266,6 +318,9 @@ pub(super) fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
         }
         ToClient::Notice { text } => {
             s.view.notice = text;
+        }
+        ToClient::Party { name } => {
+            s.view.party = name;
         }
         ToClient::Toast { title, text, icon } => {
             let settings = client_config();
@@ -348,8 +403,87 @@ pub(super) fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i3
         }
         reaction
     });
-    if reaction == Reaction::Close {
-        with(|s| s.close_requested = true);
+    match reaction {
+        Reaction::Close => with(|s| s.close_requested = true),
+        Reaction::Tracked(quest) => game.native_set_setting(meta::ID, TRACKED_SETTING, quest.as_deref().unwrap_or("")),
+        Reaction::Nothing | Reaction::Send(_) => {}
+    }
+}
+
+/// A key over the book: Escape closes the recipe view first, then the book
+/// as usual.
+pub(super) fn screen_key(game: &Game<'_>, key: &str, canceled: &mut bool) {
+    if !ours(game) || key != "key.keyboard.escape" {
+        return;
+    }
+    if with(|s| s.view.recipe.take().is_some()) {
+        *canceled = true;
+    }
+}
+
+/// The recipes that make `wanted` (an item id, or `#tag`): the game's own
+/// recipes as the window knows them (API 2), at most `RECIPE_LIMIT`.
+fn recipe_overlay(game: &mut Game<'_>, wanted: &str) -> book_ui::RecipeOverlay {
+    let plain = book_ui::pretty(wanted.trim_start_matches('#'));
+    let Some(all) = game.native_recipes() else {
+        return book_ui::RecipeOverlay { title: plain, ..Default::default() };
+    };
+    let items = &all.items;
+    let id_of = |i: u32| items.get(i as usize).map(|item| item.id.clone());
+    let fits = |i: u32| {
+        items.get(i as usize).is_some_and(|item| match wanted.strip_prefix('#') {
+            Some(tag) => item.tags.iter().any(|t| t == tag),
+            None => item.id == wanted,
+        })
+    };
+    let title = if wanted.starts_with('#') {
+        wanted.to_owned()
+    } else {
+        items.iter().find(|item| item.id == wanted).map(|item| item.name.clone()).filter(|name| !name.is_empty()).unwrap_or(plain)
+    };
+    let recipes = all
+        .recipes
+        .iter()
+        .filter(|recipe| recipe.results.iter().any(|stack| fits(stack.item)))
+        .take(RECIPE_LIMIT)
+        .map(|recipe| {
+            let slots: Vec<Vec<String>> =
+                recipe.slots.iter().map(|slot| slot.iter().filter_map(|stack| id_of(stack.item)).collect()).collect();
+            let made = recipe.results.iter().find(|stack| fits(stack.item)).or(recipe.results.first());
+            let width = match recipe.kind {
+                NativeRecipeKind::CraftingShaped => recipe.width.max(1),
+                NativeRecipeKind::CraftingShapeless => u32::try_from(slots.len()).unwrap_or(3).clamp(1, 3),
+                _ => u32::try_from(slots.len()).unwrap_or(1).max(1),
+            };
+            book_ui::RecipeView {
+                station: station(recipe),
+                width,
+                slots,
+                result: made.and_then(|stack| id_of(stack.item)).unwrap_or_default(),
+                count: made.map_or(1, |stack| stack.count),
+            }
+        })
+        .collect();
+    book_ui::RecipeOverlay { title, recipes, page: 0, clock: 0 }
+}
+
+/// Where a recipe is made, with its cooking time.
+fn station(recipe: &NativeRecipe) -> String {
+    let place = match recipe.kind {
+        NativeRecipeKind::CraftingShaped | NativeRecipeKind::CraftingShapeless => "Crafting table",
+        NativeRecipeKind::Smelting => "Furnace",
+        NativeRecipeKind::Blasting => "Blast furnace",
+        NativeRecipeKind::Smoking => "Smoker",
+        NativeRecipeKind::Campfire => "Campfire",
+        NativeRecipeKind::Stonecutting => "Stonecutter",
+        NativeRecipeKind::Smithing => "Smithing table",
+        NativeRecipeKind::Brewing => "Brewing stand",
+    };
+    if recipe.cooking_time > 0 {
+        let seconds = recipe.cooking_time as f32 / 20.0;
+        format!("{place}, {seconds} s")
+    } else {
+        place.to_owned()
     }
 }
 

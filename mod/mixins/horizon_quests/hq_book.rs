@@ -100,6 +100,16 @@ pub enum Action {
     ClaimAll,
     /// Close the book.
     Close,
+    /// Show this quest (full id) on the HUD, or stop showing it.
+    Track(String),
+    Untrack,
+    /// Show the recipes that make this item (an id, or `#tag`).
+    ShowRecipe(String),
+    /// Turn the recipe view's page by this many.
+    TurnRecipe(i32),
+    CloseRecipe,
+    /// A click on the recipe view itself: it stays.
+    KeepRecipe,
 }
 
 /// What the glue does after a click.
@@ -109,6 +119,8 @@ pub enum Reaction {
     Nothing,
     Send(ToServer),
     Close,
+    /// The tracked quest changed: keep it in the player's settings.
+    Tracked(Option<String>),
 }
 
 /// The book's parts on screen, as `[x, y, w, h]`.
@@ -494,12 +506,15 @@ struct PanelRow {
     text: String,
     colour: u32,
     button: Option<(&'static str, Action)>,
+    /// An item (or `#tag`) the row is about: an icon before the text (for
+    /// an item), and a click on it shows its recipes.
+    item: Option<String>,
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl PanelRow {
     fn new(text: impl Into<String>, colour: u32) -> Self {
-        Self { text: text.into(), colour, button: None }
+        Self { text: text.into(), colour, button: None, item: None }
     }
 
     /// Adds `text` and its button to `rows`, `room` pixels wide: on one row
@@ -512,14 +527,33 @@ impl PanelRow {
         colour: u32,
         button: Option<(&'static str, Action)>,
     ) {
+        Self::push_item(rows, s, room, text, colour, button, None);
+    }
+
+    /// As `push`, for a row about `item`: its first line gets the icon and
+    /// the link to its recipes.
+    fn push_item(
+        rows: &mut Vec<PanelRow>,
+        s: &Screen<'_>,
+        room: f32,
+        text: String,
+        colour: u32,
+        button: Option<(&'static str, Action)>,
+        item: Option<String>,
+    ) {
+        let icon_w = if item.as_deref().is_some_and(|i| !i.starts_with('#')) { ICON_ROW } else { 0.0 };
         let button_w = button.as_ref().map_or(0.0, |(label, _)| (s.measure)(label) + 6.0 + PAD);
-        if (s.measure)(&text) + button_w <= room {
-            rows.push(PanelRow { text, colour, button });
+        if (s.measure)(&text) + button_w + icon_w <= room {
+            rows.push(PanelRow { text, colour, button, item });
             return;
         }
-        rows.extend(wrap(&text, room, s.measure).into_iter().map(|line| PanelRow::new(line, colour)));
+        let mut lines = wrap(&text, (room - icon_w).max(1.0), s.measure).into_iter();
+        if let Some(first) = lines.next() {
+            rows.push(PanelRow { text: first, colour, button: None, item });
+        }
+        rows.extend(lines.map(|line| PanelRow::new(line, colour)));
         if button.is_some() {
-            rows.push(PanelRow { text: String::new(), colour, button });
+            rows.push(PanelRow { text: String::new(), colour, button, item: None });
         }
     }
 }
@@ -537,6 +571,15 @@ pub struct BookView {
     pub panel_scroll: f32,
     /// The last thing the server said (a refusal), for the footer.
     pub notice: String,
+    /// The player's party, for the header.
+    pub party: Option<String>,
+    /// The quest shown on the HUD (full id).
+    pub tracked: Option<String>,
+    /// The recipe view over the book, when open.
+    pub recipe: Option<RecipeOverlay>,
+    /// An item whose recipes the player asked for: the glue looks them up
+    /// and opens `recipe`.
+    pub recipe_wanted: Option<String>,
     /// Whether a chapter was fitted to the canvas yet.
     fitted: bool,
 }
@@ -621,14 +664,29 @@ impl BookView {
             }
             Some(Action::ClaimAll) => return Reaction::Send(ToServer::ClaimAll),
             Some(Action::Close) => return Reaction::Close,
-            None => {}
+            Some(Action::Track(quest)) => {
+                self.tracked = Some(quest);
+                return Reaction::Tracked(self.tracked.clone());
+            }
+            Some(Action::Untrack) => {
+                self.tracked = None;
+                return Reaction::Tracked(None);
+            }
+            Some(Action::ShowRecipe(item)) => self.recipe_wanted = Some(item),
+            Some(Action::TurnRecipe(by)) => {
+                if let Some(recipe) = &mut self.recipe {
+                    recipe.turn(by);
+                }
+            }
+            Some(Action::CloseRecipe) => self.recipe = None,
+            Some(Action::KeepRecipe) | None => {}
         }
         Reaction::Nothing
     }
 
     /// The pointer dragged by `delta`: over the canvas, it pans.
     pub fn drag(&mut self, s: &Screen<'_>, delta: [f32; 2]) {
-        if canvas::inside(self.scene(s).regions.canvas, s.mouse) {
+        if self.recipe.is_none() && canvas::inside(self.scene(s).regions.canvas, s.mouse) {
             self.view.drag(delta);
         }
     }
@@ -639,7 +697,7 @@ impl BookView {
         let scene = self.scene(s);
         let regions = scene.regions;
         let moved = |scroll: f32, by: f32, max: f32| (scroll - steps as f32 * by).clamp(0.0, max.max(0.0));
-        if !steps.is_finite() {
+        if !steps.is_finite() || self.recipe.is_some() {
         } else if canvas::inside(regions.sidebar, s.mouse) {
             self.sidebar_scroll = moved(self.sidebar_scroll, ROW, scene.sidebar_max_scroll);
         } else if regions.panel.is_some_and(|panel| canvas::inside(panel, s.mouse)) {
@@ -663,7 +721,9 @@ impl BookView {
             self.draw_panel(&mut scene, s, &statuses, n, panel);
         }
         self.draw_bands(&mut scene, s, &statuses);
-        if let Some(text) = tooltip {
+        if let Some(recipe) = &self.recipe {
+            draw_recipe(&mut scene, s, recipe);
+        } else if let Some(text) = tooltip {
             draw_tooltip(&mut scene, s, &text);
         }
         scene
@@ -861,7 +921,11 @@ impl BookView {
             };
             let text = format!("{mark} {}{count}", task_label(task));
             let waiting = quest.sequential_tasks && !counts;
-            PanelRow::push(&mut rows, s, room, text, if finished || waiting { DIM_INK } else { INK }, button);
+            let item = match &task.kind {
+                TaskKind::Item { item, .. } | TaskKind::Craft { item, .. } => Some(String::from(item.clone())),
+                _ => None,
+            };
+            PanelRow::push_item(&mut rows, s, room, text, if finished || waiting { DIM_INK } else { INK }, button, item);
         }
 
         if !quest.rewards.is_empty() {
@@ -872,8 +936,13 @@ impl BookView {
         for (r, reward) in quest.rewards.iter().enumerate() {
             let id = book.reward_id(n, r);
             let label = reward_label(reward);
-            if s.progress.has_claimed(&id, s.player) {
-                PanelRow::push(&mut rows, s, room, format!("{label} (claimed)"), DIM_INK, None);
+            let item = match &reward.kind {
+                RewardKind::Item { item, .. } => Some(item.clone()),
+                _ => None,
+            };
+            let label = if reward.team { format!("{label} (team)") } else { label };
+            if s.progress.claimed_for(&id, s.player, reward.team) {
+                PanelRow::push_item(&mut rows, s, room, format!("{label} (claimed)"), DIM_INK, None, item);
                 continue;
             }
             // A reward from a table lists what the table holds: a choice
@@ -881,7 +950,7 @@ impl BookView {
             let entries = reward.kind.table().and_then(|table| book.table(table)).map(|table| &table.entries);
             let choice = matches!(reward.kind, RewardKind::Choice { .. });
             let button = (completed && !choice).then(|| ("Claim", Action::Claim(id.clone())));
-            PanelRow::push(&mut rows, s, room, label, INK, button);
+            PanelRow::push_item(&mut rows, s, room, label, INK, button, item);
             for (e, entry) in entries.into_iter().flatten().enumerate().take(TABLE_ROWS) {
                 let pick = (completed && choice).then(|| ("Pick", Action::Choose(id.clone(), e as u32)));
                 let colour = if pick.is_some() { INK } else { DIM_INK };
@@ -904,14 +973,33 @@ impl BookView {
             if let Some((label, action)) = row.button {
                 right = scene.button(s, label, right, top, action) - PAD;
             }
-            let text = fit_text(&row.text, right - (x + PAD), s.measure);
-            scene.text(text, [x + PAD, top + 1.0], row.colour);
+            let mut left = x + PAD;
+            if let Some(item) = &row.item {
+                if !item.starts_with('#') {
+                    scene.draws.push(Draw::Item { item: item.clone(), at: [left, top], size: 9.0 });
+                    left += ICON_ROW;
+                }
+                // The icon and the text open the item's recipes.
+                let link = [x + PAD, top, (right - x - PAD).max(0.0), TEXT];
+                if canvas::inside(link, s.mouse) {
+                    scene.fill(link, ROW_HOVER);
+                }
+                scene.zones.push((link, Action::ShowRecipe(item.clone())));
+            }
+            let text = fit_text(&row.text, right - left, s.measure);
+            scene.text(text, [left, top + 1.0], row.colour);
         }
 
         scene.fill([x, y, w, TITLE_BAR], BAND);
         let close = scene.button(s, "x", x + w - PAD, y + 2.0, Action::Deselect);
+        let tracking = self.tracked.as_deref() == Some(node.id.as_str());
+        let track = if tracking {
+            scene.button(s, "Untrack", close - PAD, y + 2.0, Action::Untrack)
+        } else {
+            scene.button(s, "Track", close - PAD, y + 2.0, Action::Track(node.id.clone()))
+        };
         let title = if quest.title.is_empty() { &quest.id } else { &quest.title };
-        scene.text(fit_text(title, close - PAD - (x + PAD), s.measure), [x + PAD, y + 3.0], INK);
+        scene.text(fit_text(title, track - PAD - (x + PAD), s.measure), [x + PAD, y + 3.0], INK);
     }
 
     /// The header (chapter title, tally, close) and the footer (claim all,
@@ -921,6 +1009,16 @@ impl BookView {
         let [x, y, w, _] = header;
         scene.fill(header, BAND);
         let mut right = scene.button(s, "x", x + w - 6.0, y + 7.0, Action::Close) - 6.0;
+        if let Some(party) = &self.party {
+            let label = format!("Party {party}");
+            let width = (s.measure)(&label);
+            // Only when the chapter's name keeps some room.
+            if width < w / 3.0 {
+                right -= width;
+                scene.text(label, [right, y + 8.0], GOLD_INK);
+                right -= 10.0;
+            }
+        }
         if let Some(chapter) = s.book.file().chapters.get(self.chapter) {
             let (done, total) = s.book.chapter_tally(self.chapter, s.progress);
             let tally = format!("{done}/{total}");
@@ -955,6 +1053,164 @@ impl BookView {
             scene.text(help, [x + w - 6.0 - help_w, y + 3.0], DIM_INK);
         }
     }
+}
+
+/// One recipe, as the recipe view draws it: item ids only.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecipeView {
+    /// Where it is made, with a note: "Crafting table", "Furnace, 10 s".
+    pub station: String,
+    /// The grid's columns; the slots fill it row by row.
+    pub width: u32,
+    /// Each slot's items, any one of which fits (shown in turn); empty for
+    /// an empty cell.
+    pub slots: Vec<Vec<String>>,
+    pub result: String,
+    pub count: u32,
+}
+
+/// The recipe view over the book: the recipes that make one item.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecipeOverlay {
+    /// The item's name.
+    pub title: String,
+    pub recipes: Vec<RecipeView>,
+    pub page: usize,
+    /// Window ticks it has been open: a slot with several items shows each
+    /// for a second.
+    pub clock: u32,
+}
+
+impl RecipeOverlay {
+    fn turn(&mut self, by: i32) {
+        let n = self.recipes.len();
+        if n > 0 {
+            let n = n as i64;
+            self.page = (self.page as i64 + i64::from(by)).rem_euclid(n) as usize;
+        }
+    }
+}
+
+/// The width an icon takes at the start of a panel row.
+const ICON_ROW: f32 = 11.0;
+/// A recipe cell: an 18-pixel square holding a 16-pixel icon.
+const CELL: f32 = 18.0;
+const RECIPE_BOX: [f32; 2] = [200.0, 120.0];
+const CELL_BACK: u32 = 0xFF2E_2E3C;
+
+/// The recipe view, centred over the book. A click outside closes it.
+fn draw_recipe(scene: &mut Scene, s: &Screen<'_>, recipe: &RecipeOverlay) {
+    let [x, y, w, h] = s.rect;
+    scene.zones.push((s.rect, Action::CloseRecipe));
+    let [bw, bh] = [RECIPE_BOX[0].min(w), RECIPE_BOX[1].min(h)];
+    let b = [x + (w - bw) / 2.0, y + (h - bh) / 2.0, bw, bh];
+    scene.fill(b, PANEL);
+    scene.zones.push((b, Action::KeepRecipe));
+    scene.fill([b[0], b[1], bw, TITLE_BAR], BAND);
+    let mut right = scene.button(s, "x", b[0] + bw - PAD, b[1] + 2.0, Action::CloseRecipe) - PAD;
+    let n = recipe.recipes.len();
+    if n > 1 {
+        right = scene.button(s, ">", right, b[1] + 2.0, Action::TurnRecipe(1)) - 2.0;
+        let page = format!("{}/{n}", recipe.page.min(n - 1) + 1);
+        right -= (s.measure)(&page);
+        scene.text(page.clone(), [right, b[1] + 3.0], DIM_INK);
+        right = scene.button(s, "<", right - 2.0, b[1] + 2.0, Action::TurnRecipe(-1)) - PAD;
+    }
+    scene.text(fit_text(&format!("Recipes: {}", recipe.title), right - b[0] - PAD, s.measure), [b[0] + PAD, b[1] + 3.0], INK);
+
+    let body_y = b[1] + TITLE_BAR + PAD;
+    let Some(shown) = recipe.recipes.get(recipe.page.min(n.saturating_sub(1))) else {
+        scene.text("No recipe makes this item.", [b[0] + PAD, body_y + 2.0], DIM_INK);
+        return;
+    };
+    let columns = shown.width.max(1) as usize;
+    let grid_x = b[0] + PAD;
+    let mut grid_bottom = body_y;
+    for (i, slot) in shown.slots.iter().enumerate() {
+        let cell = [grid_x + (i % columns) as f32 * CELL, body_y + (i / columns) as f32 * CELL, CELL - 1.0, CELL - 1.0];
+        if !contains(b, cell) {
+            continue;
+        }
+        scene.fill(cell, CELL_BACK);
+        if !slot.is_empty() {
+            let item = &slot[(recipe.clock / 20) as usize % slot.len()];
+            scene.draws.push(Draw::Item { item: item.clone(), at: [cell[0] + 0.5, cell[1] + 0.5], size: 16.0 });
+        }
+        grid_bottom = grid_bottom.max(cell[1] + CELL);
+    }
+    let grid_right = grid_x + columns.min(shown.slots.len().max(1)) as f32 * CELL;
+    let arrow_x = grid_right + 6.0;
+    let mid = body_y + ((grid_bottom - body_y).max(CELL) - CELL) / 2.0;
+    scene.text("->", [arrow_x, mid + 5.0], INK);
+    let out = [arrow_x + (s.measure)("->") + 6.0, mid, CELL - 1.0, CELL - 1.0];
+    if contains(b, out) {
+        scene.fill(out, CELL_BACK);
+        scene.draws.push(Draw::Item { item: shown.result.clone(), at: [out[0] + 0.5, out[1] + 0.5], size: 16.0 });
+        if shown.count > 1 {
+            let count = shown.count.to_string();
+            scene.text(count.clone(), [out[0] + CELL - 1.0 - (s.measure)(&count), out[1] + CELL - 9.0], INK);
+        }
+    }
+    let station_y = grid_bottom.max(mid + CELL) + PAD;
+    scene.text(fit_text(&shown.station, bw - 2.0 * PAD, s.measure), [b[0] + PAD, station_y], DIM_INK);
+}
+
+/// The most task lines the tracked quest's box lists.
+const TRACKED_TASKS: usize = 6;
+/// The widest the tracked quest's box gets.
+const TRACKED_WIDTH: f32 = 180.0;
+
+/// The lines of the tracked quest's box: its title, then its tasks or what
+/// waits. None when the pack has no such quest or it is not visible.
+fn tracked_lines(book: &Book, progress: &Progress, player: &str, quest: &str) -> Option<Vec<(String, u32)>> {
+    let n = book.find(quest)?;
+    let statuses = book.statuses(progress, player);
+    if !statuses[n].visible {
+        return None;
+    }
+    let found = book.quest(n);
+    let title = if found.title.is_empty() { found.id.clone() } else { found.title.clone() };
+    let mut lines = vec![(title, GOLD_INK)];
+    match statuses[n].state {
+        QuestState::Locked => lines.push(("Not open yet".to_owned(), DIM_INK)),
+        QuestState::RewardsWaiting => lines.push(("Done: rewards in the quest book".to_owned(), LINE_DONE & 0xFF_FFFF)),
+        QuestState::Done => lines.push(("Done".to_owned(), LINE_DONE & 0xFF_FFFF)),
+        QuestState::Available | QuestState::InProgress => {
+            for (t, task) in found.tasks.iter().enumerate().take(TRACKED_TASKS) {
+                let goal = task.kind.goal();
+                let done = progress.task(&book.task_id(n, t)).min(goal);
+                let count = if goal > 1 { format!(" {done}/{goal}") } else { String::new() };
+                let mark = if done >= goal { "[x]" } else { "[ ]" };
+                let colour = if done >= goal { DIM_INK } else { INK };
+                lines.push((format!("{mark} {}{count}", task_label(task)), colour));
+            }
+            if found.tasks.len() > TRACKED_TASKS {
+                lines.push((format!("... and {} more", found.tasks.len() - TRACKED_TASKS), DIM_INK));
+            }
+        }
+    }
+    Some(lines)
+}
+
+/// The tracked quest's box on the HUD: its size, then its draws at `at`.
+/// None when there is nothing to show.
+pub fn tracked_size(book: &Book, progress: &Progress, player: &str, quest: &str, measure: &dyn Fn(&str) -> f32) -> Option<[f32; 2]> {
+    let lines = tracked_lines(book, progress, player, quest)?;
+    let widest = lines.iter().map(|(text, _)| measure(text)).fold(0.0, f32::max).min(TRACKED_WIDTH - 2.0 * PAD);
+    Some([widest + 2.0 * PAD, lines.len() as f32 * TOAST_LINE + 2.0 * PAD])
+}
+
+pub fn tracked_draws(book: &Book, progress: &Progress, player: &str, quest: &str, at: [f32; 2], measure: &dyn Fn(&str) -> f32) -> Vec<Draw> {
+    let (Some(lines), Some([w, h])) = (tracked_lines(book, progress, player, quest), tracked_size(book, progress, player, quest, measure)) else {
+        return Vec::new();
+    };
+    let [x, y] = at;
+    let mut draws = vec![Draw::Fill { rect: [x, y, w, h], colour: TOAST_BACK }, Draw::Fill { rect: [x, y, 1.0, h], colour: TOAST_EDGE }];
+    for (i, (text, colour)) in lines.into_iter().enumerate() {
+        let text = fit_text(&text, w - 2.0 * PAD, measure);
+        draws.push(Draw::Text { text, at: [x + PAD, y + PAD + 1.0 + i as f32 * TOAST_LINE], colour, shadow: true });
+    }
+    draws
 }
 
 /// A small box with `text` by the pointer, kept on screen.
@@ -1366,9 +1622,9 @@ mod tests {
         let (rect, _) = scene.zones.iter().find(|(_, action)| *action == Action::Quest(1)).unwrap();
         assert!(contains(scene.regions.canvas, *rect), "{rect:?} in {:?}", scene.regions.canvas);
         assert_eq!(rect[2], canvas::NODE);
-        // Its icon is drawn: it is whole.
+        // Its icon is drawn: it is whole. (The fourth is the panel's task item.)
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
-        assert_eq!(icons, 3);
+        assert_eq!(icons, 4);
     }
 
     #[test]
@@ -1413,7 +1669,7 @@ mod tests {
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         // Too long for one row with its button: the text wraps, the button goes below.
         let shown = texts(&scene);
-        for text in ["[ ] Hand in 4x Oak planks", "0/4", "Submit"] {
+        for text in ["[ ] Hand in 4x Oak", "planks 0/4", "Submit"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
         assert_eq!(
@@ -1421,6 +1677,97 @@ mod tests {
             Reaction::Send(ToServer::Submit { task: "a/next/planks".into() })
         );
         assert_eq!(click(&mut view, &book, &progress, &Action::Close), Reaction::Close);
+    }
+
+    #[test]
+    fn a_quest_is_tracked_and_untracked_from_its_panel() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        click(&mut view, &book, &progress, &Action::Quest(0));
+        let track = Action::Track("a/start".into());
+        assert_eq!(click(&mut view, &book, &progress, &track), Reaction::Tracked(Some("a/start".into())));
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(texts(&scene).contains(&"Untrack"));
+        assert_eq!(click(&mut view, &book, &progress, &Action::Untrack), Reaction::Tracked(None));
+        assert_eq!(view.tracked, None);
+    }
+
+    #[test]
+    fn the_party_shows_in_the_header() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        assert!(!texts(&view.scene(&screen(&book, &progress, NOWHERE))).iter().any(|t| t.starts_with("Party")));
+        view.party = Some("Miners".into());
+        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"Party Miners"));
+    }
+
+    #[test]
+    fn an_item_row_opens_its_recipes_and_the_view_turns_and_closes() {
+        let (book, progress) = (book(), progress_after(&book(), &[QuestEvent::Check { task: "a/start/ok".into() }]));
+        let mut view = opened(&book, &progress);
+        click(&mut view, &book, &progress, &Action::Quest(1));
+        let show = Action::ShowRecipe("minecraft:oak_planks".into());
+        assert!(zone(&view.scene(&screen(&book, &progress, NOWHERE)), &show).is_some());
+        assert_eq!(click(&mut view, &book, &progress, &show), Reaction::Nothing);
+        assert_eq!(view.recipe_wanted.take().as_deref(), Some("minecraft:oak_planks"));
+
+        // The glue found two recipes.
+        let planks = |log: &str| RecipeView {
+            station: "Crafting table".into(),
+            width: 1,
+            slots: vec![vec![log.to_owned(), "minecraft:birch_log".into()]],
+            result: "minecraft:oak_planks".into(),
+            count: 4,
+        };
+        view.recipe = Some(RecipeOverlay { title: "Oak Planks".into(), recipes: vec![planks("minecraft:oak_log"), planks("minecraft:oak_wood")], page: 0, clock: 0 });
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let shown = texts(&scene);
+        for text in ["Recipes: Oak Planks", "1/2", "->", "4", "Crafting table"] {
+            assert!(shown.contains(&text), "{text} in {shown:?}");
+        }
+        let items = |scene: &Scene| -> Vec<String> {
+            scene.draws.iter().filter_map(|d| match d { Draw::Item { item, size, .. } if *size == 16.0 => Some(item.clone()), _ => None }).collect()
+        };
+        assert_eq!(items(&scene), ["minecraft:oak_log", "minecraft:oak_planks"]);
+        // A slot with two items shows the second one a second later.
+        view.recipe.as_mut().unwrap().clock = 20;
+        assert_eq!(items(&view.scene(&screen(&book, &progress, NOWHERE)))[0], "minecraft:birch_log");
+        // Turning goes round; the view keeps clicks on it, and closes on one outside.
+        click(&mut view, &book, &progress, &Action::TurnRecipe(1));
+        assert_eq!(view.recipe.as_ref().unwrap().page, 1);
+        click(&mut view, &book, &progress, &Action::TurnRecipe(1));
+        assert_eq!(view.recipe.as_ref().unwrap().page, 0);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        // Under the view, the book's own zones do not take clicks.
+        assert_eq!(scene.action_at(canvas::centre(RECT)), Some(&Action::KeepRecipe));
+        assert_eq!(scene.action_at([RECT[0] + 1.0, RECT[1] + 1.0]), Some(&Action::CloseRecipe));
+        click(&mut view, &book, &progress, &Action::CloseRecipe);
+        assert!(view.recipe.is_none());
+
+        // Nothing makes it: the view says so.
+        view.recipe = Some(RecipeOverlay { title: "Bedrock".into(), ..RecipeOverlay::default() });
+        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"No recipe makes this item."));
+    }
+
+    #[test]
+    fn the_tracked_quest_box_lists_its_tasks_then_what_waits() {
+        let book = book();
+        let measure = |text: &str| text.len() as f32 * 5.0;
+        let lines = |progress: &Progress, quest: &str| -> Vec<String> {
+            tracked_draws(&book, progress, "steve", quest, [2.0, 2.0], &measure)
+                .into_iter()
+                .filter_map(|d| match d { Draw::Text { text, .. } => Some(text), _ => None })
+                .collect()
+        };
+        let fresh = Progress::default();
+        assert_eq!(lines(&fresh, "a/start"), ["Start here", "[ ] Confirm"]);
+        assert_eq!(lines(&fresh, "a/nope"), Vec::<String>::new());
+        assert!(tracked_size(&book, &fresh, "steve", "a/nope", &measure).is_none());
+        let done = progress_after(&book, &[QuestEvent::Check { task: "a/start/ok".into() }]);
+        assert_eq!(lines(&done, "a/start"), ["Start here", "Done: rewards in the quest book"]);
+        assert_eq!(lines(&done, "a/next"), ["Then this", "[ ] Hand in 4x Oak planks 0/4"]);
+        let size = tracked_size(&book, &done, "steve", "a/next", &measure).unwrap();
+        assert!(size[0] <= TRACKED_WIDTH && size[1] > 0.0);
     }
 
     #[test]

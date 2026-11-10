@@ -300,6 +300,10 @@ pub struct Reward {
     pub title: Option<String>,
     #[serde(default)]
     pub auto_claim: AutoClaim,
+    /// A team reward: one member claims it for the whole party (a lone
+    /// player is a party of one). False: each player claims their own.
+    #[serde(default)]
+    pub team: bool,
     #[serde(flatten)]
     pub kind: RewardKind,
 }
@@ -441,6 +445,12 @@ impl Progress {
     pub fn has_claimed(&self, reward: &str, player: &str) -> bool {
         self.claimed.get(reward).is_some_and(|players| players.contains(player))
     }
+
+    /// Whether reward `reward` is claimed as far as `player` goes: by them,
+    /// or by anyone of the team for a team reward.
+    pub fn claimed_for(&self, reward: &str, player: &str, team: bool) -> bool {
+        if team { self.claimed.get(reward).is_some_and(|players| !players.is_empty()) } else { self.has_claimed(reward, player) }
+    }
 }
 
 /// Whether `id` can name a chapter, quest, task or reward: lowercase
@@ -552,6 +562,7 @@ mod tests {
                     id: "r".into(),
                     title: None,
                     auto_claim: AutoClaim::Disabled,
+                    team: true,
                     kind: RewardKind::Xp { points: 5 },
                 }],
                 ..Quest::default()
