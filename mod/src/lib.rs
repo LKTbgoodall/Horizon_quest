@@ -2,6 +2,11 @@
 //! a module of `crate::game` there and of this crate here, under the same
 //! name, so `super::hq_canvas` reaches the same code in both. Files that touch
 //! the game's types (`*_glue.rs` and the hook helpers) are not listed here.
+//!
+//! The phase 1 modules (`hq_model`, `hq_validate`, `hq_logic`, `hq_progress`,
+//! `hq_store`) are listed here only, not yet in `horizon-mixin.toml`: the
+//! game is built with `-D warnings`, and code no glue calls yet is dead code
+//! there. Each one joins the bundle with the glue that uses it (phase 2).
 
 #[path = "../mixins/horizon_quests/hq_canvas.rs"]
 pub mod hq_canvas;
@@ -15,5 +20,7 @@ pub mod hq_model;
 pub mod hq_progress;
 #[path = "../mixins/horizon_quests/hq_protocol.rs"]
 pub mod hq_protocol;
+#[path = "../mixins/horizon_quests/hq_store.rs"]
+pub mod hq_store;
 #[path = "../mixins/horizon_quests/hq_validate.rs"]
 pub mod hq_validate;
