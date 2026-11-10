@@ -13,7 +13,7 @@ mise_a_jour: 2026-11-10
 - [ ] Valider les ADR 002 à 006 → [[Index des décisions]]
 - [ ] Choisir la licence et l'id du mod (`horizon_quest` ?) → [[Questions ouvertes]]
 - [ ] Installer les outils → [[Build, test et outils]] § Prérequis
-- [ ] `git init`, `.gitignore`, premier commit et push vers https://github.com/LKTbgoodall/Horizon_quest
+- [x] `git init`, `.gitignore`, premier commit et push vers https://github.com/LKTbgoodall/Horizon_quest (2026-11-10, seul auteur : LKTbgoodall)
 - [ ] Recloner les références dans `ext/` (horizon : docs + `native-hooks.json` + `crates/horizon-client/src/game/native_hooks.rs` ; horizon-mods)
 - [ ] **Hello world** : copier `native/fps-overlay` ou `coords-hud`, le renommer, le builder avec le launcher et le voir en jeu
 - [ ] **Hello world serveur** : une commande `/quests` qui répond dans le chat (pattern `register.rs` + `command.rs` de smp)
