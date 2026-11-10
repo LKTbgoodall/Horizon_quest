@@ -7,5 +7,9 @@
 pub mod hq_canvas;
 #[path = "../mixins/horizon_quests/hq_meta.rs"]
 pub mod hq_meta;
+#[path = "../mixins/horizon_quests/hq_model.rs"]
+pub mod hq_model;
 #[path = "../mixins/horizon_quests/hq_protocol.rs"]
 pub mod hq_protocol;
+#[path = "../mixins/horizon_quests/hq_validate.rs"]
+pub mod hq_validate;
