@@ -8,6 +8,7 @@ use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::Progress;
 use super::hq_net::{self as net, ToClient, ToServer};
+use super::native_claimed_items::NativeModEvent;
 use crate::game::Game;
 use horizon_client::extras::Corner;
 use horizon_client::extras_hud::Corners;
@@ -72,18 +73,11 @@ fn open_key(game: &Game<'_>) -> String {
     game.native_mod_key(meta::ID, meta::OPEN_KEY, meta::OPEN_KEY_DEFAULT)
 }
 
-/// A one-line hint in the top-left corner and the toast on show in the
-/// top-right one, both hidden while the book is open.
+/// The toast on show, in the top-right corner, hidden while the book is
+/// open.
 pub(super) fn hud(game: &mut Game<'_>, batch: &mut HudBatch, corners: &mut Corners) {
     if !game.native_on(meta::ID) || ours(game) || game.native_player().is_none() {
         return;
-    }
-    if game.native_corner_shown(Corner::TopLeft) {
-        let line = meta::hud_hint(&meta::key_label(&open_key(game)));
-        let w = game.native_text_width(&line) + 4.0;
-        let (x, y) = corners.place(Corner::TopLeft, w, 12.0);
-        game.native_fill(batch, [x, y, w, 12.0], 0x7800_0000);
-        game.native_text(batch, &line, [x + 2.0, y + 2.0], 0xFF_FFFF, true);
     }
     if game.native_corner_shown(Corner::TopRight)
         && let Some(toast) = with(|s| s.toasts.current().cloned())
@@ -116,7 +110,7 @@ fn paint(game: &Game<'_>, batch: &mut HudBatch, draws: Vec<Draw>) {
     }
 }
 
-/// The open key toggles the book screen and sends Hello to the server.
+/// The open key toggles the book screen.
 pub(super) fn key(game: &mut Game<'_>, key: &str, pressed: bool) {
     if !pressed || !game.native_window() || !game.native_on(meta::ID) || key != open_key(game) {
         return;
@@ -125,6 +119,12 @@ pub(super) fn key(game: &mut Game<'_>, key: &str, pressed: bool) {
         game.native_mod_screen_close(meta::ID);
         return;
     }
+    open_book(game);
+}
+
+/// Opens the book screen over the world and says Hello to the server, which
+/// answers with the pack and the player's progress.
+fn open_book(game: &mut Game<'_>) {
     if game.native_playing() && game.native_mod_screen_open(meta::ID) {
         with(|s| {
             let _ = s.sender.send(&ToServer::Hello {
@@ -157,6 +157,13 @@ pub(super) fn tick(game: &mut Game<'_>) {
             }
         });
         return;
+    }
+    // A right-click with the quest book is ours alone (the server never
+    // hears of it) and opens the book as the key does.
+    game.native_claim_items(meta::ID, &[meta::BOOK_ITEM.to_owned()]);
+    let used = game.native_poll(meta::ID).into_iter().any(|event| matches!(event, NativeModEvent::UseStart(..)));
+    if used && !ours(game) {
+        open_book(game);
     }
     if with(|s| s.close_requested) {
         with(|s| s.close_requested = false);

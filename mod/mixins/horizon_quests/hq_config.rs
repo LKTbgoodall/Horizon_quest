@@ -12,17 +12,23 @@ pub const DEFAULT_TEXT: &str = "\
 # Use the built-in example chapter \"Getting started\" when the world has no
 # quests of its own (<world>/horizon-quests/quests/). false: no quests at all.
 example_chapter = true
+
+# Give each player a quest book the first time they join this world (a
+# right-click with it opens the book, as the key does). /quests book gives
+# another one at any time.
+quest_book = true
 ";
 
 /// What the file says, each setting at its default when missing or wrong.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ServerConfig {
     pub example_chapter: bool,
+    pub quest_book: bool,
 }
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        Self { example_chapter: true }
+        Self { example_chapter: true, quest_book: true }
     }
 }
 
@@ -43,6 +49,10 @@ pub fn parse(text: &str) -> (ServerConfig, Vec<String>) {
             "example_chapter" => match value.as_bool() {
                 Some(on) => config.example_chapter = on,
                 None => problems.push(format!("`example_chapter` must be true or false, not {value}")),
+            },
+            "quest_book" => match value.as_bool() {
+                Some(on) => config.quest_book = on,
+                None => problems.push(format!("`quest_book` must be true or false, not {value}")),
             },
             other => problems.push(format!("unknown setting `{other}`, ignored")),
         }
@@ -67,6 +77,15 @@ mod tests {
         assert!(problems.is_empty());
         // A byte-order mark, as Windows editors write.
         assert!(!parse("\u{feff}example_chapter = false").0.example_chapter);
+    }
+
+    #[test]
+    fn the_quest_book_can_be_turned_off() {
+        let (config, problems) = parse("quest_book = false
+");
+        assert_eq!(config, ServerConfig { example_chapter: true, quest_book: false });
+        assert!(problems.is_empty());
+        assert!(parse("quest_book = 1").1[0].contains("true or false"));
     }
 
     #[test]

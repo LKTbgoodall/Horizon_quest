@@ -12,7 +12,7 @@ updated: 2026-11-10
 |---|---|
 | **Phase** | Phase 0 ✅, phase 1 ✅, **phase 2 ✅ (2026-11-10): release 0.1.0** (private testing), everything tested in game in solo and LAN. **Phase 3 in progress**: its new tasks, rewards, reward tables, repeatable quests and tasks in order are tested too → [[Roadmap]] |
 | **Last session** | [[2026-11-10]] § Session 14: in-game tests of v0.0.6 to v0.0.9, solo then LAN (Windows host under an offline name, Arch Linux guest). Fixed on the way: XP and advancement tasks for the single-player host (v0.0.7, selectors through `native_run_command`), short ids for `/quests check` / `submit` (v0.0.7), probe at most once a second (v0.0.8), the Nether toast lost during the dimension load (v0.0.9). New `tools/build-mod.sh` for Linux. **0.1.0 released** (tag `v0.1.0`). 137 + 2 tests pass |
-| **Code** | `mod/` **v0.1.0**. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book` (protocol 2), inventory polling, 9 task types, 7 reward types, reward tables, repeatable quests, tasks in order, HUD toasts, saving, `/quests`. Two example chapters |
+| **Code** | `mod/` **v0.1.1** (no HUD hint, Quest Book item; to test in game). Full client/server quest engine with real graphical book, net sync over `horizon_quests:book` (protocol 2), inventory polling, 9 task types, 7 reward types, reward tables, repeatable quests, tasks in order, HUD toasts, saving, `/quests`. Two example chapters |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
 | **Blocking** | Nothing |
 | **In progress** | Nothing half done. Next steps of phase 3, one version each: teams first, then more config, datapack quests, book polish, assets |

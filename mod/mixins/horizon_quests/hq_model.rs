@@ -397,6 +397,8 @@ pub struct Progress {
     /// The advancements the pack's tasks name that a member was seen to
     /// complete: a quest opening later still finds them.
     pub advancements: BTreeSet<String>,
+    /// The quest book item was given to the player on their first join.
+    pub book_given: bool,
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -410,6 +412,7 @@ impl Default for Progress {
             claimed: BTreeMap::new(),
             repeats: BTreeMap::new(),
             advancements: BTreeSet::new(),
+            book_given: false,
         }
     }
 }

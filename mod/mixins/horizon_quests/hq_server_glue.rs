@@ -37,7 +37,7 @@ static STATE: Mutex<Option<State>> = Mutex::new(None);
 
 /// The server's settings (hq_config), as its config file last said. Read
 /// before the world opens; the defaults until then.
-static CONFIG: Mutex<ServerConfig> = Mutex::new(ServerConfig { example_chapter: true });
+static CONFIG: Mutex<ServerConfig> = Mutex::new(ServerConfig { example_chapter: true, quest_book: true });
 
 struct State {
     session: Session,
@@ -59,6 +59,9 @@ struct State {
     /// tick (player, item, count): the tick matches it against craft tasks,
     /// where the item tags can be read.
     crafts: Vec<(u128, String, u32)>,
+    /// Players to give a quest book on the next tick (their first join,
+    /// `/quests book`).
+    books: Vec<u128>,
 }
 
 /// How many problems a report lists in chat.
@@ -122,6 +125,7 @@ fn open(game: &Game<'_>) -> State {
         receivers: HashMap::new(),
         greeting: HashSet::new(),
         crafts: Vec::new(),
+        books: Vec::new(),
     }
 }
 
@@ -258,6 +262,7 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
     if !matches!(phase, ServerTickPhase::ServerTickEnd { .. }) || !game.native_on(meta::ID) {
         return;
     }
+    let config = server_config();
     let (actions, outgoing, probes) = {
         let mut guard = state();
         let Some(s) = guard.as_mut() else {
@@ -273,6 +278,9 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         let mut probes = Vec::new();
         for uuid in s.session.advance() {
             look_at_inventory(game, &mut s.session, uuid);
+            if config.quest_book && s.session.take_book(uuid) {
+                s.books.push(uuid);
+            }
             let probe = s.session.take_probe(uuid);
             if probe != engine::Probe::default()
                 && let Some(player) = s.session.player(uuid)
@@ -299,7 +307,7 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         }
 
         let book = s.session.book();
-        let actions: Vec<Action> = effects
+        let mut actions: Vec<Action> = effects
             .into_iter()
             .map(|(uuid, effect)| Action {
                 uuid,
@@ -311,6 +319,14 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
                 },
             })
             .collect();
+        for uuid in std::mem::take(&mut s.books) {
+            actions.push(Action {
+                uuid,
+                name: s.session.player(uuid).map(|p| p.name.clone()).unwrap_or_default(),
+                line: Some(format!("Here is your {}: right-click it to open your quests.", meta::BOOK_NAME)),
+                reward: Some((None, RewardKind::Item { item: meta::BOOK_ITEM.to_owned(), count: 1 })),
+            });
+        }
         save(s);
 
         let mut outgoing = Vec::new();
@@ -606,6 +622,10 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
             lines
         }
         Command::Progress => s.session.summary(me),
+        Command::Book => {
+            s.books.push(me);
+            Vec::new()
+        }
         Command::Claim => {
             s.session.push(me, QuestEvent::ClaimAll);
             Vec::new()

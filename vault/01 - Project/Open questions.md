@@ -76,3 +76,8 @@ updated: 2026-11-10
 - ❓ **Single-player host's inventory**: `native_inventory(uuid)` only reads LAN hub guests live; anyone else is read from their player file. Is the single-player host a hub guest? If not, item tasks would not see the host's live inventory. The v0.0.4 in-game test ("gather 8 logs") answers it. → [[Horizon hooks and API]] § 2 "Whose state is in place"
 - [x] **`native_as_player`**: *answered 2026-11-10 (Session 13)*: it is a **private** method at `fdc87ae`; v0.0.4 and v0.0.5 did not compile because of it. v0.0.6 takes a guest's items with `native_inventory` + `/clear` instead → [[Horizon hooks and API]] § 2. Still worth asking on the Horizon Discord: is a numbered "take items from player X" helper planned? (`native_take_stacks` is ⏳.)
 - ❓ Does `native_player_logged_in` fire for the host of a single-player world? Everything server-side hangs on it (`Session::join`). → watch in the v0.0.4 test (if the book stays on "Loading", or `/quests progress` says "You are not in the quest book yet", this is why)
+
+## Found in Session 15 (2026-11-10)
+- ❓ **A mod key in Controls > Key Binds**: no hook today (the list is static). Ask the Horizon devs for one; until then the key lives in Options > Mods > Horizon Quests.
+- ❓ **The Quest Book's texture**: needs a companion content mod with the namespace `horizon_quests` (assets). Can a content mod and a native mod share an id? Does the LAN content check then need the same file on the guest? Waiting for Bastien's go.
+- ❓ **The Quest Book on a server without the mod / with the mod removed**: a code-declared item is in the content check; in a save, an item whose mod is gone is unknown. To watch.

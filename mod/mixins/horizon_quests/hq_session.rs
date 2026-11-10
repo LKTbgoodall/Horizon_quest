@@ -102,6 +102,19 @@ impl Session {
         self.poke(uuid);
     }
 
+    /// Whether the player is due their first quest book: true once, then it
+    /// is written in their progress and saved.
+    pub fn take_book(&mut self, uuid: u128) -> bool {
+        match self.players.get_mut(&uuid) {
+            Some(player) if !player.progress.book_given => {
+                player.progress.book_given = true;
+                player.dirty = true;
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// A player left: what to save for them, if anything.
     pub fn leave(&mut self, uuid: u128) -> Option<Progress> {
         self.next_look.remove(&uuid);
@@ -810,6 +823,20 @@ mod tests {
         assert!(completed(&s, "w/walk"));
         assert!(!s.observe(7));
         assert!(!s.observe(8));
+    }
+
+    #[test]
+    fn the_first_book_is_given_once() {
+        let mut s = work();
+        assert!(s.take_book(7));
+        assert!(!s.take_book(7));
+        assert!(!s.take_book(8));
+        // Written in the progress, so it is saved and kept on the next join.
+        let saved = s.take_dirty();
+        assert!(saved.iter().any(|(uuid, p)| *uuid == 7 && p.book_given), "{saved:?}");
+        let progress = s.leave(7).unwrap_or_else(|| saved[0].1.clone());
+        s.join(7, "Steve", Ok(progress));
+        assert!(!s.take_book(7));
     }
 
     #[test]

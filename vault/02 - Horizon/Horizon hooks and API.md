@@ -201,3 +201,8 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 
 ## Client player gaps (verified 2026-11-10)
 - On the client, `native_player()` is **None during a dimension change** (`enter_remote_dimension` sets `self.player = None` until the next level is in), not only out of a world. Do not treat None as "left the world" for state a server message may refill meanwhile (our toasts were lost that way until v0.0.9).
+
+## Keys and items (verified in source 2026-11-10)
+- **Controls > Key Binds cannot take a mod's key**: the page lists `keybinds::all_mappings()` (static `MAPPINGS` + `HORIZON_MAPPINGS`). A native mod's keys (`NativeMod.keys` from `native_mods`) are rebindable on its page in Options > Mods; `native_mod_key(mod_id, name, default)` reads the choice (`key.<mod>.<name>` in `horizon-mods.txt`).
+- **Items in code**: `native_items(items: &mut Vec<horizon_mods::content::Item>)` (API 145, static, asked once at start on every side). `Item { id: "ns:path", template, max_stack_size, rarity, components (patch, `!minecraft:x` removes), crafting_remainder, place_block }`. Look = the template's unless a content mod whose id is the namespace is on (its assets). Counted in the joining client's content check.
+- **Right-click with an item, client side**: `native_claim_items(mod_id, &[ids])` + `native_poll(mod_id)` → `NativeModEvent::UseStart(NativeHeldItem, ticks)` / `UseStop` (API 116, module `native_claimed_items`). The server never hears a claimed item's use.

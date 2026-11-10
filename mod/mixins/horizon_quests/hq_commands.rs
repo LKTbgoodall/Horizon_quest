@@ -16,10 +16,11 @@ pub const NAME: &str = "quests";
 /// it needs (0: everyone) and what it does. Ids are full ids and contain
 /// `/`, so they are `text` arguments, which take the rest of the line.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-pub const USAGES: [(&str, u8, &str); 12] = [
+pub const USAGES: [(&str, u8, &str); 13] = [
     ("quests", 0, "show this help"),
     ("quests progress", 0, "list your open quests and how far they are"),
     ("quests claim", 0, "claim every reward waiting for you"),
+    ("quests book", 0, "get a quest book: right-click it to open your quests"),
     ("quests check <task:text>", 0, "tick a checkmark task (its quest's id is enough)"),
     ("quests check", 0, "list the checkmark tasks you can tick"),
     ("quests submit <task:text>", 0, "hand in the items of a task (its quest's id is enough)"),
@@ -37,6 +38,7 @@ pub enum Command {
     Help,
     Progress,
     Claim,
+    Book,
     Check { task: String },
     Submit { task: String },
     Reload,
@@ -51,7 +53,7 @@ impl Command {
     /// The op level the command needs.
     pub fn level(&self) -> u8 {
         match self {
-            Command::Help | Command::Progress | Command::Claim | Command::Check { .. } | Command::Submit { .. } => 0,
+            Command::Help | Command::Progress | Command::Claim | Command::Book | Command::Check { .. } | Command::Submit { .. } => 0,
             Command::Reload | Command::Validate | Command::Complete { .. } | Command::Reset { .. } => 2,
             Command::ResetAll { .. } => 3,
         }
@@ -72,6 +74,7 @@ pub fn parse(line: &str) -> Option<Result<Command, String>> {
         [] | ["help"] => Command::Help,
         ["progress"] => Command::Progress,
         ["claim"] => Command::Claim,
+        ["book"] => Command::Book,
         ["check"] => Command::Check { task: String::new() },
         ["submit"] => Command::Submit { task: String::new() },
         ["check", task] => Command::Check { task: (*task).to_owned() },
@@ -200,6 +203,7 @@ mod tests {
         assert_eq!(ok("quests"), Command::Help);
         assert_eq!(ok("quests help"), Command::Help);
         assert_eq!(ok("  quests   claim "), Command::Claim);
+        assert_eq!(ok("quests book"), Command::Book);
         assert_eq!(ok("quests check a/q/t"), Command::Check { task: "a/q/t".into() });
         assert_eq!(ok("quests submit a/q/t"), Command::Submit { task: "a/q/t".into() });
         assert_eq!(ok("quests reload"), Command::Reload);
@@ -256,13 +260,14 @@ mod tests {
                 "/quests: show this help",
                 "/quests progress: list your open quests and how far they are",
                 "/quests claim: claim every reward waiting for you",
+                "/quests book: get a quest book: right-click it to open your quests",
                 "/quests check <task>: tick a checkmark task (its quest's id is enough)",
                 "/quests check: list the checkmark tasks you can tick",
                 "/quests submit <task>: hand in the items of a task (its quest's id is enough)",
                 "/quests submit: list the tasks you can hand items in for",
             ]
         );
-        assert_eq!(help(2).len(), 11);
+        assert_eq!(help(2).len(), 12);
         assert_eq!(help(4).len(), USAGES.len());
         assert_eq!(help(4).last().unwrap(), "/quests reset_all <player>: reset all of a player's progress");
     }

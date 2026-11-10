@@ -1,4 +1,4 @@
-// The hint line in the top-left corner: which key opens the quest book.
+// The quest toasts in the top-right corner of the HUD.
 fn horizon_quests_hud(
     game: &mut crate::game::Game<'_>,
     batch: &mut horizon_client::hud::HudBatch,
