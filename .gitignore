@@ -1,0 +1,15 @@
+# Rust
+target/
+**/*.rs.bk
+
+# Reference clones (horizon, horizon-mods)
+ext/
+
+# Obsidian per-user state
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache
+vault/.trash/
+
+# OS
+.DS_Store
+Thumbs.db
