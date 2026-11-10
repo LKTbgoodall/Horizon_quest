@@ -3,8 +3,8 @@
 // quests.json refuses the pack. Every problem is reported with where it is,
 // so a pack author can fix the file. Pure: no game types (it reads files).
 use super::hq_model::{
-    Chapter, FORMAT_VERSION, Quest, QuestFile, RewardKind, Settings, TaskKind, dependency_id, quest_id, resource_id,
-    valid_id,
+    AutoClaim, Chapter, FORMAT_VERSION, Quest, QuestFile, RewardKind, RewardTable, Settings, TaskKind, dependency_id,
+    quest_id, resource_id, valid_id,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -12,6 +12,8 @@ use std::path::Path;
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SETTINGS_FILE: &str = "quests.json";
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+const TABLES_FOLDER: &str = "reward_tables";
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const ID_RULE: &str = "an `id` made of lowercase letters, digits, `_`, `-` or `.`";
 
@@ -108,8 +110,23 @@ pub fn load_dir(dir: &Path) -> Loaded {
         Err(e) => return Loaded::refused(SETTINGS_FILE, format!("cannot be read: {e}")),
     };
     let mut problems = Vec::new();
+    let chapters = read_folder(dir, "chapters", &mut problems);
+    let tables = read_folder(dir, TABLES_FOLDER, &mut problems);
+    fn as_refs(files: &[(String, String)]) -> Vec<(&str, &str)> {
+        files.iter().map(|(name, text)| (name.as_str(), text.as_str())).collect()
+    }
+    let mut loaded = load_pack(settings.as_deref(), &as_refs(&chapters), &as_refs(&tables));
+    problems.append(&mut loaded.problems);
+    loaded.problems = problems;
+    loaded
+}
+
+/// The `.json` files of `dir/folder`, as (name, text) in file-name order. A
+/// missing folder has none; what cannot be read is a problem.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+fn read_folder(dir: &Path, folder: &str, problems: &mut Vec<Problem>) -> Vec<(String, String)> {
     let mut sources = Vec::new();
-    match std::fs::read_dir(dir.join("chapters")) {
+    match std::fs::read_dir(dir.join(folder)) {
         Ok(entries) => {
             let mut paths: Vec<_> = entries
                 .filter_map(|entry| entry.ok())
@@ -121,24 +138,29 @@ pub fn load_dir(dir: &Path) -> Loaded {
                 let name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
                 match std::fs::read_to_string(&path) {
                     Ok(text) => sources.push((name, text)),
-                    Err(e) => problems.push(error(&format!("chapters/{name}"), format!("cannot be read: {e}"))),
+                    Err(e) => problems.push(error(&format!("{folder}/{name}"), format!("cannot be read: {e}"))),
                 }
             }
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => problems.push(error("chapters", format!("cannot be read: {e}"))),
+        Err(e) => problems.push(error(folder, format!("cannot be read: {e}"))),
     }
-    let sources: Vec<(&str, &str)> = sources.iter().map(|(name, text)| (name.as_str(), text.as_str())).collect();
-    let mut loaded = load(settings.as_deref(), &sources);
-    problems.append(&mut loaded.problems);
-    loaded.problems = problems;
-    loaded
+    sources
 }
 
 /// The pack made of quests.json's text (None: default settings) and the
-/// chapter files' (name, text), in file-name order.
+/// chapter files' (name, text), in file-name order: one without reward
+/// tables.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
+    load_pack(settings, chapters, &[])
+}
+
+/// The pack made of quests.json's text (None: default settings), the
+/// chapter files' and the reward table files' (name, text), each in
+/// file-name order.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub fn load_pack(settings: Option<&str>, chapters: &[(&str, &str)], tables: &[(&str, &str)]) -> Loaded {
     let settings = match settings.map(|text| serde_json::from_str::<Settings>(without_bom(text))) {
         None => Settings::default(),
         Some(Ok(settings)) => settings,
@@ -153,6 +175,28 @@ pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
     }
 
     let mut problems = Vec::new();
+    // Reward tables first: the chapters' rewards name them. A table with an
+    // error is left out, and then the chapters that needed it.
+    let mut reward_tables: Vec<RewardTable> = Vec::new();
+    for (name, text) in tables {
+        let place = format!("{TABLES_FOLDER}/{name}");
+        match serde_json::from_str::<RewardTable>(without_bom(text)) {
+            Ok(mut table) => {
+                let found = check_table(&place, &table, &reward_tables);
+                let sound = !found.iter().any(|problem| problem.severity == Severity::Error);
+                problems.extend(found);
+                if sound {
+                    for entry in &mut table.entries {
+                        write_reward_ids_in_full(&mut entry.kind);
+                    }
+                    reward_tables.push(table);
+                }
+            }
+            Err(e) => problems.push(error(&place, format!("not a valid reward table: {e}"))),
+        }
+    }
+    let table_ids: BTreeSet<&str> = reward_tables.iter().map(|table| table.id.as_str()).collect();
+
     let mut entries: Vec<(String, Chapter)> = Vec::new();
     for (name, text) in chapters {
         let place = format!("chapters/{name}");
@@ -167,7 +211,7 @@ pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
     // Leaving a chapter out can break another's dependencies, so look again
     // until what is left is sound.
     loop {
-        let found = find(&settings, &entries);
+        let found = find(&settings, &entries, &table_ids);
         if found.iter().any(|f| f.chapter.is_none() && f.problem.severity == Severity::Error) {
             problems.extend(found.into_iter().map(|f| f.problem));
             entries.clear();
@@ -189,32 +233,111 @@ pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
 
     let mut chapters: Vec<Chapter> = entries.into_iter().map(|(_, chapter)| chapter).collect();
     chapters.iter_mut().for_each(write_ids_in_full);
-    Loaded { file: QuestFile { settings, chapters }, problems }
+    Loaded { file: QuestFile { settings, chapters, reward_tables }, problems }
 }
 
-/// Writes the chapter's item and entity ids in full (`apple` becomes
-/// `minecraft:apple`), so the rest of the mod compares them as they are.
+/// `apple` becomes `minecraft:apple`.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+fn full(id: &mut String) {
+    if let Some(whole) = resource_id(id) {
+        *id = whole;
+    }
+}
+
+/// Writes the chapter's item, entity, dimension and advancement ids in full
+/// (`apple` becomes `minecraft:apple`), and a location's corners low then
+/// high, so the rest of the mod compares them as they are.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn write_ids_in_full(chapter: &mut Chapter) {
-    fn full(id: &mut String) {
-        if let Some(whole) = resource_id(id) {
-            *id = whole;
-        }
-    }
     chapter.icon.iter_mut().for_each(full);
     for quest in &mut chapter.quests {
         quest.icon.iter_mut().for_each(full);
         for task in &mut quest.tasks {
-            if let TaskKind::Kill { entity, .. } = &mut task.kind {
-                full(entity);
+            match &mut task.kind {
+                TaskKind::Kill { entity, .. } => full(entity),
+                TaskKind::Dimension { dimension } => full(dimension),
+                TaskKind::Advancement { advancement } => full(advancement),
+                TaskKind::Location { dimension, from, to } => {
+                    dimension.iter_mut().for_each(full);
+                    for axis in 0..3 {
+                        if from[axis] > to[axis] {
+                            std::mem::swap(&mut from[axis], &mut to[axis]);
+                        }
+                    }
+                }
+                TaskKind::Item { .. } | TaskKind::Craft { .. } | TaskKind::Checkmark | TaskKind::XpLevels { .. } => {}
             }
         }
         for reward in &mut quest.rewards {
-            if let RewardKind::Item { item, .. } = &mut reward.kind {
-                full(item);
-            }
+            write_reward_ids_in_full(&mut reward.kind);
         }
     }
+}
+
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+fn write_reward_ids_in_full(kind: &mut RewardKind) {
+    if let RewardKind::Item { item, .. } = kind {
+        full(item);
+    }
+}
+
+/// What is wrong with what a reward (of a quest or of a table) gives, each
+/// as its severity and a message to put after the reward's name.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+fn kind_problems(kind: &RewardKind) -> Vec<(Severity, String)> {
+    let mut found = Vec::new();
+    match kind {
+        RewardKind::Item { item, count } => {
+            if resource_id(item).is_none() {
+                found.push((Severity::Error, format!("`{item}` is not an item id")));
+            }
+            if *count == 0 {
+                found.push((Severity::Error, "`count` must be at least 1".to_owned()));
+            }
+        }
+        RewardKind::Xp { points: 0 } | RewardKind::XpLevels { levels: 0 } => {
+            found.push((Severity::Warning, "gives nothing".to_owned()));
+        }
+        RewardKind::Xp { .. } | RewardKind::XpLevels { .. } => {}
+        RewardKind::Command { command } => {
+            if command.trim().is_empty() {
+                found.push((Severity::Error, "the `command` is empty".to_owned()));
+            } else if command.contains(['\n', '\r']) {
+                found.push((Severity::Error, "the `command` must be one line".to_owned()));
+            }
+        }
+        RewardKind::Toast { .. } | RewardKind::Random { .. } | RewardKind::Choice { .. } => {}
+    }
+    found
+}
+
+/// What is wrong with reward table `table`, read from `place`, given the
+/// tables read before it.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+fn check_table(place: &str, table: &RewardTable, earlier: &[RewardTable]) -> Vec<Problem> {
+    let mut found = Vec::new();
+    let mut add = |severity: Severity, message: String| {
+        found.push(Problem { severity, place: place.to_owned(), message });
+    };
+    if !valid_id(&table.id) {
+        add(Severity::Error, format!("the reward table needs {ID_RULE}"));
+    } else if earlier.iter().any(|other| other.id == table.id) {
+        add(Severity::Error, format!("another reward table already has the id `{}`", table.id));
+    }
+    if table.entries.is_empty() {
+        add(Severity::Error, "the reward table has no `entries`".to_owned());
+    } else if table.entries.iter().all(|entry| entry.weight == 0) {
+        add(Severity::Error, "every entry has `weight` 0: nothing can be drawn".to_owned());
+    }
+    for (e, entry) in table.entries.iter().enumerate() {
+        if entry.kind.table().is_some() {
+            add(Severity::Error, format!("entry #{}: an entry cannot be another table", e + 1));
+        }
+        for (severity, message) in kind_problems(&entry.kind) {
+            add(severity, format!("entry #{}: {message}", e + 1));
+        }
+    }
+    found
 }
 
 /// Notepad on Windows starts files with a byte-order mark, which is not JSON.
@@ -228,9 +351,10 @@ fn good_size(size: f32) -> bool {
     size.is_finite() && size > 0.0
 }
 
-/// Everything wrong with the pack. `chapters` are (place, chapter).
+/// Everything wrong with the pack. `chapters` are (place, chapter);
+/// `tables` are the ids of the reward tables that loaded.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-fn find(settings: &Settings, chapters: &[(String, Chapter)]) -> Vec<Found> {
+fn find(settings: &Settings, chapters: &[(String, Chapter)], tables: &BTreeSet<&str>) -> Vec<Found> {
     let mut f = Finder::default();
 
     if !good_size(settings.default_size) {
@@ -281,7 +405,7 @@ fn find(settings: &Settings, chapters: &[(String, Chapter)]) -> Vec<Found> {
             if !cells.insert(((quest.x + 0.0).to_bits(), (quest.y + 0.0).to_bits())) {
                 f.warning(Some(c), &place, format!("another quest is already at x {}, y {}", quest.x, quest.y));
             }
-            check_quest(&mut f, c, &place, quest);
+            check_quest(&mut f, c, &place, quest, tables);
         }
     }
 
@@ -347,7 +471,7 @@ fn check_look(f: &mut Finder, c: usize, place: &str, icon: Option<&str>, size: O
 
 /// What is wrong inside one quest, its dependencies aside.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest) {
+fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest, tables: &BTreeSet<&str>) {
     if quest.title.trim().is_empty() {
         f.warning(Some(c), place, "the quest has no `title`");
     }
@@ -364,13 +488,40 @@ fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest) {
             f.error(Some(c), place, format!("two tasks have the id `{}`", task.id));
         }
         if task.kind.goal() == 0 {
-            f.error(Some(c), place, format!("task `{}`: `count` must be at least 1", task.id));
+            let field = if matches!(task.kind, TaskKind::XpLevels { .. }) { "levels" } else { "count" };
+            f.error(Some(c), place, format!("task `{}`: `{field}` must be at least 1", task.id));
         }
-        if let TaskKind::Kill { entity, .. } = &task.kind
-            && resource_id(entity).is_none()
-        {
-            f.error(Some(c), place, format!("task `{}`: `{entity}` is not an entity id", task.id));
+        let (id, what) = match &task.kind {
+            TaskKind::Kill { entity, .. } => (Some(entity), "an entity id"),
+            TaskKind::Dimension { dimension } => (Some(dimension), "a dimension id"),
+            TaskKind::Location { dimension, .. } => (dimension.as_ref(), "a dimension id"),
+            TaskKind::Advancement { advancement } => (Some(advancement), "an advancement id"),
+            TaskKind::Item { .. } | TaskKind::Craft { .. } | TaskKind::Checkmark | TaskKind::XpLevels { .. } => {
+                (None, "")
+            }
+        };
+        if let Some(id) = id.filter(|id| resource_id(id).is_none()) {
+            f.error(Some(c), place, format!("task `{}`: `{id}` is not {what}", task.id));
         }
+    }
+    // A quest that starts over must cost something each time: tasks that
+    // only look at what the player has or is would complete it again at
+    // once, for ever.
+    let used_up = |kind: &TaskKind| {
+        matches!(
+            kind,
+            TaskKind::Kill { .. } | TaskKind::Craft { .. } | TaskKind::Checkmark | TaskKind::Item { consume: true, .. }
+        )
+    };
+    if quest.repeatable && !quest.tasks.iter().any(|task| used_up(&task.kind)) {
+        f.error(
+            Some(c),
+            place,
+            "a repeatable quest needs a task that is used up each time: a kill, a craft, a checkmark or a hand-in",
+        );
+    }
+    if !quest.repeatable && quest.repeat_cooldown > 0 {
+        f.warning(Some(c), place, "`repeat_cooldown` does nothing without `repeatable`");
     }
 
     let mut ids = BTreeSet::new();
@@ -380,19 +531,18 @@ fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest) {
         } else if !ids.insert(reward.id.as_str()) {
             f.error(Some(c), place, format!("two rewards have the id `{}`", reward.id));
         }
-        match &reward.kind {
-            RewardKind::Item { item, count } => {
-                if resource_id(item).is_none() {
-                    f.error(Some(c), place, format!("reward `{}`: `{item}` is not an item id", reward.id));
-                }
-                if *count == 0 {
-                    f.error(Some(c), place, format!("reward `{}`: `count` must be at least 1", reward.id));
-                }
-            }
-            RewardKind::Xp { points: 0 } | RewardKind::XpLevels { levels: 0 } => {
-                f.warning(Some(c), place, format!("reward `{}` gives nothing", reward.id));
-            }
-            RewardKind::Xp { .. } | RewardKind::XpLevels { .. } => {}
+        for (severity, message) in kind_problems(&reward.kind) {
+            f.add(severity, Some(c), place, format!("reward `{}`: {message}", reward.id));
+        }
+        if let Some(table) = reward.kind.table().filter(|table| !tables.contains(table)) {
+            f.error(Some(c), place, format!("reward `{}`: unknown reward table `{table}`", reward.id));
+        }
+        if matches!(reward.kind, RewardKind::Choice { .. }) && reward.auto_claim == AutoClaim::Enabled {
+            f.warning(
+                Some(c),
+                place,
+                format!("reward `{}`: a choice is never claimed automatically", reward.id),
+            );
         }
     }
 }
@@ -546,7 +696,7 @@ mod tests {
             "error: chapters/a.json > q: reward `r`: `No Item` is not an item id",
             "error: chapters/a.json > q: reward `r`: `count` must be at least 1",
             "error: chapters/a.json > q: two rewards have the id `r`",
-            "warning: chapters/a.json > q: reward `r` gives nothing",
+            "warning: chapters/a.json > q: reward `r`: gives nothing",
             "error: chapters/a.json > q: reward #3 needs an `id` made of lowercase letters, digits, `_`, `-` or `.`",
         ];
         assert_eq!(messages(&loaded), expected);

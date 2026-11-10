@@ -13,7 +13,7 @@
 // same pass as the fills.
 use super::hq_canvas::{self as canvas, View};
 use super::hq_logic::{Book, QuestState, Status};
-use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, Shape, Task, TaskKind};
+use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, Shape, TableEntry, Task, TaskKind};
 use super::hq_net::ToServer;
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -65,6 +65,9 @@ const TITLE_BAR: f32 = 14.0;
 /// The room left round a chapter fitted to the canvas.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const MARGIN: f32 = 16.0;
+/// The most entries of a reward table the quest panel lists.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+const TABLE_ROWS: usize = 12;
 /// The icon shown for a quest that names none and whose first task has none.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const DEFAULT_ICON: &str = "minecraft:book";
@@ -91,6 +94,8 @@ pub enum Action {
     Check(String),
     Submit(String),
     Claim(String),
+    /// Claim a choice reward, taking this entry of its table.
+    Choose(String, u32),
     ClaimAll,
     /// Close the book.
     Close,
@@ -343,18 +348,65 @@ pub fn task_label(task: &Task) -> String {
         }
         TaskKind::Checkmark => "Confirm".to_owned(),
         TaskKind::Kill { entity, count } => format!("Kill {}", counted(*count, &pretty(entity))),
+        TaskKind::Craft { item, count } => {
+            let name = match item {
+                ItemMatch::Id(id) => pretty(id),
+                ItemMatch::Tag(tag) => format!("{} (any)", pretty(tag)),
+            };
+            format!("Craft {}", counted(*count, &name))
+        }
+        TaskKind::XpLevels { levels } => format!("Reach level {levels}"),
+        TaskKind::Dimension { dimension } => format!("Go to: {}", pretty(dimension)),
+        TaskKind::Location { dimension, from, to } => {
+            // The middle of the box is where to walk to.
+            let middle = |axis: usize| (i64::from(from[axis]) + i64::from(to[axis])).div_euclid(2);
+            let place = format!("Go near {}, {}, {}", middle(0), middle(1), middle(2));
+            match dimension {
+                Some(dimension) => format!("{place} ({})", pretty(dimension)),
+                None => place,
+            }
+        }
+        TaskKind::Advancement { advancement } => format!("Advancement: {}", pretty(advancement)),
     }
 }
 
-/// What a reward gives, in a few words.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-pub fn reward_label(reward: &Reward) -> String {
-    match &reward.kind {
+/// What a reward of this kind gives, in a few words.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub fn kind_label(kind: &RewardKind) -> String {
+    match kind {
         RewardKind::Item { item, count } => counted(*count, &pretty(item)),
         RewardKind::Xp { points } => format!("{points} XP"),
         RewardKind::XpLevels { levels: 1 } => "1 level".to_owned(),
         RewardKind::XpLevels { levels } => format!("{levels} levels"),
+        RewardKind::Command { .. } => "A special reward".to_owned(),
+        RewardKind::Toast { text } if !text.trim().is_empty() => text.clone(),
+        RewardKind::Toast { .. } => "A message".to_owned(),
+        RewardKind::Random { table } => format!("Random: {}", pretty(table)),
+        RewardKind::Choice { table } => format!("Your choice: {}", pretty(table)),
     }
+}
+
+/// What something given is called: its title when it has one, else a name
+/// made from its kind.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub fn titled(title: Option<&str>, kind: &RewardKind) -> String {
+    match title.filter(|title| !title.trim().is_empty()) {
+        Some(title) => title.to_owned(),
+        None => kind_label(kind),
+    }
+}
+
+/// What a reward gives, in a few words: its title, or one made from its
+/// type.
+#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
+pub fn reward_label(reward: &Reward) -> String {
+    titled(reward.title.as_deref(), &reward.kind)
+}
+
+/// What a reward table's entry gives, in a few words.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub fn entry_label(entry: &TableEntry) -> String {
+    titled(entry.title.as_deref(), &entry.kind)
 }
 
 /// The item a quest's node shows.
@@ -364,8 +416,12 @@ pub fn quest_icon(quest: &Quest) -> &str {
         return icon;
     }
     match quest.tasks.first().map(|task| &task.kind) {
-        Some(TaskKind::Item { item: ItemMatch::Id(id), .. }) => id,
+        Some(TaskKind::Item { item: ItemMatch::Id(id), .. } | TaskKind::Craft { item: ItemMatch::Id(id), .. }) => id,
+        Some(TaskKind::Craft { .. }) => "minecraft:crafting_table",
         Some(TaskKind::Kill { .. }) => "minecraft:iron_sword",
+        Some(TaskKind::XpLevels { .. }) => "minecraft:experience_bottle",
+        Some(TaskKind::Dimension { .. } | TaskKind::Location { .. }) => "minecraft:compass",
+        Some(TaskKind::Advancement { .. }) => "minecraft:knowledge_book",
         _ => DEFAULT_ICON,
     }
 }
@@ -558,7 +614,10 @@ impl BookView {
             Some(Action::Deselect) => self.select(s, None),
             Some(Action::Check(task)) => return Reaction::Send(ToServer::Check { task }),
             Some(Action::Submit(task)) => return Reaction::Send(ToServer::Submit { task }),
-            Some(Action::Claim(reward)) => return Reaction::Send(ToServer::Claim { reward }),
+            Some(Action::Claim(reward)) => return Reaction::Send(ToServer::Claim { reward, choice: None }),
+            Some(Action::Choose(reward, entry)) => {
+                return Reaction::Send(ToServer::Claim { reward, choice: Some(entry) });
+            }
             Some(Action::ClaimAll) => return Reaction::Send(ToServer::ClaimAll),
             Some(Action::Close) => return Reaction::Close,
             None => {}
@@ -745,6 +804,20 @@ impl BookView {
         }
         let (colour, state) = state_look(statuses[n].state);
         rows.push(PanelRow::new(state, colour & 0xFF_FFFF));
+        if quest.optional {
+            rows.push(PanelRow::new("Optional", DIM_INK));
+        }
+        if quest.repeatable {
+            let times = s.progress.repeats.get(&node.id).copied().unwrap_or(0);
+            let done = match times {
+                0 => String::new(),
+                1 => ", done once".to_owned(),
+                times => format!(", done {times} times"),
+            };
+            rows.extend(
+                wrap(&format!("Repeatable{done}"), room, s.measure).into_iter().map(|line| PanelRow::new(line, DIM_INK)),
+            );
+        }
         if statuses[n].state == QuestState::Locked {
             rows.push(PanelRow::new("Needs:", GOLD_INK));
             for &d in &node.dependencies {
@@ -766,40 +839,55 @@ impl BookView {
             rows.extend(wrap(paragraph, room, s.measure).into_iter().map(|line| PanelRow::new(line, INK)));
         }
 
-        let open = book.can_progress(n, s.progress);
         if !quest.tasks.is_empty() {
             rows.push(PanelRow::new("", INK));
-            rows.push(PanelRow::new("Tasks", GOLD_INK));
+            rows.push(PanelRow::new(if quest.sequential_tasks { "Tasks, in order" } else { "Tasks" }, GOLD_INK));
         }
         for (t, task) in quest.tasks.iter().enumerate() {
             let id = book.task_id(n, t);
             let goal = task.kind.goal();
             let done = s.progress.task(&id).min(goal);
             let finished = done >= goal || s.progress.is_completed(&node.id);
+            // Not open, or waiting for the tasks before it.
+            let counts = book.task_counts(n, t, s.progress);
             let mark = if finished { "[x]" } else { "[ ]" };
             let count = if goal > 1 { format!("  {done}/{goal}") } else { String::new() };
             let button = match task.kind {
-                _ if !open || finished => None,
+                _ if !counts || finished => None,
                 TaskKind::Checkmark => Some(("Check", Action::Check(id))),
                 TaskKind::Item { consume: true, .. } => Some(("Submit", Action::Submit(id))),
                 _ => None,
             };
             let text = format!("{mark} {}{count}", task_label(task));
-            PanelRow::push(&mut rows, s, room, text, if finished { DIM_INK } else { INK }, button);
+            let waiting = quest.sequential_tasks && !counts;
+            PanelRow::push(&mut rows, s, room, text, if finished || waiting { DIM_INK } else { INK }, button);
         }
 
         if !quest.rewards.is_empty() {
             rows.push(PanelRow::new("", INK));
             rows.push(PanelRow::new("Rewards", GOLD_INK));
         }
+        let completed = s.progress.is_completed(&node.id);
         for (r, reward) in quest.rewards.iter().enumerate() {
             let id = book.reward_id(n, r);
             let label = reward_label(reward);
             if s.progress.has_claimed(&id, s.player) {
                 PanelRow::push(&mut rows, s, room, format!("{label} (claimed)"), DIM_INK, None);
-            } else {
-                let button = s.progress.is_completed(&node.id).then_some(("Claim", Action::Claim(id)));
-                PanelRow::push(&mut rows, s, room, label, INK, button);
+                continue;
+            }
+            // A reward from a table lists what the table holds: a choice
+            // reward's entries are picked there, a random one's are only shown.
+            let entries = reward.kind.table().and_then(|table| book.table(table)).map(|table| &table.entries);
+            let choice = matches!(reward.kind, RewardKind::Choice { .. });
+            let button = (completed && !choice).then(|| ("Claim", Action::Claim(id.clone())));
+            PanelRow::push(&mut rows, s, room, label, INK, button);
+            for (e, entry) in entries.into_iter().flatten().enumerate().take(TABLE_ROWS) {
+                let pick = (completed && choice).then(|| ("Pick", Action::Choose(id.clone(), e as u32)));
+                let colour = if pick.is_some() { INK } else { DIM_INK };
+                PanelRow::push(&mut rows, s, room, format!("- {}", entry_label(entry)), colour, pick);
+            }
+            if let Some(more) = entries.map(|entries| entries.len().saturating_sub(TABLE_ROWS)).filter(|more| *more > 0) {
+                rows.push(PanelRow::new(format!("- ... and {more} more"), DIM_INK));
             }
         }
 
@@ -901,7 +989,7 @@ pub fn loading_line(notice: &str, waited: u32) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::super::hq_progress::{QuestEvent, apply};
+    use super::super::hq_progress::{Actor, QuestEvent, apply};
     use super::super::hq_validate::load;
     use super::*;
 
@@ -968,7 +1056,7 @@ mod tests {
     fn progress_after(book: &Book, events: &[QuestEvent]) -> Progress {
         let mut progress = Progress::default();
         for event in events {
-            apply(book, &mut progress, "steve", 1, event);
+            apply(book, &mut progress, &Actor::new("steve", 1), event);
         }
         progress
     }
@@ -1201,7 +1289,7 @@ mod tests {
         }
         assert_eq!(
             click(&mut view, &book, &progress, &Action::Claim("a/start/xp".into())),
-            Reaction::Send(ToServer::Claim { reward: "a/start/xp".into() })
+            Reaction::Send(ToServer::Claim { reward: "a/start/xp".into(), choice: None })
         );
         assert_eq!(click(&mut view, &book, &progress, &Action::ClaimAll), Reaction::Send(ToServer::ClaimAll));
 

@@ -170,6 +170,14 @@ pub struct Quest {
     pub visibility: Visibility,
     /// Not counted in the chapter's completion.
     pub optional: bool,
+    /// Tasks are done in order: one only counts once those before it are
+    /// done.
+    pub sequential_tasks: bool,
+    /// Can be done again: once completed, its rewards claimed and its
+    /// cooldown over, it starts over.
+    pub repeatable: bool,
+    /// Seconds a repeatable quest stays completed before it starts over.
+    pub repeat_cooldown: u32,
     /// All must be done. A quest without tasks completes as soon as its
     /// dependencies are met.
     pub tasks: Vec<Task>,
@@ -208,6 +216,27 @@ pub enum TaskKind {
         #[serde(default = "one")]
         count: u32,
     },
+    /// Craft `count` of the item: results taken from a crafting grid or a
+    /// furnace, counted while the quest is open.
+    Craft {
+        item: ItemMatch,
+        #[serde(default = "one")]
+        count: u32,
+    },
+    /// Reach experience level `levels`.
+    XpLevels { levels: u32 },
+    /// Be in this dimension (`minecraft:the_nether`).
+    Dimension { dimension: String },
+    /// Stand in the box between the blocks `from` and `to` (both included),
+    /// in `dimension` when it is given.
+    Location {
+        #[serde(default)]
+        dimension: Option<String>,
+        from: [i32; 3],
+        to: [i32; 3],
+    },
+    /// Have this advancement done (`minecraft:story/mine_stone`).
+    Advancement { advancement: String },
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -215,8 +244,14 @@ impl TaskKind {
     /// The progress at which the task is done.
     pub fn goal(&self) -> u64 {
         match self {
-            TaskKind::Item { count, .. } | TaskKind::Kill { count, .. } => u64::from(*count),
-            TaskKind::Checkmark => 1,
+            TaskKind::Item { count, .. } | TaskKind::Kill { count, .. } | TaskKind::Craft { count, .. } => {
+                u64::from(*count)
+            }
+            TaskKind::XpLevels { levels } => u64::from(*levels),
+            TaskKind::Checkmark
+            | TaskKind::Dimension { .. }
+            | TaskKind::Location { .. }
+            | TaskKind::Advancement { .. } => 1,
         }
     }
 }
@@ -260,6 +295,9 @@ impl From<ItemMatch> for String {
 pub struct Reward {
     #[serde(default)]
     pub id: String,
+    /// What the book calls it, instead of a name made from its type.
+    #[serde(default)]
+    pub title: Option<String>,
     #[serde(default)]
     pub auto_claim: AutoClaim,
     #[serde(flatten)]
@@ -279,15 +317,63 @@ pub enum RewardKind {
     /// Experience points.
     Xp { points: u32 },
     XpLevels { levels: u32 },
+    /// A console command, run with op level 4. `{player}` is the player's
+    /// name and `{uuid}` their UUID.
+    Command { command: String },
+    /// A toast on the player's screen (a chat line for a client without the
+    /// mod): the reward's `title`, with `text` under it.
+    Toast {
+        #[serde(default)]
+        text: String,
+    },
+    /// One entry of a reward table, drawn by weight.
+    Random { table: String },
+    /// One entry of a reward table, picked by the player in the book.
+    Choice { table: String },
 }
 
-/// A whole quest pack: quests.json and its chapters, in book order.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+impl RewardKind {
+    /// The table a random or choice reward takes its entry from.
+    pub fn table(&self) -> Option<&str> {
+        match self {
+            RewardKind::Random { table } | RewardKind::Choice { table } => Some(table),
+            _ => None,
+        }
+    }
+}
+
+/// One file of `reward_tables/`: what random and choice rewards give.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub struct RewardTable {
+    pub id: String,
+    pub entries: Vec<TableEntry>,
+}
+
+/// One thing a reward table can give. Its kind is never another table.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub struct TableEntry {
+    /// How often a random reward draws it, against the other entries.
+    #[serde(default = "one")]
+    pub weight: u32,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(flatten)]
+    pub kind: RewardKind,
+}
+
+/// A whole quest pack: quests.json, its chapters in book order, and its
+/// reward tables.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct QuestFile {
     pub settings: Settings,
     pub chapters: Vec<Chapter>,
+    pub reward_tables: Vec<RewardTable>,
 }
 
 /// What one team has done (a lone player is their own team). Times are Unix
@@ -306,6 +392,11 @@ pub struct Progress {
     pub tasks: BTreeMap<String, u64>,
     /// Reward → the players who claimed it.
     pub claimed: BTreeMap<String, BTreeSet<String>>,
+    /// Repeatable quest → how many times it was completed and started over.
+    pub repeats: BTreeMap<String, u32>,
+    /// The advancements the pack's tasks name that a member was seen to
+    /// complete: a quest opening later still finds them.
+    pub advancements: BTreeSet<String>,
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -317,6 +408,8 @@ impl Default for Progress {
             completed: BTreeMap::new(),
             tasks: BTreeMap::new(),
             claimed: BTreeMap::new(),
+            repeats: BTreeMap::new(),
+            advancements: BTreeSet::new(),
         }
     }
 }
@@ -327,9 +420,15 @@ impl Progress {
         self.completed.contains_key(quest)
     }
 
-    /// Started, which a completed quest is too.
+    /// Completed now, or before it started over (a repeatable quest): what
+    /// dependencies and chapter tallies count.
+    pub fn ever_completed(&self, quest: &str) -> bool {
+        self.is_completed(quest) || self.repeats.get(quest).is_some_and(|times| *times > 0)
+    }
+
+    /// Started, which a quest completed at least once is too.
     pub fn is_started(&self, quest: &str) -> bool {
-        self.started.contains_key(quest) || self.is_completed(quest)
+        self.started.contains_key(quest) || self.ever_completed(quest)
     }
 
     pub fn task(&self, task: &str) -> u64 {
@@ -448,6 +547,7 @@ mod tests {
                 }],
                 rewards: vec![Reward {
                     id: "r".into(),
+                    title: None,
                     auto_claim: AutoClaim::Disabled,
                     kind: RewardKind::Xp { points: 5 },
                 }],

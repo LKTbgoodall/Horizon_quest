@@ -1,0 +1,8 @@
+{
+  "id": "seasoned_choice",
+  "entries": [
+    { "type": "item", "item": "minecraft:iron_ingot", "count": 4 },
+    { "type": "item", "item": "minecraft:golden_apple", "count": 1 },
+    { "type": "xp_levels", "levels": 2 }
+  ]
+}

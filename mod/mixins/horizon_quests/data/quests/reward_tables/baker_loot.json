@@ -1,0 +1,9 @@
+{
+  "id": "baker_loot",
+  "entries": [
+    { "weight": 5, "type": "item", "item": "minecraft:cookie", "count": 4 },
+    { "weight": 3, "type": "item", "item": "minecraft:pumpkin_pie", "count": 1 },
+    { "weight": 2, "type": "xp", "points": 15 },
+    { "weight": 1, "type": "item", "item": "minecraft:cake", "count": 1 }
+  ]
+}

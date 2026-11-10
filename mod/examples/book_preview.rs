@@ -14,7 +14,7 @@
 use horizon_mod_horizon_quests::hq_book::{Action, BookView, Draw, Scene, Screen};
 use horizon_mod_horizon_quests::hq_logic::Book;
 use horizon_mod_horizon_quests::hq_model::Progress;
-use horizon_mod_horizon_quests::hq_progress::{QuestEvent, apply};
+use horizon_mod_horizon_quests::hq_progress::{Actor, QuestEvent, apply};
 use horizon_mod_horizon_quests::hq_validate::{load, load_dir};
 use std::fmt::Write as _;
 use std::path::Path;
@@ -72,7 +72,7 @@ fn click(view: &mut BookView, book: &Book, progress: &Progress, action: &Action)
 
 fn play(book: &Book, progress: &mut Progress, events: &[QuestEvent]) {
     for event in events {
-        apply(book, progress, PLAYER, 1, event);
+        apply(book, progress, &Actor::new(PLAYER, 1), event);
     }
 }
 
@@ -81,7 +81,7 @@ fn items(task: &str, count: u64) -> QuestEvent {
 }
 
 fn claim(reward: &str) -> QuestEvent {
-    QuestEvent::Claim { reward: format!("getting_started/{reward}") }
+    QuestEvent::Claim { reward: format!("getting_started/{reward}"), choice: None }
 }
 
 fn rgb(colour: u32) -> String {

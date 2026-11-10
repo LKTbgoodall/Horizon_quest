@@ -3,8 +3,8 @@
 // and what state each is in for a team's progress. Both halves use it: the
 // server to decide, the client's book to draw. Pure: no game types.
 use super::hq_model::{
-    Chapter, DependencyMode, Progress, Progression, Quest, QuestFile, Settings, Shape, Visibility, child_id,
-    dependency_id, quest_id,
+    Chapter, DependencyMode, Progress, Progression, Quest, QuestFile, RewardTable, Settings, Shape, Visibility,
+    child_id, dependency_id, quest_id,
 };
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -191,7 +191,8 @@ impl Book {
         if dependencies.is_empty() {
             return true;
         }
-        let completed = |d: &usize| progress.is_completed(&self.nodes[*d].id);
+        // A repeatable quest that started over still counts as completed.
+        let completed = |d: &usize| progress.ever_completed(&self.nodes[*d].id);
         let started = |d: &usize| progress.is_started(&self.nodes[*d].id);
         let quest = self.quest(n);
         if let Some(min) = quest.min_required.filter(|&min| min > 0) {
@@ -211,6 +212,22 @@ impl Book {
         let node = &self.nodes[n];
         !progress.is_completed(&node.id)
             && (node.progression == Progression::Flexible || self.dependencies_met(n, progress))
+    }
+
+    /// Whether task `t` of the quest counts right now: the quest's tasks do,
+    /// and when they go in order, every task before it is done.
+    pub fn task_counts(&self, n: usize, t: usize, progress: &Progress) -> bool {
+        let quest = self.quest(n);
+        self.can_progress(n, progress)
+            && (!quest.sequential_tasks
+                || quest.tasks[..t]
+                    .iter()
+                    .all(|task| progress.task(&child_id(&self.nodes[n].id, &task.id)) >= task.kind.goal()))
+    }
+
+    /// The reward table with this id.
+    pub fn table(&self, id: &str) -> Option<&RewardTable> {
+        self.file.reward_tables.iter().find(|table| table.id == id)
     }
 
     /// Whether every task of the quest reached its goal.
@@ -240,7 +257,7 @@ impl Book {
             } else {
                 QuestState::Available
             };
-            let shown = completed
+            let shown = progress.ever_completed(&node.id)
                 || match quest.visibility {
                     Visibility::Always => true,
                     Visibility::UntilDepsVisible => node.dependencies.iter().all(|&d| statuses[d].visible),
@@ -259,7 +276,7 @@ impl Book {
         let (mut completed, mut total) = (0, 0);
         for n in counted {
             total += 1;
-            completed += usize::from(progress.is_completed(&self.nodes[n].id));
+            completed += usize::from(progress.ever_completed(&self.nodes[n].id));
         }
         (completed, total)
     }

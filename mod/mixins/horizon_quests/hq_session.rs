@@ -11,7 +11,7 @@
 // tick looks at once and the book reacts without waiting.
 use super::hq_logic::{Book, QuestState};
 use super::hq_model::{ItemMatch, Progress, TaskKind, resource_id};
-use super::hq_progress::{self as engine, Effect, QuestEvent, Wanted};
+use super::hq_progress::{self as engine, Actor, Effect, QuestEvent, Wanted};
 use std::collections::{HashMap, HashSet};
 
 /// A player on the server.
@@ -27,6 +27,8 @@ pub struct Player {
     pub unsynced: bool,
     /// False when their file could not be read: it is never overwritten.
     pub saveable: bool,
+    /// Their experience level, once a change of it was heard.
+    pub level: Option<u32>,
 }
 
 impl Player {
@@ -48,11 +50,14 @@ pub struct Session {
     next_look: HashMap<u128, u64>,
     /// Players to look at on the next tick whatever their turn.
     poked: HashSet<u128>,
+    /// The state of the random bits handed to the engine (random rewards).
+    roll: u64,
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Session {
     pub fn new(book: Book) -> Self {
+        let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos() as u64);
         Self {
             book,
             players: HashMap::new(),
@@ -60,6 +65,7 @@ impl Session {
             tick: 0,
             next_look: HashMap::new(),
             poked: HashSet::new(),
+            roll: seed,
         }
     }
 
@@ -86,7 +92,8 @@ impl Session {
             Ok(progress) => (progress, true),
             Err(_) => (Progress::default(), false),
         };
-        self.players.insert(uuid, Player { name: name.to_owned(), progress, dirty: false, unsynced: false, saveable });
+        let player = Player { name: name.to_owned(), progress, dirty: false, unsynced: false, saveable, level: None };
+        self.players.insert(uuid, player);
         self.push(uuid, QuestEvent::Refresh);
         self.poke(uuid);
     }
@@ -123,7 +130,70 @@ impl Session {
         }
     }
 
-    /// One server tick went by: the players whose inventory to look at now.
+    /// The player took `count` of `item` out of a crafting grid or a
+    /// furnace: reports each craft task it counts for.
+    pub fn crafted(&mut self, uuid: u128, item: &str, count: u32, in_tag: &dyn Fn(&str, &str) -> bool) {
+        let Some(player) = self.players.get(&uuid) else {
+            return;
+        };
+        let Some(item) = resource_id(item) else {
+            return;
+        };
+        for wanted in engine::wanted_crafts(&self.book, &player.progress) {
+            let counts = match &wanted.item {
+                ItemMatch::Id(id) => *id == item,
+                ItemMatch::Tag(tag) => in_tag(tag, &item),
+            };
+            if counts {
+                self.push(uuid, QuestEvent::Crafted { task: wanted.task, count: u64::from(count) });
+            }
+        }
+    }
+
+    /// The player's experience level changed to `level`.
+    pub fn set_level(&mut self, uuid: u128, level: i32) {
+        let level = u32::try_from(level).unwrap_or(0);
+        if let Some(player) = self.players.get_mut(&uuid) {
+            player.level = Some(level);
+            self.push(uuid, QuestEvent::Level { level });
+        }
+    }
+
+    /// The player completed an advancement.
+    pub fn advancement_done(&mut self, uuid: u128, advancement: &str) {
+        self.push(uuid, QuestEvent::Advancement { advancement: advancement.to_owned() });
+    }
+
+    /// A look at a player, beyond their inventory: reports their level
+    /// again when a task waits for it (the task may have opened since the
+    /// level last changed) and wakes quests waiting to start over. Whether a
+    /// task waits for where they stand: report it with `at`.
+    pub fn observe(&mut self, uuid: u128) -> bool {
+        let Some(player) = self.players.get(&uuid) else {
+            return false;
+        };
+        let watch = engine::watch(&self.book, &player.progress);
+        let level = player.level;
+        if watch.repeat {
+            self.push(uuid, QuestEvent::Refresh);
+        }
+        if watch.level
+            && let Some(level) = level
+        {
+            self.push(uuid, QuestEvent::Level { level });
+        }
+        watch.place
+    }
+
+    /// The player stands at `position` in `dimension`.
+    pub fn at(&mut self, uuid: u128, dimension: &str, position: [f64; 3]) {
+        let block = |v: f64| v.floor().clamp(f64::from(i32::MIN), f64::from(i32::MAX)) as i32;
+        let position = [block(position[0]), block(position[1]), block(position[2])];
+        self.push(uuid, QuestEvent::At { dimension: entity_id(dimension), position });
+    }
+
+    /// One server tick went by: the players to look at now (their
+    /// inventory, where they stand).
     pub fn advance(&mut self) -> Vec<u128> {
         self.tick += 1;
         let delay = u64::from(self.book.settings().detection_delay.max(1));
@@ -162,7 +232,10 @@ impl Session {
             let Some(player) = self.players.get_mut(&uuid) else {
                 continue;
             };
-            let outcome = engine::apply(&self.book, &mut player.progress, &player_id(uuid), now, &event);
+            let roll = engine::next_roll(&mut self.roll);
+            let id = player_id(uuid);
+            let who = Actor::new(&id, now).with_roll(roll);
+            let outcome = engine::apply(&self.book, &mut player.progress, &who, &event);
             player.changed(outcome.changed);
             effects.extend(outcome.effects.into_iter().map(|e| (uuid, e)));
         }
@@ -198,8 +271,11 @@ impl Session {
 
     /// `/quests complete`: what it did, or why not.
     pub fn force_complete(&mut self, uuid: u128, quest: &str, now: u64) -> Result<Vec<Effect>, String> {
+        let roll = engine::next_roll(&mut self.roll);
         let player = self.players.get_mut(&uuid).ok_or("That player is not on.")?;
-        let outcome = engine::force_complete(&self.book, &mut player.progress, &player_id(uuid), now, quest)
+        let id = player_id(uuid);
+        let who = Actor::new(&id, now).with_roll(roll);
+        let outcome = engine::force_complete(&self.book, &mut player.progress, &who, quest)
             .ok_or_else(|| format!("There is no quest `{quest}`."))?;
         player.changed(outcome.changed);
         Ok(outcome.effects)
@@ -269,6 +345,11 @@ fn tasks(book: &Book, progress: &Progress, n: usize) -> String {
                 TaskKind::Item { item, .. } => String::from(item.clone()),
                 TaskKind::Kill { entity, .. } => format!("kill {entity}"),
                 TaskKind::Checkmark => format!("check: /quests check {}", book.task_id(n, t)),
+                TaskKind::Craft { item, .. } => format!("craft {}", String::from(item.clone())),
+                TaskKind::XpLevels { .. } => "experience levels".to_owned(),
+                TaskKind::Dimension { dimension } => format!("go to {dimension}"),
+                TaskKind::Location { .. } => "reach a place (see the quest book)".to_owned(),
+                TaskKind::Advancement { advancement } => format!("advancement {advancement}"),
             };
             format!("{}/{} {what}", progress.task(&book.task_id(n, t)).min(task.kind.goal()), task.kind.goal())
         })
@@ -322,9 +403,26 @@ pub fn entity_id(kind: &str) -> String {
 /// could not be written safely on a command line.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn give_command(name: &str, item: &str, count: u32) -> Option<String> {
-    let name_ok = (1..=16).contains(&name.len()) && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
     let item = resource_id(item)?;
-    (name_ok && count > 0).then(|| format!("give {name} {item} {count}"))
+    (safe_name(name) && count > 0).then(|| format!("give {name} {item} {count}"))
+}
+
+/// Whether `name` is a player name that can be written on a command line.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub fn safe_name(name: &str) -> bool {
+    (1..=16).contains(&name.len()) && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// The console line of a command reward for this player: `{player}` is
+/// their name and `{uuid}` their UUID. None for a name that could not be
+/// written safely on a command line, or a command that is not one line.
+#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
+pub fn reward_command(command: &str, name: &str, uuid: u128) -> Option<String> {
+    let line = command.trim().trim_start_matches('/');
+    if !safe_name(name) || line.is_empty() || line.contains(['\n', '\r']) {
+        return None;
+    }
+    Some(line.replace("{player}", name).replace("{uuid}", &player_id(uuid)))
 }
 
 /// Unix seconds now.

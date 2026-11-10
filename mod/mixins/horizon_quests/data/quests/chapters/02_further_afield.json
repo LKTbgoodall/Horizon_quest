@@ -1,0 +1,96 @@
+{
+  "id": "further_afield",
+  "title": "Further afield",
+  "subtitle": "Things to do once you have a base",
+  "icon": "minecraft:compass",
+  "quests": [
+    {
+      "id": "baker",
+      "title": "Daily bread",
+      "subtitle": "Repeatable",
+      "description": [
+        "Three wheat in a row make a loaf. Bake three loaves at a crafting table.",
+        "This quest can be done again: a few minutes after you claim its reward, it starts over. The reward is drawn at random each time."
+      ],
+      "x": 0, "y": 0,
+      "dependencies": ["getting_started/crafting_table"],
+      "repeatable": true,
+      "repeat_cooldown": 300,
+      "tasks": [ { "id": "bread", "type": "craft", "item": "minecraft:bread", "count": 3 } ],
+      "rewards": [ { "id": "surprise", "type": "random", "table": "baker_loot" } ]
+    },
+    {
+      "id": "armed",
+      "title": "Armed and ready",
+      "description": [
+        "Craft a stone sword, then put it to use on two skeletons.",
+        "The tasks of this quest go in order: the skeletons only count once the sword is made."
+      ],
+      "x": 2, "y": -1,
+      "dependencies": ["getting_started/stone"],
+      "sequential_tasks": true,
+      "tasks": [
+        { "id": "sword", "type": "craft", "item": "minecraft:stone_sword" },
+        { "id": "skeletons", "type": "kill", "entity": "minecraft:skeleton", "count": 2 }
+      ],
+      "rewards": [ { "id": "arrows", "type": "item", "item": "minecraft:arrow", "count": 16 } ]
+    },
+    {
+      "id": "stone_age",
+      "title": "Stone age",
+      "description": [
+        "Earn the advancement \"Stone Age\" by mining stone with your new pickaxe. If you already have it, this completes by itself."
+      ],
+      "x": 2, "y": 1,
+      "dependencies": ["getting_started/wooden_pickaxe"],
+      "tasks": [ { "id": "advancement", "type": "advancement", "advancement": "minecraft:story/mine_stone" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 25 } ]
+    },
+    {
+      "id": "seasoned",
+      "title": "Seasoned",
+      "description": [
+        "Reach experience level 5. Mining, smelting and fighting all give experience.",
+        "The reward is yours to choose: pick one in the list below once the quest is completed."
+      ],
+      "x": 4, "y": 0,
+      "dependencies": ["armed", "stone_age"],
+      "dependency_mode": "one_completed",
+      "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ],
+      "rewards": [ { "id": "pick", "type": "choice", "table": "seasoned_choice" } ]
+    },
+    {
+      "id": "origin",
+      "title": "The middle of the map",
+      "subtitle": "Optional",
+      "description": [
+        "Every world has a point where X and Z are both zero. Go and stand there (F3 shows where you are)."
+      ],
+      "x": 6, "y": -1,
+      "optional": true,
+      "dependencies": ["seasoned"],
+      "tasks": [
+        { "id": "there", "type": "location", "dimension": "minecraft:overworld", "from": [-16, -64, -16], "to": [16, 320, 16] }
+      ],
+      "rewards": [ { "id": "map", "type": "item", "item": "minecraft:map" } ]
+    },
+    {
+      "id": "nether",
+      "title": "Somewhere warmer",
+      "subtitle": "Optional",
+      "description": [
+        "Build a portal of obsidian, light it, and step through to the Nether."
+      ],
+      "icon": "minecraft:obsidian",
+      "x": 6, "y": 1,
+      "optional": true,
+      "dependencies": ["seasoned"],
+      "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],
+      "rewards": [
+        { "id": "welcome", "type": "toast", "title": "Welcome to the Nether", "text": "Mind the lava.", "auto_claim": "enabled" },
+        { "id": "protection", "type": "command", "title": "A minute of fire resistance",
+          "command": "effect give {player} minecraft:fire_resistance 60", "auto_claim": "enabled" }
+      ]
+    }
+  ]
+}

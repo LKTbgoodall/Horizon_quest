@@ -20,7 +20,7 @@ pub const CHANNEL: &str = "horizon_quests:book";
 /// The version of these messages. A book and a server of different versions
 /// do not talk.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-pub const PROTOCOL: u32 = 1;
+pub const PROTOCOL: u32 = 2;
 
 /// The most bytes one mod message carries.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -52,7 +52,13 @@ pub enum ToServer {
     Check { task: String },
     /// Hand in the items of task `task`.
     Submit { task: String },
-    Claim { reward: String },
+    /// Claim reward `reward`; `choice` is the table entry picked, for a
+    /// choice reward.
+    Claim {
+        reward: String,
+        #[serde(default)]
+        choice: Option<u32>,
+    },
     ClaimAll,
 }
 
@@ -71,6 +77,14 @@ pub enum ToClient {
     Progress { player: String, progress: Progress },
     /// A line for the book to show: why a request was refused.
     Notice { text: String },
+    /// A toast for the player's screen: a quest completed, a reward. `icon`
+    /// is an item id.
+    Toast {
+        title: String,
+        text: String,
+        #[serde(default)]
+        icon: Option<String>,
+    },
 }
 
 /// The server's answer to a book's `Hello`.
@@ -90,7 +104,7 @@ pub fn greet(protocol: u32, version: &str) -> ToClient {
 pub fn request_event(message: &ToServer) -> Option<QuestEvent> {
     match message {
         ToServer::Check { task } => Some(QuestEvent::Check { task: task.clone() }),
-        ToServer::Claim { reward } => Some(QuestEvent::Claim { reward: reward.clone() }),
+        ToServer::Claim { reward, choice } => Some(QuestEvent::Claim { reward: reward.clone(), choice: *choice }),
         ToServer::ClaimAll => Some(QuestEvent::ClaimAll),
         ToServer::Hello { .. } | ToServer::Submit { .. } => None,
     }
@@ -290,7 +304,8 @@ mod tests {
             ToServer::Hello { protocol: PROTOCOL, version: "0.1.0".into() },
             ToServer::Check { task: "a/q/t".into() },
             ToServer::Submit { task: "a/q/t".into() },
-            ToServer::Claim { reward: "a/q/r".into() },
+            ToServer::Claim { reward: "a/q/r".into(), choice: None },
+            ToServer::Claim { reward: "a/q/r".into(), choice: Some(2) },
             ToServer::ClaimAll,
         ] {
             assert_eq!(carry(&message, SERVER_MAX_PARTS), (Ok(Some(message.clone())), 1));
@@ -333,6 +348,7 @@ mod tests {
         for message in [
             ToClient::Progress { player: "steve".into(), progress },
             ToClient::Notice { text: "There is nothing to claim.".into() },
+            ToClient::Toast { title: "Quest completed".into(), text: "Timber".into(), icon: Some("minecraft:oak_log".into()) },
             greet(PROTOCOL, "0.1.0"),
         ] {
             assert_eq!(carry(&message, CLIENT_MAX_PARTS).0, Ok(Some(message.clone())));
@@ -361,8 +377,11 @@ mod tests {
     fn requests_become_events() {
         let check = ToServer::Check { task: "a/q/t".into() };
         assert_eq!(request_event(&check), Some(QuestEvent::Check { task: "a/q/t".into() }));
-        let claim = ToServer::Claim { reward: "a/q/r".into() };
-        assert_eq!(request_event(&claim), Some(QuestEvent::Claim { reward: "a/q/r".into() }));
+        let claim = ToServer::Claim { reward: "a/q/r".into(), choice: Some(1) };
+        assert_eq!(request_event(&claim), Some(QuestEvent::Claim { reward: "a/q/r".into(), choice: Some(1) }));
+        // A claim that says nothing of a choice has none.
+        let plain: ToServer = serde_json::from_str(r#"{"type":"claim","reward":"a/q/r"}"#).unwrap();
+        assert_eq!(plain, ToServer::Claim { reward: "a/q/r".into(), choice: None });
         assert_eq!(request_event(&ToServer::ClaimAll), Some(QuestEvent::ClaimAll));
         assert_eq!(request_event(&ToServer::Submit { task: "a/q/t".into() }), None);
         assert_eq!(request_event(&ToServer::Hello { protocol: 1, version: String::new() }), None);

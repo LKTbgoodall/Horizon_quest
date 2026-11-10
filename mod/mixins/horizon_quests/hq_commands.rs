@@ -2,8 +2,9 @@
 // the lines the server answers with (help, the pack's problems, what a
 // player just earned). The glue registers `USAGES`, hands each line to
 // `parse`, and carries the command out. Pure: no game types.
-use super::hq_book::reward_label;
+use super::hq_book::titled;
 use super::hq_logic::Book;
+use super::hq_model::RewardKind;
 use super::hq_progress::Effect;
 use super::hq_validate::{Loaded, Severity};
 
@@ -170,9 +171,14 @@ pub fn announce(book: &Book, effect: &Effect) -> Option<String> {
             let found = book.file().chapters.iter().find(|c| c.id == *chapter)?;
             Some(format!("Chapter completed: {}", if found.title.is_empty() { chapter } else { &found.title }))
         }
-        Effect::Reward { reward, .. } => {
-            let (n, r) = book.find_reward(reward)?;
-            Some(format!("Reward: {}", reward_label(&book.quest(n).rewards[r])))
+        // A toast reward is its own message.
+        Effect::Reward { kind: RewardKind::Toast { .. }, .. } => None,
+        Effect::Reward { title, kind, .. } => Some(format!("Reward: {}", titled(title.as_deref(), kind))),
+        Effect::QuestStartedOver { quest } => {
+            let n = book.find(quest)?;
+            let found = book.quest(n);
+            let title = if found.title.is_empty() { quest.as_str() } else { found.title.as_str() };
+            Some(format!("You can do this quest again: {title}"))
         }
         Effect::Refused(refusal) => Some(refusal.text().to_owned()),
     }
@@ -288,7 +294,7 @@ mod tests {
         assert_eq!(say(Effect::QuestCompleted { quest: "a/gone".into() }), None);
         assert_eq!(say(Effect::ChapterCompleted { chapter: "a".into() }).as_deref(), Some("Chapter completed: Alpha"));
         let reward = book.quest(0).rewards[0].kind.clone();
-        assert_eq!(say(Effect::Reward { reward: "a/one/r".into(), kind: reward }).as_deref(), Some("Reward: 2x Apple"));
+        assert_eq!(say(Effect::Reward { reward: "a/one/r".into(), title: None, kind: reward }).as_deref(), Some("Reward: 2x Apple"));
         assert_eq!(say(Effect::Refused(Refusal::NotOpen)).as_deref(), Some("That quest is not open yet."));
     }
 }
