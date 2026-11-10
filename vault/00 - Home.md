@@ -19,8 +19,8 @@ updated: 2026-11-11
 
 ## ➡️ Next step
 0. Claude, before any in-game test request: `powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1` must end with "The glue type-checks" ([[Build, test and tools]])
-2. Last phase 3 step: **assets** (shape textures, the mod's icon); later: JEI's recipes when installed, a party tab outside the book
-3. Small follow-ups Bastien put aside: short ids and a list for `/quests complete` / `reset`, the quest id in the book panel for operators
+1. Last phase 3 step: **assets** (shape textures, the mod's icon); later: JEI's recipes when installed, a party tab outside the book
+2. Small follow-ups Bastien put aside: short ids and a list for `/quests complete` / `reset`, the quest id in the book panel for operators
 
 ## 🗺️ Vault map
 ### 01 · Project
