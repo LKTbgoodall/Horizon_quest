@@ -17,8 +17,8 @@ Every important technical decision has its own note (template: `99 - Templates/T
 | 008 | [[ADR-008 Graphical client book first]] | ✅ accepted | 2026-11-10 |
 | 009 | [[ADR-009 MIT license and mod id horizon_quests]] | ✅ accepted | 2026-11-10 |
 | 010 | [[ADR-010 Item detection by polling plus triggers]] | ✅ accepted | 2026-11-10 |
-| 011 | [[ADR-011 Repeatable quests start over]] | 🟡 proposed (coded in v0.0.6) | 2026-11-10 |
-| 012 | [[ADR-012 Parties share one progress]] | 🟡 proposed (coded in v0.2.0) | 2026-11-10 |
+| 011 | [[ADR-011 Repeatable quests start over]] | ✅ accepted (coded in v0.0.6) | 2026-11-10 |
+| 012 | [[ADR-012 Parties share one progress]] | ✅ accepted (coded in v0.2.0) | 2026-11-10 |
 | 013 | [[ADR-013 Version numbers]] | ✅ accepted | 2026-11-10 |
 
 > 🟡 = proposed, waiting for Bastien. Set `status: accepted` in the frontmatter and update this table.

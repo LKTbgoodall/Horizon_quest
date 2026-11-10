@@ -1,6 +1,6 @@
 ---
 tags: [adr]
-status: proposed   # proposed | accepted | superseded | abandoned
+status: accepted
 date: 2026-11-10
 ---
 # ADR-011: Repeatable quests start over

@@ -19,8 +19,8 @@ updated: 2026-11-10
 
 ## ➡️ Next step
 0. Claude, before any in-game test request: `powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1` must end with "The glue type-checks" ([[Build, test and tools]])
-1. Bastien: `git pull`, `build-mod.ps1`, the LAN "Parties" checklist of `mod/README.md` (v0.2.0), and the 0.1.2 Quest Book check; a word on [[ADR-011 Repeatable quests start over]] and [[ADR-012 Parties share one progress]]
-2. Next phase 3 step: **book polish** (search, tracked quest on the HUD, the party in the book)
+1. Bastien: `git pull`, `build-mod.ps1`, the README checklist for v0.2.0 to v0.4.0 (parties in LAN, settings, a data pack) and the 0.1.2 Quest Book
+2. Next phase 3 step: **book polish** as Bastien chose it ([[Roadmap]]): tracked quest top-left, the party's name in the book, our own recipe view (JEI's later), team rewards as an option; no search
 3. Small follow-ups Bastien put aside: short ids and a list for `/quests complete` / `reset`, the quest id in the book panel for operators
 
 ## 🗺️ Vault map
