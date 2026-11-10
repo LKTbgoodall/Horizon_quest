@@ -37,32 +37,32 @@ updated: 2026-11-10
 - [x] `hq_book`: the whole book as a draw list + click zones: regions (header, chapter list, canvas, quest panel, footer), nodes with shapes / sizes / state colours, dependency lines, fit-to-canvas, text wrapping, buttons (Check, Submit, Claim, Claim all), tooltip, click / drag / wheel handling (2026-11-10)
 - [x] `hq_commands`: `/quests` forms, op levels, help, validation report, chat lines for effects; `force_complete` and `reset_quest` in `hq_progress` (2026-11-10)
 - [x] Example chapter "Getting started" in `data/quests/` (11 quests), with an end-to-end test that finishes it (2026-11-10)
-- [ ] Config option to turn the example chapter off: `example_chapter` in `config/horizon_quests-server.toml` (`hq_config`, API 397): **coded (v0.0.5), to test**
+- [x] Config option to turn the example chapter off: `example_chapter` in `config/horizon_quests-server.toml` (`hq_config`, API 397): coded (v0.0.5), **tested in game 2026-11-10**
 
 > **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).
 
-## Phase 2: playable MVP (solo/LAN) 🎯 ⬅️ IN PROGRESS
+## Phase 2: playable MVP (solo/LAN) ✅ (2026-11-10, 0.1.0)
 > Steps 1, 2 & 3 coded on 2026-11-10 as v0.0.3: server glue + net sync (`hq_net`) + graphical book (`hq_book` via `hq_client_glue`). v0.0.4 (same day) fixes the review of v0.0.3 (build, claims in the book, book hand-ins for LAN guests, sync and loading robustness). v0.0.5 adds the server config file (`example_chapter`): everything of phase 2 that needs no game is now coded. "Coded" items wait for the in-game test before they are ticked.
 
-- [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`: **coded (v0.0.2/v0.0.3), to test**
-- [ ] Tasks: item (polling + pickup/craft/furnace triggers, [[ADR-010 Item detection by polling plus triggers]]), checkmark, kill (`mob_killed`, melee only), hand-in (`/quests submit` or book button): **coded (v0.0.2/v0.0.3), to test**
-- [ ] Rewards: item (`give_stack`, the rest through `/give`, which drops it), xp, levels: **coded (v0.0.2/v0.0.3), to test**
-- [ ] Saving in `<world>/horizon-quests/progress/<uuid>.json` (on every change, on leave, on close): **coded (v0.0.2/v0.0.3), to test**. A pack in `<world>/horizon-quests/quests/` replaces the built-in example
-- [ ] Net sync: handshake (`Hello`/`Welcome`), definitions (`Book`), progress deltas (`Progress`), claim/submit/check requests re-validated by the server (`hq_net`): **coded (v0.0.3), to test**
-- [ ] **Graphical book**: chapter sidebar, pan/zoom canvas with shapes, icons and dependency lines, quest detail panel, claim and submit buttons (`hq_book`): **coded (v0.0.3), to test**
-- [ ] Opening: key (`native_mod_key`, default K) and HUD hint hiding while open: **coded (v0.0.3), to test**
-- [ ] Notifications: chat message on completion: **coded (v0.0.2/v0.0.3), to test**
-- [ ] Commands: `/quests` help, progress, claim, check, submit, reload, validate, complete, reset, reset_all → [[Commands and permissions]]: **coded (v0.0.2/v0.0.3), to test**
-- [ ] Test in solo and LAN on the home PC: checklist in `mod/README.md` § Test in game (solo steps 3, LAN step 4)
-- [ ] **Release 0.1.0** (private testing)
+- [x] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`: coded (v0.0.2/v0.0.3), **tested in game 2026-11-10**
+- [x] Tasks: item (polling + pickup/craft/furnace triggers, [[ADR-010 Item detection by polling plus triggers]]), checkmark, kill (`mob_killed`, melee only), hand-in (`/quests submit` or book button): coded (v0.0.2/v0.0.3), **tested in game 2026-11-10**
+- [x] Rewards: item (`give_stack`, the rest through `/give`, which drops it), xp, levels: coded (v0.0.2/v0.0.3), **tested in game 2026-11-10**
+- [x] Saving in `<world>/horizon-quests/progress/<uuid>.json` (on every change, on leave, on close): coded (v0.0.2/v0.0.3), **tested in game 2026-11-10**. A pack in `<world>/horizon-quests/quests/` replaces the built-in example
+- [x] Net sync: handshake (`Hello`/`Welcome`), definitions (`Book`), progress deltas (`Progress`), claim/submit/check requests re-validated by the server (`hq_net`): coded (v0.0.3), **tested in game 2026-11-10**
+- [x] **Graphical book**: chapter sidebar, pan/zoom canvas with shapes, icons and dependency lines, quest detail panel, claim and submit buttons (`hq_book`): coded (v0.0.3), **tested in game 2026-11-10**
+- [x] Opening: key (`native_mod_key`, default K) and HUD hint hiding while open: coded (v0.0.3), **tested in game 2026-11-10**
+- [x] Notifications: chat message on completion: coded (v0.0.2/v0.0.3), **tested in game 2026-11-10**
+- [x] Commands: `/quests` help, progress, claim, check, submit, reload, validate, complete, reset, reset_all → [[Commands and permissions]]: coded (v0.0.2/v0.0.3), **tested in game 2026-11-10**
+- [x] Test in solo and LAN on the home PC: checklist in `mod/README.md` § Test in game (solo steps 3, LAN step 4) (2026-11-10: solo on Windows, LAN with a Windows host under an offline name and an Arch Linux guest; all passed after v0.0.7 to v0.0.9)
+- [x] **Release 0.1.0** (private testing): 2026-11-10, git tag `v0.1.0`
 
-## Phase 3: V1
+## Phase 3: V1 ⬅️ IN PROGRESS
 > Started on 2026-11-10 while phase 2 still waits for its in-game test. **v0.0.6** (the three items marked below) is coded, merged into `main`, and type-checked against Horizon `fdc87ae` with `tools/check-glue.ps1` → [[2026-11-10]] § Session 13. To test in game.
 
-- [ ] Tasks: craft, xp, dimension, location, advancement: **coded (v0.0.6), to test in game**
-- [ ] Rewards: command, choice, random, toast, reward tables: **coded (v0.0.6), to test in game**. Toasts are drawn on our own HUD
+- [x] Tasks: craft, xp, dimension, location, advancement: coded (v0.0.6), **tested in game 2026-11-10**
+- [x] Rewards: command, choice, random, toast, reward tables: coded (v0.0.6), **tested in game 2026-11-10**. Toasts are drawn on our own HUD
 - [ ] Teams (parties): create, invite, join, leave, with FTB's merge rules
-- [ ] Repeatable and optional quests, sequential tasks: **coded (v0.0.6), to test in game** ([[ADR-011 Repeatable quests start over]])
+- [x] Repeatable and optional quests, sequential tasks: coded (v0.0.6), **tested in game 2026-11-10** ([[ADR-011 Repeatable quests start over]])
 - [ ] TOML config (`native_register_configs`)
 - [ ] Datapack quests (`NativeReloadListener`)
 - [ ] Book polish: search, tracked quest in the HUD, `show_recipes`, client toasts

@@ -10,20 +10,18 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded, review fixes in v0.0.4, config file in v0.0.5: **everything that needs no game is done, waiting for the in-game test (solo + LAN)** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]] § Session 14: **first in-game test of v0.0.6** (solo): build, book, checkmarks, item tasks, claims, hand-in, saving, config and "Daily bread" work. Fixed in **v0.0.7** (confirmed in game by Bastien; v0.0.8 asks at most once a second): experience-level and advancement tasks for the single-player host (hooks 347 / 249 never fire for the host → vanilla selectors through `native_run_command`), `/quests check` / `submit` without argument and with short ids. **137 + 2 tests pass**, glue type-checks |
-| **Code** | `mod/` v0.0.9. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book` (protocol 2), inventory polling, 9 task types, 7 reward types, reward tables, repeatable quests, tasks in order, HUD toasts, saving, `/quests`. Two example chapters |
+| **Phase** | Phase 0 ✅, phase 1 ✅, **phase 2 ✅ (2026-11-10): release 0.1.0** (private testing), everything tested in game in solo and LAN. **Phase 3 in progress**: its new tasks, rewards, reward tables, repeatable quests and tasks in order are tested too → [[Roadmap]] |
+| **Last session** | [[2026-11-10]] § Session 14: in-game tests of v0.0.6 to v0.0.9, solo then LAN (Windows host under an offline name, Arch Linux guest). Fixed on the way: XP and advancement tasks for the single-player host (v0.0.7, selectors through `native_run_command`), short ids for `/quests check` / `submit` (v0.0.7), probe at most once a second (v0.0.8), the Nether toast lost during the dimension load (v0.0.9). New `tools/build-mod.sh` for Linux. **0.1.0 released** (tag `v0.1.0`). 137 + 2 tests pass |
+| **Code** | `mod/` **v0.1.0**. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book` (protocol 2), inventory polling, 9 task types, 7 reward types, reward tables, repeatable quests, tasks in order, HUD toasts, saving, `/quests`. Two example chapters |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | Nothing known: the retest of v0.0.7 in solo ("Seasoned", "Stone age", `/quests check`, location, Nether), then LAN. The host's inventory and `native_player_logged_in` for the host are confirmed working; the host's place is still to see ([[Open questions]]) |
-| **In progress** | Nothing half done. Next steps of phase 3, one version each, after the in-game test: teams, more config, datapack quests, book polish, assets |
+| **Blocking** | Nothing |
+| **In progress** | Nothing half done. Next steps of phase 3, one version each: teams first, then more config, datapack quests, book polish, assets |
 
 ## ➡️ Next step
 0. Claude, before any in-game test request: `powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1` must end with "The glue type-checks" ([[Build, test and tools]])
-1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then retest in solo what v0.0.7 fixed ("Seasoned" with `/xp add @s 5 levels`, "Stone age", `/quests check` alone), the rest of "Further afield" (location, Nether), then the LAN section of `mod/README.md`
-2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
-3. Fix what the build shows if any (`native/build.log`)
-4. If every box is ticked: phase 2 done, release 0.1.0 (private testing), then the rest of phase 3 (teams first)
-5. Bastien: accept or change [[ADR-011 Repeatable quests start over]]
+1. Bastien: accept or change [[ADR-011 Repeatable quests start over]] (tested in game: "Daily bread" works as written)
+2. Next phase 3 step: **teams** (plan kept in [[2026-11-10]] § Session 12, notes for the next session)
+3. Small follow-ups Bastien put aside: short ids and a list for `/quests complete` / `reset`, the quest id in the book panel for operators
 
 ## 🗺️ Vault map
 ### 01 · Project
