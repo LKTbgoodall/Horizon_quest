@@ -49,9 +49,10 @@ impl ClientState {
         }
     }
 
-    /// Whether anything is kept from a world: a pack, a request, or a toast.
+    /// Whether anything is kept from a world besides toasts: a pack or a
+    /// request.
     fn in_use(&self) -> bool {
-        self.book.is_some() || self.waited.is_some() || self.sender.waiting() > 0 || !self.toasts.is_empty()
+        self.book.is_some() || self.waited.is_some() || self.sender.waiting() > 0
     }
 }
 
@@ -144,9 +145,15 @@ pub(super) fn tick(game: &mut Game<'_>) {
         return;
     }
     if game.native_player().is_none() {
+        // No player: out of a world, or between two dimensions (the client
+        // drops its player while the next level loads, and the server, which
+        // already placed it, may send a toast meanwhile: "Somewhere warmer").
+        // The pack and requests are forgotten; the toasts wait for the HUD.
         with(|s| {
             if s.in_use() {
+                let toasts = std::mem::take(&mut s.toasts);
                 *s = ClientState::new();
+                s.toasts = toasts;
             }
         });
         return;

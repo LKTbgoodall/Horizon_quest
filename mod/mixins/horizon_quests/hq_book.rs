@@ -1030,10 +1030,6 @@ impl Toasts {
         self.waiting.front()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.waiting.is_empty()
-    }
-
     /// One window tick with the HUD in view: the toast on show leaves after
     /// `TOAST_TICKS`, and the next one takes its place.
     pub fn tick(&mut self) {
@@ -1710,7 +1706,7 @@ mod tests {
         let toast = |title: &str| Toast { title: title.into(), text: String::new(), icon: None };
         let mut toasts = Toasts::default();
         toasts.tick();
-        assert!(toasts.is_empty() && toasts.current().is_none());
+        assert!(toasts.current().is_none());
         toasts.push(toast("one"));
         toasts.push(toast("two"));
         for _ in 0..TOAST_TICKS - 1 {
@@ -1722,7 +1718,7 @@ mod tests {
         for _ in 0..TOAST_TICKS {
             toasts.tick();
         }
-        assert!(toasts.is_empty());
+        assert!(toasts.current().is_none());
 
         // A flood is cut short: the first ones stay, the rest is dropped.
         for i in 0..100 {

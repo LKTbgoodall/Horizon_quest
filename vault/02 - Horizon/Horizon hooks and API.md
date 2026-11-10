@@ -198,3 +198,6 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 - « *Mixin injections run first … The first `Cancel` stops dispatch. For replacement hooks, the first `Some` wins. Collection hooks call every mod.* »
 - Hooks take `&self` and must be `Send + Sync` → state in `Mutex` or atomics. One instance serves **both** the windowed game and the server game.
 - Tests: `horizon_client::mod_api::dispatch_<hook>(&mut host, &mods, args…)` with a `Host` double.
+
+## Client player gaps (verified 2026-11-10)
+- On the client, `native_player()` is **None during a dimension change** (`enter_remote_dimension` sets `self.player = None` until the next level is in), not only out of a world. Do not treat None as "left the world" for state a server message may refill meanwhile (our toasts were lost that way until v0.0.9).
