@@ -34,11 +34,14 @@ const BUTTON: u32 = 0xFF3A_5A8A;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const BUTTON_HOVER: u32 = 0xFF4A_74B0;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-const TOOLTIP: u32 = 0xF010_0818;
+const TOOLTIP: u32 = 0xF010_0418;
+/// The tooltip's frame: lighter at the top, darker at the bottom.
+const TOOLTIP_EDGE_TOP: u32 = 0xFF5A_2AB8;
+const TOOLTIP_EDGE_BOTTOM: u32 = 0xFF2C_1460;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const NODE_FILL: u32 = 0xFF26_2632;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-const SELECTED: u32 = 0xFFFF_C040;
+const BRACKET: u32 = 0xFFFF_FFFF;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const LINE: u32 = 0xFF8C_7C88;
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -761,7 +764,7 @@ impl BookView {
         let mut scene =
             Scene { regions, draws: Vec::new(), zones: Vec::new(), sidebar_max_scroll: 0.0, panel_max_scroll: 0.0 };
         scene.fill(s.rect, SHADE);
-        let tooltip = self.draw_canvas(&mut scene, s, &statuses, selected);
+        let hovered = self.draw_canvas(&mut scene, s, &statuses, selected);
         self.draw_sidebar(&mut scene, s);
         if let (Some(n), Some(panel)) = (selected, regions.panel) {
             self.draw_panel(&mut scene, s, &statuses, n, panel);
@@ -769,21 +772,21 @@ impl BookView {
         self.draw_bands(&mut scene, s, &statuses);
         if let Some(recipe) = &self.recipe {
             draw_recipe(&mut scene, s, recipe);
-        } else if let Some(text) = tooltip {
-            draw_tooltip(&mut scene, s, &text);
+        } else if let Some(n) = hovered {
+            let quest = s.book.quest(n);
+            draw_tooltip(&mut scene, s, if quest.title.is_empty() { &quest.id } else { &quest.title });
         }
         scene
     }
 
-    /// The chapter's lines and nodes. Returns the title of the quest under
-    /// the pointer.
+    /// The chapter's lines and nodes. Returns the quest under the pointer.
     fn draw_canvas(
         &self,
         scene: &mut Scene,
         s: &Screen<'_>,
         statuses: &[Status],
         selected: Option<usize>,
-    ) -> Option<String> {
+    ) -> Option<usize> {
         let book = s.book;
         if book.file().chapters.is_empty() {
             // No pack in the world and the example chapter turned off.
@@ -855,20 +858,18 @@ impl BookView {
             }
         }
 
-        let mut tooltip = None;
         for &n in &shown {
             let node = &book.nodes()[n];
             let quest = book.quest(n);
-            let b = node_box(&self.view, origin, quest, node.size);
+            let at_rest = node_box(&self.view, origin, quest, node.size);
             // Only the part of the node inside the canvas takes clicks.
-            let Some(part) = intersect(b, area) else {
+            let Some(part) = intersect(at_rest, area) else {
                 continue;
             };
+            // The node under the pointer stands out a little.
+            let b = if hovered == Some(n) { grow(at_rest, HOVER_GROW) } else { at_rest };
             let centre = canvas::centre(b);
             let radius = b[2] / 2.0;
-            if selected == Some(n) {
-                scene.polygon(node.shape, centre, radius + 2.0, SELECTED);
-            }
             // The frame's texture, or the same shape as polygons without it.
             let state = statuses[n].state;
             let mut fallback = polygon_draws(node.shape, centre, radius, state_look(state).0);
@@ -881,12 +882,13 @@ impl BookView {
             if contains(area, [at[0], at[1], icon, icon]) {
                 scene.draws.push(Draw::Item { item: quest_icon(quest).to_owned(), at, size: icon });
             }
-            scene.zones.push((part, Action::Quest(n)));
-            if canvas::inside(part, s.mouse) {
-                tooltip = Some(if quest.title.is_empty() { quest.id.clone() } else { quest.title.clone() });
+            // The selected quest: white corners round it, as a viewfinder.
+            if selected == Some(n) {
+                scene.draws.extend(brackets(b));
             }
+            scene.zones.push((part, Action::Quest(n)));
         }
-        tooltip.filter(|_| canvas::inside(area, s.mouse))
+        hovered.filter(|_| canvas::inside(area, s.mouse))
     }
 
     /// The chapter list.
@@ -1297,15 +1299,51 @@ pub fn tracked_draws(book: &Book, progress: &Progress, player: &str, quest: &str
     draws
 }
 
-/// A small box with `text` by the pointer, kept on screen.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
+/// How much bigger the node under the pointer is drawn.
+const HOVER_GROW: f32 = 1.12;
+
+/// `b` grown by `factor` round its centre.
+fn grow(b: [f32; 4], factor: f32) -> [f32; 4] {
+    let [cx, cy] = canvas::centre(b);
+    let (w, h) = (b[2] * factor, b[3] * factor);
+    [cx - w / 2.0, cy - h / 2.0, w, h]
+}
+
+/// White corners round box `b`, a little outside it: the selected quest.
+fn brackets(b: [f32; 4]) -> Vec<Draw> {
+    let thick = (b[2] * 0.07).max(1.5);
+    let gap = thick + 1.5;
+    let len = (b[2] * 0.3).max(4.0);
+    let [x, y, w, h] = [b[0] - gap, b[1] - gap, b[2] + 2.0 * gap, b[3] + 2.0 * gap];
+    let (right, bottom) = (x + w, y + h);
+    [
+        [x, y, len, thick],
+        [x, y, thick, len],
+        [right - len, y, len, thick],
+        [right - thick, y, thick, len],
+        [x, bottom - thick, len, thick],
+        [x, bottom - len, thick, len],
+        [right - len, bottom - thick, len, thick],
+        [right - thick, bottom - len, thick, len],
+    ]
+    .into_iter()
+    .map(|rect| Draw::Fill { rect, colour: BRACKET })
+    .collect()
+}
+
+/// The quest's title by the pointer, in a dark box with a violet frame,
+/// kept on screen.
 fn draw_tooltip(scene: &mut Scene, s: &Screen<'_>, text: &str) {
     let [x, y, w, h] = s.rect;
-    let width = (s.measure)(text) + 6.0;
-    let left = (s.mouse[0] + 8.0).min(x + w - width).max(x);
-    let top = (s.mouse[1] - 14.0).min(y + h - 12.0).max(y);
-    scene.fill([left, top, width, 12.0], TOOLTIP);
-    scene.text(text, [left + 3.0, top + 2.0], INK);
+    let (width, height) = ((s.measure)(text) + 8.0, TEXT + 6.0);
+    let left = (s.mouse[0] + 10.0).min(x + w - width).max(x);
+    let top = (s.mouse[1] - 16.0).min(y + h - height).max(y);
+    scene.fill([left, top, width, height], TOOLTIP);
+    scene.fill([left + 1.0, top + 1.0, width - 2.0, 1.0], TOOLTIP_EDGE_TOP);
+    scene.fill([left + 1.0, top + height - 2.0, width - 2.0, 1.0], TOOLTIP_EDGE_BOTTOM);
+    scene.fill([left + 1.0, top + 2.0, 1.0, height - 4.0], TOOLTIP_EDGE_TOP);
+    scene.fill([left + width - 2.0, top + 2.0, 1.0, height - 4.0], TOOLTIP_EDGE_BOTTOM);
+    scene.text(text, [left + 4.0, top + 3.0], INK);
 }
 
 /// What the canvas says when the pack has no chapter at all.
@@ -1647,13 +1685,46 @@ mod tests {
     }
 
     #[test]
-    fn hovering_a_quest_shows_its_title() {
+    fn hovering_a_quest_shows_its_title_in_a_framed_box() {
         let (book, progress) = (book(), Progress::default());
         let view = opened(&book, &progress);
         let at = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
         let scene = view.scene(&screen(&book, &progress, at));
         assert_eq!(texts(&scene).last(), Some(&"Then this"));
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour, .. } if *colour == TOOLTIP_EDGE_TOP)));
         assert!(!texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"Then this"));
+    }
+
+    #[test]
+    fn the_quest_under_the_pointer_grows_and_the_selected_one_gets_corners() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        let frame = |scene: &Scene, n: usize| -> [f32; 4] {
+            let cell = node_cell(book.nodes()[n].shape, scene_state(&book, &progress, n));
+            scene
+                .draws
+                .iter()
+                .find_map(|d| match d {
+                    Draw::Sprite { src, dst, .. } if *src == cell => Some(*dst),
+                    _ => None,
+                })
+                .unwrap()
+        };
+        let rest = view.scene(&screen(&book, &progress, NOWHERE));
+        let at = zone(&rest, &Action::Quest(0)).unwrap();
+        let over = view.scene(&screen(&book, &progress, at));
+        assert!(frame(&over, 0)[2] > frame(&rest, 0)[2], "drawn bigger under the pointer");
+        // The click zone does not grow with it.
+        assert_eq!(zone(&over, &Action::Quest(0)), Some(at));
+
+        let corners = |scene: &Scene| scene.draws.iter().filter(|d| matches!(d, Draw::Fill { colour, .. } if *colour == BRACKET)).count();
+        assert_eq!(corners(&rest), 0);
+        click(&mut view, &book, &progress, &Action::Quest(0));
+        assert_eq!(corners(&view.scene(&screen(&book, &progress, NOWHERE))), 8);
+    }
+
+    fn scene_state(book: &Book, progress: &Progress, n: usize) -> QuestState {
+        book.statuses(progress, "steve")[n].state
     }
 
     #[test]
