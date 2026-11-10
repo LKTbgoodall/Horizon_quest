@@ -247,7 +247,7 @@ fn main() {
     let mouse = pointing_at(&view, &book, &progress, &Action::Check("getting_started/welcome/ready".into()));
     pictures.push((
         "book-2-quest-panel",
-        "A click on a quest opens its panel: description, tasks, rewards. The pointer is on the Check button.",
+        "A click on a quest opens its window: tasks and rewards as icons, then its description. The pointer is on the checkmark task.",
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 

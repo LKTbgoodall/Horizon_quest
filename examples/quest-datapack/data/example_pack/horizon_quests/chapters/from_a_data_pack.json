@@ -9,7 +9,7 @@
       "title": "It works",
       "description": [
         "This quest comes from data/example_pack/horizon_quests/chapters/ in a data pack.",
-        "Tick the box to finish it."
+        "Click the book under Tasks to finish it."
       ],
       "icon": "minecraft:map",
       "x": 0, "y": 0,

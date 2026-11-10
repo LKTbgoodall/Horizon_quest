@@ -123,8 +123,9 @@ pub enum Action {
     /// Turn the recipe view's page by this many.
     TurnRecipe(i32),
     CloseRecipe,
-    /// A click on the recipe view itself: it stays.
-    KeepRecipe,
+    /// A click on a window (the quest window, the recipe view) that does
+    /// nothing: it stays.
+    Stay,
 }
 
 /// What the glue does after a click.
@@ -178,6 +179,8 @@ pub struct Scene {
     /// How far the chapter list and the quest panel can scroll.
     pub sidebar_max_scroll: f32,
     pub panel_max_scroll: f32,
+    /// The quest window, when a quest is selected.
+    pub popup: Option<[f32; 4]>,
 }
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -549,64 +552,6 @@ pub fn fit(book: &Book, chapter: usize, statuses: &[Status], area: [f32; 4]) -> 
     View { pan: [(x0 + x1) / 2.0, (y0 + y1) / 2.0], zoom }
 }
 
-/// A line of the quest panel.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-struct PanelRow {
-    text: String,
-    colour: u32,
-    button: Option<(&'static str, Action)>,
-    /// An item (or `#tag`) the row is about: an icon before the text (for
-    /// an item), and a click on it shows its recipes.
-    item: Option<String>,
-}
-
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-impl PanelRow {
-    fn new(text: impl Into<String>, colour: u32) -> Self {
-        Self { text: text.into(), colour, button: None, item: None }
-    }
-
-    /// Adds `text` and its button to `rows`, `room` pixels wide: on one row
-    /// when they fit, else the text wrapped and the button on a row below.
-    fn push(
-        rows: &mut Vec<PanelRow>,
-        s: &Screen<'_>,
-        room: f32,
-        text: String,
-        colour: u32,
-        button: Option<(&'static str, Action)>,
-    ) {
-        Self::push_item(rows, s, room, text, colour, button, None);
-    }
-
-    /// As `push`, for a row about `item`: its first line gets the icon and
-    /// the link to its recipes.
-    fn push_item(
-        rows: &mut Vec<PanelRow>,
-        s: &Screen<'_>,
-        room: f32,
-        text: String,
-        colour: u32,
-        button: Option<(&'static str, Action)>,
-        item: Option<String>,
-    ) {
-        let icon_w = if item.as_deref().is_some_and(|i| !i.starts_with('#')) { ICON_ROW } else { 0.0 };
-        let button_w = button.as_ref().map_or(0.0, |(label, _)| (s.measure)(label) + 6.0 + PAD);
-        if (s.measure)(&text) + button_w + icon_w <= room {
-            rows.push(PanelRow { text, colour, button, item });
-            return;
-        }
-        let mut lines = wrap(&text, (room - icon_w).max(1.0), s.measure).into_iter();
-        if let Some(first) = lines.next() {
-            rows.push(PanelRow { text: first, colour, button: None, item });
-        }
-        rows.extend(lines.map(|line| PanelRow::new(line, colour)));
-        if button.is_some() {
-            rows.push(PanelRow { text: String::new(), colour, button, item: None });
-        }
-    }
-}
-
 /// What the player looks at in the book: kept by the client between frames.
 #[derive(Clone, Debug, Default, PartialEq)]
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
@@ -669,32 +614,11 @@ impl BookView {
         self.selected.filter(|&n| n < statuses.len() && statuses[n].visible && book.nodes()[n].chapter == self.chapter)
     }
 
-    /// Opens quest `n`'s panel, or closes the panel. The panel takes room
-    /// from the canvas: the view moves so the quests stay where they are,
-    /// then just enough for the selected quest not to end up under the panel.
-    fn select(&mut self, s: &Screen<'_>, selected: Option<usize>) {
-        let statuses = s.book.statuses(s.progress, s.player);
-        let origin = |view: &Self| {
-            canvas::centre(regions(s.rect, view.shown_selection(s.book, &statuses).is_some()).canvas)
-        };
-        let before = origin(self);
+    /// Opens quest `n`'s window, or closes it.
+    fn select(&mut self, selected: Option<usize>) {
         if self.selected != selected {
             self.selected = selected;
             self.panel_scroll = 0.0;
-        }
-        let after = origin(self);
-        self.view.pan[0] += (after[0] - before[0]) / self.view.zoom;
-        self.view.pan[1] += (after[1] - before[1]) / self.view.zoom;
-
-        if let Some(n) = self.shown_selection(s.book, &statuses) {
-            let area = regions(s.rect, true).canvas;
-            let b = node_box(&self.view, canvas::centre(area), s.book.quest(n), s.book.nodes()[n].size);
-            // How far the node, and a little room round it, sticks out of the canvas.
-            let out = |low: f32, high: f32, from: f32, to: f32| {
-                if high + PAD > to { high + PAD - to } else { (low - PAD - from).min(0.0) }
-            };
-            self.view.pan[0] += out(b[0], b[0] + b[2], area[0], area[0] + area[2]) / self.view.zoom;
-            self.view.pan[1] += out(b[1], b[1] + b[3], area[1], area[1] + area[3]) / self.view.zoom;
         }
     }
 
@@ -703,8 +627,8 @@ impl BookView {
         let action = self.scene(s).action_at(s.mouse).cloned();
         match action {
             Some(Action::Chapter(c)) => self.show_chapter(s, c),
-            Some(Action::Quest(n)) => self.select(s, Some(n)),
-            Some(Action::Deselect) => self.select(s, None),
+            Some(Action::Quest(n)) => self.select(Some(n)),
+            Some(Action::Deselect) => self.select(None),
             Some(Action::Check(task)) => return Reaction::Send(ToServer::Check { task }),
             Some(Action::Submit(task)) => return Reaction::Send(ToServer::Submit { task }),
             Some(Action::Claim(reward)) => return Reaction::Send(ToServer::Claim { reward, choice: None }),
@@ -728,14 +652,16 @@ impl BookView {
                 }
             }
             Some(Action::CloseRecipe) => self.recipe = None,
-            Some(Action::KeepRecipe) | None => {}
+            Some(Action::Stay) | None => {}
         }
         Reaction::Nothing
     }
 
     /// The pointer dragged by `delta`: over the canvas, it pans.
     pub fn drag(&mut self, s: &Screen<'_>, delta: [f32; 2]) {
-        if self.recipe.is_none() && canvas::inside(self.scene(s).regions.canvas, s.mouse) {
+        let scene = self.scene(s);
+        let over_popup = scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse));
+        if self.recipe.is_none() && !over_popup && canvas::inside(scene.regions.canvas, s.mouse) {
             self.view.drag(delta);
         }
     }
@@ -749,7 +675,7 @@ impl BookView {
         if !steps.is_finite() || self.recipe.is_some() {
         } else if canvas::inside(regions.sidebar, s.mouse) {
             self.sidebar_scroll = moved(self.sidebar_scroll, ROW, scene.sidebar_max_scroll);
-        } else if regions.panel.is_some_and(|panel| canvas::inside(panel, s.mouse)) {
+        } else if scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse)) {
             self.panel_scroll = moved(self.panel_scroll, 3.0 * TEXT, scene.panel_max_scroll);
         } else if canvas::inside(regions.canvas, s.mouse) {
             self.view.zoom_at(canvas::centre(regions.canvas), s.mouse, steps);
@@ -760,21 +686,31 @@ impl BookView {
     pub fn scene(&self, s: &Screen<'_>) -> Scene {
         let statuses = s.book.statuses(s.progress, s.player);
         let selected = self.shown_selection(s.book, &statuses);
-        let regions = regions(s.rect, selected.is_some());
-        let mut scene =
-            Scene { regions, draws: Vec::new(), zones: Vec::new(), sidebar_max_scroll: 0.0, panel_max_scroll: 0.0 };
+        let regions = regions(s.rect, false);
+        let popup = selected.map(|n| popup_layout(s, &statuses, n, regions.canvas).0);
+        let mut scene = Scene {
+            regions,
+            draws: Vec::new(),
+            zones: Vec::new(),
+            sidebar_max_scroll: 0.0,
+            panel_max_scroll: 0.0,
+            popup,
+        };
         scene.fill(s.rect, SHADE);
         let hovered = self.draw_canvas(&mut scene, s, &statuses, selected);
         self.draw_sidebar(&mut scene, s);
-        if let (Some(n), Some(panel)) = (selected, regions.panel) {
-            self.draw_panel(&mut scene, s, &statuses, n, panel);
-        }
         self.draw_bands(&mut scene, s, &statuses);
+        let mut tip = hovered.map(|n| {
+            let quest = s.book.quest(n);
+            if quest.title.is_empty() { quest.id.clone() } else { quest.title.clone() }
+        });
+        if let (Some(n), Some(popup)) = (selected, popup) {
+            tip = self.draw_popup(&mut scene, s, &statuses, n, popup);
+        }
         if let Some(recipe) = &self.recipe {
             draw_recipe(&mut scene, s, recipe);
-        } else if let Some(n) = hovered {
-            let quest = s.book.quest(n);
-            draw_tooltip(&mut scene, s, if quest.title.is_empty() { &quest.id } else { &quest.title });
+        } else if let Some(text) = tip {
+            draw_tooltip(&mut scene, s, &text);
         }
         scene
     }
@@ -818,6 +754,8 @@ impl BookView {
                 intersect(b, area).is_some_and(|part| canvas::inside(part, s.mouse))
             })
             .last();
+        let over_popup = selected.is_some_and(|n| canvas::inside(popup_layout(s, statuses, n, area).0, s.mouse));
+        let hovered = hovered.filter(|_| !over_popup);
         let focus = hovered.or(selected);
 
         // Dependency lines first, under the nodes: a band with chevrons
@@ -935,157 +873,64 @@ impl BookView {
         }
     }
 
-    /// The panel of quest `n`: what it is, its tasks and its rewards.
-    fn draw_panel(&self, scene: &mut Scene, s: &Screen<'_>, statuses: &[Status], n: usize, panel: [f32; 4]) {
+    /// The window of quest `n`, centred over the canvas: its title (with
+    /// Track and close), its tasks and its rewards as icons side by side,
+    /// then what it is (state, what it needs, its description). A click on
+    /// the canvas outside it closes it; another quest opens that one.
+    /// Returns the tooltip of the icon under the pointer.
+    fn draw_popup(&self, scene: &mut Scene, s: &Screen<'_>, statuses: &[Status], n: usize, b: [f32; 4]) -> Option<String> {
         let book = s.book;
         let node = &book.nodes()[n];
         let quest = book.quest(n);
-        let [x, y, w, h] = panel;
-        let room = (w - 2.0 * PAD).max(0.0);
-        scene.fill(panel, PANEL);
+        let [x, y, w, h] = b;
+        // Under every other zone: an empty spot of the canvas closes it.
+        scene.zones.insert(0, (scene.regions.canvas, Action::Deselect));
+        scene.fill(b, POPUP_BACK);
+        scene.fill([x, y, w, 1.0], POPUP_EDGE);
+        scene.fill([x, y + h - 1.0, w, 1.0], POPUP_EDGE);
+        scene.fill([x, y, 1.0, h], POPUP_EDGE);
+        scene.fill([x + w - 1.0, y, 1.0, h], POPUP_EDGE);
+        scene.zones.push((b, Action::Stay));
 
-        let mut rows: Vec<PanelRow> = Vec::new();
-        if let Some(subtitle) = &quest.subtitle {
-            rows.extend(wrap(subtitle, room, s.measure).into_iter().map(|line| PanelRow::new(line, DIM_INK)));
-        }
-        let (colour, state) = state_look(statuses[n].state);
-        rows.push(PanelRow::new(state, colour & 0xFF_FFFF));
-        if quest.optional {
-            rows.push(PanelRow::new("Optional", DIM_INK));
-        }
-        if quest.repeatable {
-            let times = s.progress.repeats.get(&node.id).copied().unwrap_or(0);
-            let done = match times {
-                0 => String::new(),
-                1 => ", done once".to_owned(),
-                times => format!(", done {times} times"),
-            };
-            rows.extend(
-                wrap(&format!("Repeatable{done}"), room, s.measure).into_iter().map(|line| PanelRow::new(line, DIM_INK)),
-            );
-        }
-        if statuses[n].state == QuestState::Locked {
-            rows.push(PanelRow::new("Needs:", GOLD_INK));
-            for &d in &node.dependencies {
-                let dependency = book.quest(d);
-                let known = statuses[d].visible;
-                let name = if !known {
-                    "???"
-                } else if dependency.title.is_empty() {
-                    &dependency.id
-                } else {
-                    &dependency.title
-                };
-                let mark = if s.progress.is_completed(&book.nodes()[d].id) { "[x]" } else { "[ ]" };
-                rows.push(PanelRow::new(fit_text(&format!("{mark} {name}"), room, s.measure), DIM_INK));
-            }
-        }
-        for paragraph in &quest.description {
-            rows.push(PanelRow::new("", INK));
-            rows.extend(wrap(paragraph, room, s.measure).into_iter().map(|line| PanelRow::new(line, INK)));
-        }
-
-        if !quest.tasks.is_empty() {
-            rows.push(PanelRow::new("", INK));
-            rows.push(PanelRow::new(if quest.sequential_tasks { "Tasks, in order" } else { "Tasks" }, GOLD_INK));
-        }
-        for (t, task) in quest.tasks.iter().enumerate() {
-            let id = book.task_id(n, t);
-            let goal = task.kind.goal();
-            let done = s.progress.task(&id).min(goal);
-            let finished = done >= goal || s.progress.is_completed(&node.id);
-            // Not open, or waiting for the tasks before it.
-            let counts = book.task_counts(n, t, s.progress);
-            let mark = if finished { "[x]" } else { "[ ]" };
-            let count = if goal > 1 { format!("  {done}/{goal}") } else { String::new() };
-            let button = match task.kind {
-                _ if !counts || finished => None,
-                TaskKind::Checkmark => Some(("Check", Action::Check(id))),
-                TaskKind::Item { consume: true, .. } => Some(("Submit", Action::Submit(id))),
-                _ => None,
-            };
-            let text = format!("{mark} {}{count}", task_label(task));
-            let waiting = quest.sequential_tasks && !counts;
-            let item = match &task.kind {
-                TaskKind::Item { item, .. } | TaskKind::Craft { item, .. } => Some(String::from(item.clone())),
-                _ => None,
-            };
-            PanelRow::push_item(&mut rows, s, room, text, if finished || waiting { DIM_INK } else { INK }, button, item);
-        }
-
-        if !quest.rewards.is_empty() {
-            rows.push(PanelRow::new("", INK));
-            rows.push(PanelRow::new("Rewards", GOLD_INK));
-        }
-        let completed = s.progress.is_completed(&node.id);
-        for (r, reward) in quest.rewards.iter().enumerate() {
-            let id = book.reward_id(n, r);
-            let label = reward_label(reward);
-            let item = match &reward.kind {
-                RewardKind::Item { item, .. } => Some(item.clone()),
-                _ => None,
-            };
-            let label = if reward.team { format!("{label} (team)") } else { label };
-            if s.progress.claimed_for(&id, s.player, reward.team) {
-                PanelRow::push_item(&mut rows, s, room, format!("{label} (claimed)"), DIM_INK, None, item);
-                continue;
-            }
-            // A reward from a table lists what the table holds: a choice
-            // reward's entries are picked there, a random one's are only shown.
-            let entries = reward.kind.table().and_then(|table| book.table(table)).map(|table| &table.entries);
-            let choice = matches!(reward.kind, RewardKind::Choice { .. });
-            let button = (completed && !choice).then(|| ("Claim", Action::Claim(id.clone())));
-            PanelRow::push_item(&mut rows, s, room, label, INK, button, item);
-            for (e, entry) in entries.into_iter().flatten().enumerate().take(TABLE_ROWS) {
-                let pick = (completed && choice).then(|| ("Pick", Action::Choose(id.clone(), e as u32)));
-                let colour = if pick.is_some() { INK } else { DIM_INK };
-                PanelRow::push(&mut rows, s, room, format!("- {}", entry_label(entry)), colour, pick);
-            }
-            if let Some(more) = entries.map(|entries| entries.len().saturating_sub(TABLE_ROWS)).filter(|more| *more > 0) {
-                rows.push(PanelRow::new(format!("- ... and {more} more"), DIM_INK));
-            }
-        }
-
-        // The rows scroll under the title bar; only whole rows are drawn.
-        let body = [x, y + TITLE_BAR, w, (h - TITLE_BAR).max(0.0)];
-        scene.panel_max_scroll = (rows.len() as f32 * TEXT + 2.0 * PAD - body[3]).max(0.0);
-        for (i, row) in rows.into_iter().enumerate() {
-            let top = body[1] + PAD + i as f32 * TEXT - self.panel_scroll;
-            if !contains(body, [x, top, w, TEXT]) {
-                continue;
-            }
-            let mut right = x + w - PAD;
-            if let Some((label, action)) = row.button {
-                right = scene.button(s, label, right, top, action) - PAD;
-            }
-            let mut left = x + PAD;
-            if let Some(item) = &row.item {
-                // The icon and the text open the item's recipes. The hover
-                // shade goes first, under the icon.
-                let link = [x + PAD, top, (right - x - PAD).max(0.0), TEXT];
-                if canvas::inside(link, s.mouse) {
-                    scene.fill(link, ROW_HOVER);
-                }
-                scene.zones.push((link, Action::ShowRecipe(item.clone())));
-                if !item.starts_with('#') {
-                    scene.draws.push(Draw::Item { item: item.clone(), at: [left, top], size: 9.0 });
-                    left += ICON_ROW;
-                }
-            }
-            let text = fit_text(&row.text, right - left, s.measure);
-            scene.text(text, [left, top + 1.0], row.colour);
-        }
-
-        scene.fill([x, y, w, TITLE_BAR], BAND);
-        let close = scene.button(s, "x", x + w - PAD, y + 2.0, Action::Deselect);
+        // The title bar: icon, title, Track and close.
+        let bar = POPUP_BAR;
+        scene.fill([x + 1.0, y + 1.0, w - 2.0, bar], BAND);
+        scene.draws.push(Draw::Item { item: quest_icon(quest).to_owned(), at: [x + PAD, y + 3.0], size: 12.0 });
+        let close = scene.button(s, "x", x + w - PAD, y + 4.0, Action::Deselect);
         let tracking = self.tracked.as_deref() == Some(node.id.as_str());
-        let track = if tracking {
-            scene.button(s, "Untrack", close - PAD, y + 2.0, Action::Untrack)
-        } else {
-            scene.button(s, "Track", close - PAD, y + 2.0, Action::Track(node.id.clone()))
-        };
+        let (label, action) = if tracking { ("Untrack", Action::Untrack) } else { ("Track", Action::Track(node.id.clone())) };
+        let track = scene.button(s, label, close - PAD, y + 4.0, action);
+        let title_left = x + PAD + 16.0;
         let title = if quest.title.is_empty() { &quest.id } else { &quest.title };
-        scene.text(fit_text(title, track - PAD - (x + PAD), s.measure), [x + PAD, y + 3.0], INK);
+        let title = fit_text(title, track - PAD - title_left, s.measure);
+        let room = track - PAD - title_left;
+        let title_x = title_left + ((room - (s.measure)(&title)) / 2.0).max(0.0);
+        scene.text(title, [title_x, y + 5.0], INK);
+
+        // Tasks on the left, rewards on the right.
+        let content = popup_layout(s, statuses, n, scene.regions.canvas).1;
+        let top = y + 1.0 + bar + 1.0;
+        let half = (w - 2.0) / 2.0;
+        let columns_h = content.columns_h;
+        let left = [x + 1.0, top, half, columns_h];
+        let right = [x + 1.0 + half, top, half, columns_h];
+        scene.fill([x + 1.0 + half, top, 1.0, columns_h], POPUP_EDGE);
+        scene.fill([x + 1.0, top + columns_h, w - 2.0, 1.0], POPUP_EDGE);
+        let heading = if quest.sequential_tasks { "Tasks, in order" } else { "Tasks" };
+        let mut tip = None;
+        tip = draw_icons(scene, s, left, heading, TASK_INK, &content.tasks).or(tip);
+        tip = draw_icons(scene, s, right, "Rewards", GOLD_INK, &content.rewards).or(tip);
+
+        // What it is, under them: it scrolls with the wheel when it is long.
+        let body = [x + 1.0, top + columns_h + 1.0, w - 2.0, (h - bar - columns_h - 4.0).max(0.0)];
+        scene.panel_max_scroll = (content.lines.len() as f32 * TEXT + 2.0 * PAD - body[3]).max(0.0);
+        for (i, (text, colour)) in content.lines.into_iter().enumerate() {
+            let line_y = body[1] + PAD + i as f32 * TEXT - self.panel_scroll;
+            if contains(body, [body[0], line_y, body[2], TEXT]) {
+                scene.text(text, [x + PAD, line_y + 1.0], colour);
+            }
+        }
+        tip
     }
 
     /// The header (chapter title, tally, close) and the footer (claim all,
@@ -1141,6 +986,274 @@ impl BookView {
     }
 }
 
+/// The quest window: at most this big, centred over the canvas.
+const POPUP_SIZE: [f32; 2] = [300.0, 200.0];
+const POPUP_BAR: f32 = 16.0;
+const POPUP_BACK: u32 = 0xF41C_2230;
+const POPUP_EDGE: u32 = 0xFF3A_4458;
+/// The "Tasks" heading's colour.
+const TASK_INK: u32 = 0x7C7C_FF;
+/// An icon's cell in the quest window, and the most icons a column shows.
+const ICON_CELL: f32 = 20.0;
+const ICONS_MAX: usize = 24;
+/// Over a task done: a green veil; over a reward claimed or a task that
+/// waits: a dark one.
+const DONE_VEIL: u32 = 0x8030_A040;
+const DIM_VEIL: u32 = 0xA010_1018;
+
+/// What the quest window holds, laid out for its width: its icons, how tall
+/// their columns are, and the lines of text under them.
+struct PopupContent {
+    tasks: Vec<Icon>,
+    rewards: Vec<Icon>,
+    columns_h: f32,
+    lines: Vec<(String, u32)>,
+}
+
+/// The quest window's width over the canvas `area`.
+fn popup_width(area: [f32; 4]) -> f32 {
+    POPUP_SIZE[0].min(area[2] - 2.0 * PAD).max(0.0)
+}
+
+/// Quest `n`'s window: its place over the canvas `area`, as tall as what it
+/// holds (at most `POPUP_SIZE`, and the canvas), and its content.
+fn popup_layout(s: &Screen<'_>, statuses: &[Status], n: usize, area: [f32; 4]) -> ([f32; 4], PopupContent) {
+    let [x, y, w, h] = area;
+    let pw = popup_width(area);
+    let half = (pw - 2.0) / 2.0;
+    let (tasks, rewards) = (task_icons(s, n), reward_icons(s, n));
+    let per_row = ((half - 2.0 * PAD) / ICON_CELL).floor().max(1.0) as usize;
+    let rows = tasks.len().max(rewards.len()).min(ICONS_MAX).div_ceil(per_row).max(1);
+    let max_h = POPUP_SIZE[1].min(h - 2.0 * PAD).max(0.0);
+    let columns_h = (3.0 * PAD + TEXT + rows as f32 * ICON_CELL).min((max_h - POPUP_BAR) * 0.6);
+    let lines = popup_lines(s, statuses, n, (pw - 2.0 * PAD).max(0.0));
+    let wanted = POPUP_BAR + columns_h + 4.0 + lines.len() as f32 * TEXT + 2.0 * PAD;
+    let ph = wanted.min(max_h);
+    ([x + (w - pw) / 2.0, y + (h - ph) / 2.0, pw, ph], PopupContent { tasks, rewards, columns_h, lines })
+}
+
+/// The quest window's text: its state, what it needs, its subtitle and
+/// description, wrapped to `text_w`.
+fn popup_lines(s: &Screen<'_>, statuses: &[Status], n: usize, text_w: f32) -> Vec<(String, u32)> {
+    let book = s.book;
+    let node = &book.nodes()[n];
+    let quest = book.quest(n);
+    let mut lines: Vec<(String, u32)> = Vec::new();
+    let (colour, state) = state_look(statuses[n].state);
+    let mut state = state.to_owned();
+    if quest.optional {
+        state.push_str(", optional");
+    }
+    if quest.repeatable {
+        state.push_str(", repeatable");
+        match s.progress.repeats.get(&node.id).copied().unwrap_or(0) {
+            0 => {}
+            1 => state.push_str(", done once"),
+            times => state.push_str(&format!(", done {times} times")),
+        }
+    }
+    lines.extend(wrap(&state, text_w, s.measure).into_iter().map(|line| (line, colour & 0xFF_FFFF)));
+    if statuses[n].state == QuestState::Locked {
+        lines.push(("Needs:".to_owned(), GOLD_INK));
+        for &d in &node.dependencies {
+            let dependency = book.quest(d);
+            let name = if !statuses[d].visible {
+                "???"
+            } else if dependency.title.is_empty() {
+                &dependency.id
+            } else {
+                &dependency.title
+            };
+            let mark = if s.progress.is_completed(&book.nodes()[d].id) { "[x]" } else { "[ ]" };
+            lines.push((fit_text(&format!("{mark} {name}"), text_w, s.measure), DIM_INK));
+        }
+    }
+    if let Some(subtitle) = &quest.subtitle {
+        lines.extend(wrap(subtitle, text_w, s.measure).into_iter().map(|line| (line, DIM_INK)));
+    }
+    for paragraph in &quest.description {
+        lines.push((String::new(), INK));
+        lines.extend(wrap(paragraph, text_w, s.measure).into_iter().map(|line| (line, INK)));
+    }
+    lines
+}
+
+/// One icon of the quest window: the item shown (an id, or `#tag`), a small
+/// count, what a click does, its tooltip and a veil over it.
+struct Icon {
+    item: String,
+    count: String,
+    action: Action,
+    tip: String,
+    veil: Option<u32>,
+}
+
+/// The item that stands for a task.
+fn task_item(kind: &TaskKind) -> String {
+    match kind {
+        TaskKind::Item { item, .. } | TaskKind::Craft { item, .. } => String::from(item.clone()),
+        TaskKind::Checkmark => "minecraft:writable_book".to_owned(),
+        TaskKind::Kill { entity, .. } => format!("{entity}_spawn_egg"),
+        TaskKind::XpLevels { .. } => "minecraft:experience_bottle".to_owned(),
+        TaskKind::Dimension { dimension } if dimension.contains("nether") => "minecraft:netherrack".to_owned(),
+        TaskKind::Dimension { dimension } if dimension.contains("end") => "minecraft:end_stone".to_owned(),
+        TaskKind::Dimension { .. } => "minecraft:grass_block".to_owned(),
+        TaskKind::Location { .. } => "minecraft:compass".to_owned(),
+        TaskKind::Advancement { .. } => "minecraft:knowledge_book".to_owned(),
+    }
+}
+
+/// The item that stands for something given, and its small count.
+fn reward_item(kind: &RewardKind) -> (String, String) {
+    let count = |n: u32| if n > 1 { n.to_string() } else { String::new() };
+    match kind {
+        RewardKind::Item { item, count: n } => (item.clone(), count(*n)),
+        RewardKind::Xp { points } => ("minecraft:experience_bottle".to_owned(), points.to_string()),
+        RewardKind::XpLevels { levels } => ("minecraft:experience_bottle".to_owned(), format!("{levels}L")),
+        RewardKind::Command { .. } => ("minecraft:command_block".to_owned(), String::new()),
+        RewardKind::Toast { .. } => ("minecraft:paper".to_owned(), String::new()),
+        RewardKind::Random { .. } | RewardKind::Choice { .. } => ("minecraft:chest".to_owned(), String::new()),
+    }
+}
+
+/// A click on an item's icon that does nothing else shows its recipes.
+fn recipe_of(kind_item: Option<String>) -> Action {
+    kind_item.map_or(Action::Stay, Action::ShowRecipe)
+}
+
+/// The quest's tasks as icons: a click ticks a checkmark, hands items in, or
+/// shows an item's recipes.
+fn task_icons(s: &Screen<'_>, n: usize) -> Vec<Icon> {
+    let book = s.book;
+    let node = &book.nodes()[n];
+    let quest = book.quest(n);
+    let completed = s.progress.is_completed(&node.id);
+    quest
+        .tasks
+        .iter()
+        .enumerate()
+        .map(|(t, task)| {
+            let id = book.task_id(n, t);
+            let goal = task.kind.goal();
+            let done = s.progress.task(&id).min(goal);
+            let finished = done >= goal || completed;
+            let counts = book.task_counts(n, t, s.progress);
+            let item = match &task.kind {
+                TaskKind::Item { item, .. } | TaskKind::Craft { item, .. } => Some(String::from(item.clone())),
+                _ => None,
+            };
+            let (action, hint) = match task.kind {
+                _ if !counts || finished => (recipe_of(item.clone()), ""),
+                TaskKind::Checkmark => (Action::Check(id.clone()), " - click to tick it"),
+                TaskKind::Item { consume: true, .. } => (Action::Submit(id.clone()), " - click to hand in"),
+                _ => (recipe_of(item.clone()), ""),
+            };
+            let hint = if hint.is_empty() && matches!(action, Action::ShowRecipe(_)) { " - click for its recipes" } else { hint };
+            let progress = if goal > 1 { format!(" {done}/{goal}") } else { String::new() };
+            let mark = if finished { "[x] " } else { "" };
+            Icon {
+                item: task_item(&task.kind),
+                count: if goal > 1 && !finished { format!("{done}/{goal}") } else { String::new() },
+                action,
+                tip: format!("{mark}{}{progress}{hint}", task_label(task)),
+                veil: if finished {
+                    Some(DONE_VEIL)
+                } else if !counts {
+                    Some(DIM_VEIL)
+                } else {
+                    None
+                },
+            }
+        })
+        .collect()
+}
+
+/// The quest's rewards as icons: a click claims one, or picks an entry of a
+/// choice reward; a random reward's tooltip lists what it can give.
+fn reward_icons(s: &Screen<'_>, n: usize) -> Vec<Icon> {
+    let book = s.book;
+    let node = &book.nodes()[n];
+    let quest = book.quest(n);
+    let completed = s.progress.is_completed(&node.id);
+    let mut icons = Vec::new();
+    for (r, reward) in quest.rewards.iter().enumerate() {
+        let id = book.reward_id(n, r);
+        let claimed = s.progress.claimed_for(&id, s.player, reward.team);
+        let team = if reward.team { " (team)" } else { "" };
+        let table = reward.kind.table().and_then(|table| book.table(table));
+        if let (RewardKind::Choice { .. }, Some(table), false) = (&reward.kind, table, claimed) {
+            // A choice: each entry is an icon; a click picks it.
+            for (e, entry) in table.entries.iter().enumerate() {
+                let (item, count) = reward_item(&entry.kind);
+                let action = if completed { Action::Choose(id.clone(), e as u32) } else { Action::Stay };
+                let hint = if completed { " - click to take this one" } else { " - one of these, your choice" };
+                icons.push(Icon { item, count, action, tip: format!("{}{team}{hint}", entry_label(entry)), veil: None });
+            }
+            continue;
+        }
+        let (item, count) = reward_item(&reward.kind);
+        let item_link = match &reward.kind {
+            RewardKind::Item { item, .. } => Some(item.clone()),
+            _ => None,
+        };
+        let action = if completed && !claimed { Action::Claim(id.clone()) } else { recipe_of(item_link) };
+        let mut tip = format!("{}{team}", reward_label(reward));
+        if let (RewardKind::Random { .. }, Some(table)) = (&reward.kind, table) {
+            let entries: Vec<String> = table.entries.iter().map(entry_label).collect();
+            tip = format!("{tip}: {}", entries.join(", "));
+        }
+        if claimed {
+            tip.push_str(" (claimed)");
+        } else if completed {
+            tip.push_str(" - click to claim");
+        }
+        icons.push(Icon { item, count, action, tip, veil: claimed.then_some(DIM_VEIL) });
+    }
+    icons
+}
+
+/// A column of the quest window: its heading, then its icons in rows,
+/// centred. Returns the tooltip of the icon under the pointer.
+fn draw_icons(scene: &mut Scene, s: &Screen<'_>, area: [f32; 4], heading: &str, ink: u32, icons: &[Icon]) -> Option<String> {
+    let [x, y, w, h] = area;
+    let heading = fit_text(heading, w - 2.0 * PAD, s.measure);
+    scene.text(heading.clone(), [x + (w - (s.measure)(&heading)) / 2.0, y + PAD], ink);
+    let top = y + PAD + TEXT + PAD;
+    let per_row = ((w - 2.0 * PAD) / ICON_CELL).floor().max(1.0) as usize;
+    let rows_room = ((y + h - top) / ICON_CELL).floor().max(0.0) as usize;
+    let shown = icons.len().min(ICONS_MAX).min(per_row * rows_room);
+    let mut tip = None;
+    for (i, icon) in icons.iter().take(shown).enumerate() {
+        let row = i / per_row;
+        let in_row = (shown - row * per_row).min(per_row);
+        let row_left = x + (w - in_row as f32 * ICON_CELL) / 2.0;
+        let cell = [row_left + (i % per_row) as f32 * ICON_CELL, top + row as f32 * ICON_CELL, ICON_CELL, ICON_CELL];
+        let hovered = canvas::inside(cell, s.mouse);
+        if hovered {
+            scene.fill(cell, ROW_HOVER);
+            tip = Some(icon.tip.clone());
+        }
+        scene.draws.push(Draw::Item { item: icon.item.clone(), at: [cell[0] + 2.0, cell[1] + 2.0], size: 16.0 });
+        if let Some(veil) = icon.veil {
+            scene.fill([cell[0] + 2.0, cell[1] + 2.0, 16.0, 16.0], veil);
+        }
+        if !icon.count.is_empty() {
+            let width = (s.measure)(&icon.count);
+            scene.text(icon.count.clone(), [cell[0] + ICON_CELL - width, cell[1] + ICON_CELL - 8.0], INK);
+        }
+        scene.zones.push((cell, icon.action.clone()));
+    }
+    if icons.len() > shown {
+        let more = format!("+{}", icons.len() - shown);
+        scene.text(more.clone(), [x + w - PAD - (s.measure)(&more), y + h - TEXT], DIM_INK);
+    }
+    if icons.is_empty() {
+        let none = "None";
+        scene.text(none, [x + (w - (s.measure)(none)) / 2.0, top + 4.0], DIM_INK);
+    }
+    tip
+}
+
 /// One recipe, as the recipe view draws it: item ids only.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RecipeView {
@@ -1177,8 +1290,6 @@ impl RecipeOverlay {
     }
 }
 
-/// The width an icon takes at the start of a panel row.
-const ICON_ROW: f32 = 11.0;
 /// A recipe cell: an 18-pixel square holding a 16-pixel icon.
 const CELL: f32 = 18.0;
 const RECIPE_BOX: [f32; 2] = [200.0, 120.0];
@@ -1191,7 +1302,7 @@ fn draw_recipe(scene: &mut Scene, s: &Screen<'_>, recipe: &RecipeOverlay) {
     let [bw, bh] = [RECIPE_BOX[0].min(w), RECIPE_BOX[1].min(h)];
     let b = [x + (w - bw) / 2.0, y + (h - bh) / 2.0, bw, bh];
     scene.fill(b, PANEL);
-    scene.zones.push((b, Action::KeepRecipe));
+    scene.zones.push((b, Action::Stay));
     scene.fill([b[0], b[1], bw, TITLE_BAR], BAND);
     let mut right = scene.button(s, "x", b[0] + bw - PAD, b[1] + 2.0, Action::CloseRecipe) - PAD;
     let n = recipe.recipes.len();
@@ -1728,7 +1839,7 @@ mod tests {
     }
 
     #[test]
-    fn selecting_a_quest_opens_its_panel_and_the_canvas_stays_put() {
+    fn selecting_a_quest_opens_its_window_over_the_canvas() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         let before = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(0)).unwrap();
@@ -1736,28 +1847,30 @@ mod tests {
         assert_eq!(view.selected, Some(0));
 
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        let after = zone(&scene, &Action::Quest(0)).unwrap();
-        assert!((after[0] - before[0]).abs() < 0.01 && (after[1] - before[1]).abs() < 0.01, "{before:?} {after:?}");
-
-        let panel = scene.regions.panel.unwrap();
+        let popup = scene.popup.unwrap();
+        // Centred over the canvas, which does not move.
+        let canvas = scene.regions.canvas;
+        assert!(contains(canvas, popup));
+        assert!((canvas::centre(popup)[0] - canvas::centre(canvas)[0]).abs() < 0.01);
+        assert_eq!(scene.regions.panel, None);
         let shown = texts(&scene);
-        for text in ["Start here", "A beginning", "Available", "Tasks", "[ ] Confirm", "Rewards", "5 XP", "Check"] {
+        for text in ["Start here", "Tasks", "Rewards", "Available", "A beginning", "Track", "x"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
-        // The description is wrapped to the panel.
+        // The description is wrapped to the window.
         for draw in &scene.draws {
             if let Draw::Text { text, at, .. } = draw
-                && at[0] >= panel[0]
-                && at[1] > panel[1]
-                && at[1] < panel[1] + panel[3]
+                && canvas::inside(popup, *at)
             {
-                assert!(at[0] + measure(text) <= panel[0] + panel[2], "{text}");
+                assert!(at[0] + measure(text) <= popup[0] + popup[2], "{text}");
             }
         }
-        assert!(canvas::inside(panel, zone(&scene, &Action::Check("a/start/ok".into())).unwrap()));
+        assert!(canvas::inside(popup, zone(&scene, &Action::Check("a/start/ok".into())).unwrap()));
         // Not completed: nothing to claim yet.
         assert_eq!(zone(&scene, &Action::Claim("a/start/xp".into())), None);
-
+        // An empty spot of the canvas closes it; so does its x.
+        assert_eq!(scene.action_at([canvas[0] + 1.0, canvas[1] + 1.0]), Some(&Action::Deselect));
+        assert_eq!(scene.action_at(canvas::centre(popup)), Some(&Action::Stay));
         assert_eq!(click(&mut view, &book, &progress, &Action::Deselect), Reaction::Nothing);
         assert_eq!(view.selected, None);
         let back = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(0)).unwrap();
@@ -1765,30 +1878,34 @@ mod tests {
     }
 
     #[test]
-    fn a_quest_selected_where_the_panel_opens_slides_into_view() {
+    fn the_window_shows_a_task_and_a_reward_as_icons() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
-        // The second quest is on the right, where the panel will be.
-        let at = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
-        assert!(canvas::inside(regions(RECT, true).panel.unwrap(), at));
-        click(&mut view, &book, &progress, &Action::Quest(1));
-
+        click(&mut view, &book, &progress, &Action::Quest(0));
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        let (rect, _) = scene.zones.iter().find(|(_, action)| *action == Action::Quest(1)).unwrap();
-        assert!(contains(scene.regions.canvas, *rect), "{rect:?} in {:?}", scene.regions.canvas);
-        assert_eq!(rect[2], canvas::NODE);
-        // Its icon is drawn: it is whole. (The fourth is the panel's task item.)
-        let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
-        assert_eq!(icons, 4);
+        let icons: Vec<&str> = scene
+            .draws
+            .iter()
+            .filter_map(|d| match d {
+                Draw::Item { item, size, .. } if *size == 16.0 => Some(item.as_str()),
+                _ => None,
+            })
+            .collect();
+        // A checkmark task, and 5 XP with its count.
+        assert_eq!(icons, ["minecraft:writable_book", "minecraft:experience_bottle"]);
+        assert!(texts(&scene).contains(&"5"));
+        // The title bar has the quest's icon.
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Item { size, .. } if *size == 12.0)));
     }
 
     #[test]
-    fn buttons_send_requests() {
+    fn icons_send_requests_and_say_what_a_click_does() {
         let book = book();
         let mut progress = Progress::default();
         let mut view = opened(&book, &progress);
         click(&mut view, &book, &progress, &Action::Quest(0));
         let check = Action::Check("a/start/ok".into());
+        assert_eq!(tip(&view, &book, &progress, &check).as_deref(), Some("Confirm - click to tick it"));
         assert_eq!(
             click(&mut view, &book, &progress, &check),
             Reaction::Send(ToServer::Check { task: "a/start/ok".into() })
@@ -1799,39 +1916,37 @@ mod tests {
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         assert_eq!(zone(&scene, &check), None);
         let shown = texts(&scene);
-        for text in ["Rewards waiting", "[x] Confirm", "Claim", "Claim all (1)", "1/3"] {
+        for text in ["Rewards waiting", "Claim all (1)", "1/3"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
-        assert_eq!(
-            click(&mut view, &book, &progress, &Action::Claim("a/start/xp".into())),
-            Reaction::Send(ToServer::Claim { reward: "a/start/xp".into(), choice: None })
-        );
+        let claim = Action::Claim("a/start/xp".into());
+        assert_eq!(tip(&view, &book, &progress, &claim).as_deref(), Some("5 XP - click to claim"));
+        assert_eq!(click(&mut view, &book, &progress, &claim), Reaction::Send(ToServer::Claim { reward: "a/start/xp".into(), choice: None }));
         assert_eq!(click(&mut view, &book, &progress, &Action::ClaimAll), Reaction::Send(ToServer::ClaimAll));
 
-        // Claimed: no more buttons for it.
-        progress = progress_after(
-            &book,
-            &[QuestEvent::Check { task: "a/start/ok".into() }, QuestEvent::ClaimAll],
-        );
+        // Claimed: the reward says so and takes no more claims.
+        progress = progress_after(&book, &[QuestEvent::Check { task: "a/start/ok".into() }, QuestEvent::ClaimAll]);
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        assert!(texts(&scene).contains(&"5 XP (claimed)"));
+        assert_eq!(zone(&scene, &claim), None);
+        assert_eq!(tip(&view, &book, &progress, &Action::Stay).as_deref(), Some("5 XP (claimed)"));
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
 
-        // The next quest is open now, and takes a hand-in. It sits under the
-        // panel: close the panel to reach it.
+        // The next quest is open now, and takes a hand-in.
         click(&mut view, &book, &progress, &Action::Deselect);
         click(&mut view, &book, &progress, &Action::Quest(1));
-        let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        // Too long for one row with its button: the text wraps, the button goes below.
-        let shown = texts(&scene);
-        for text in ["[ ] Hand in 4x Oak", "planks 0/4", "Submit"] {
-            assert!(shown.contains(&text), "{text} in {shown:?}");
-        }
-        assert_eq!(
-            click(&mut view, &book, &progress, &Action::Submit("a/next/planks".into())),
-            Reaction::Send(ToServer::Submit { task: "a/next/planks".into() })
-        );
+        let submit = Action::Submit("a/next/planks".into());
+        assert_eq!(tip(&view, &book, &progress, &submit).as_deref(), Some("Hand in 4x Oak planks 0/4 - click to hand in"));
+        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"0/4"));
+        assert_eq!(click(&mut view, &book, &progress, &submit), Reaction::Send(ToServer::Submit { task: "a/next/planks".into() }));
         assert_eq!(click(&mut view, &book, &progress, &Action::Close), Reaction::Close);
+    }
+
+    /// The tooltip with the pointer on the window's zone that does `action`.
+    fn tip(view: &BookView, book: &Book, progress: &Progress, action: &Action) -> Option<String> {
+        let scene = view.scene(&screen(book, progress, NOWHERE));
+        let popup = scene.popup?;
+        let at = scene.zones.iter().rev().find(|(rect, a)| a == action && contains(popup, *rect)).map(|(rect, _)| canvas::centre(*rect))?;
+        texts(&view.scene(&screen(book, progress, at))).last().map(|t| (*t).to_owned())
     }
 
     #[test]
@@ -1914,8 +2029,9 @@ mod tests {
     }
 
     #[test]
-    fn an_item_row_opens_its_recipes_and_the_view_turns_and_closes() {
-        let (book, progress) = (book(), progress_after(&book(), &[QuestEvent::Check { task: "a/start/ok".into() }]));
+    fn an_item_icon_opens_its_recipes_and_the_view_turns_and_closes() {
+        // The hand-in quest is locked: a click on its item shows the recipes.
+        let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         click(&mut view, &book, &progress, &Action::Quest(1));
         let show = Action::ShowRecipe("minecraft:oak_planks".into());
@@ -1940,10 +2056,11 @@ mod tests {
         let items = |scene: &Scene| -> Vec<String> {
             scene.draws.iter().filter_map(|d| match d { Draw::Item { item, size, .. } if *size == 16.0 => Some(item.clone()), _ => None }).collect()
         };
-        assert_eq!(items(&scene), ["minecraft:oak_log", "minecraft:oak_planks"]);
+        // The quest window's task icon, then the recipe's slot and result.
+        assert_eq!(items(&scene), ["minecraft:oak_planks", "minecraft:oak_log", "minecraft:oak_planks"]);
         // A slot with two items shows the second one a second later.
         view.recipe.as_mut().unwrap().clock = 20;
-        assert_eq!(items(&view.scene(&screen(&book, &progress, NOWHERE)))[0], "minecraft:birch_log");
+        assert_eq!(items(&view.scene(&screen(&book, &progress, NOWHERE)))[1], "minecraft:birch_log");
         // Turning goes round; the view keeps clicks on it, and closes on one outside.
         click(&mut view, &book, &progress, &Action::TurnRecipe(1));
         assert_eq!(view.recipe.as_ref().unwrap().page, 1);
@@ -1951,7 +2068,7 @@ mod tests {
         assert_eq!(view.recipe.as_ref().unwrap().page, 0);
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         // Under the view, the book's own zones do not take clicks.
-        assert_eq!(scene.action_at(canvas::centre(RECT)), Some(&Action::KeepRecipe));
+        assert_eq!(scene.action_at(canvas::centre(RECT)), Some(&Action::Stay));
         assert_eq!(scene.action_at([RECT[0] + 1.0, RECT[1] + 1.0]), Some(&Action::CloseRecipe));
         click(&mut view, &book, &progress, &Action::CloseRecipe);
         assert!(view.recipe.is_none());
@@ -1962,8 +2079,8 @@ mod tests {
     }
 
     #[test]
-    fn hovering_an_item_row_keeps_its_icon_on_top() {
-        let (book, progress) = (book(), progress_after(&book(), &[QuestEvent::Check { task: "a/start/ok".into() }]));
+    fn hovering_an_icon_keeps_it_on_top() {
+        let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         click(&mut view, &book, &progress, &Action::Quest(1));
         let show = Action::ShowRecipe("minecraft:oak_planks".into());
@@ -1973,9 +2090,11 @@ mod tests {
         let icon = scene
             .draws
             .iter()
-            .position(|d| matches!(d, Draw::Item { item, size, .. } if item == "minecraft:oak_planks" && *size == 9.0))
+            .position(|d| matches!(d, Draw::Item { item, size, .. } if item == "minecraft:oak_planks" && *size == 16.0))
             .unwrap();
         assert!(shade < icon, "the hover shade ({shade}) is drawn before the icon ({icon})");
+        // The waiting task is veiled.
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour, .. } if *colour == DIM_VEIL)));
     }
 
     #[test]
@@ -2062,19 +2181,20 @@ mod tests {
         view.scroll(&screen(&book, &progress, canvas::centre(regions.sidebar)), -3.0);
         assert_eq!(view.sidebar_scroll, 0.0);
 
-        // A short window: the panel's rows do not all fit, and scroll as far as the last.
-        let short = |mouse| Screen { rect: [0.0, 0.0, 480.0, 110.0], ..screen(&book, &progress, mouse) };
+        // A short window: the quest window's text does not all fit, and
+        // scrolls as far as its last line; the canvas does not zoom under it.
+        let short = |mouse| Screen { rect: [0.0, 0.0, 480.0, 150.0], ..screen(&book, &progress, mouse) };
         view.show_chapter(&short(NOWHERE), 0);
         let at = zone(&view.scene(&short(NOWHERE)), &Action::Quest(0)).unwrap();
         view.click(&short(at));
         let scene = view.scene(&short(NOWHERE));
         assert!(scene.panel_max_scroll > 0.0);
-        assert!(!texts(&scene).contains(&"5 XP"));
-        let over_panel = canvas::centre(scene.regions.panel.unwrap());
-        view.scroll(&short(over_panel), -100.0);
+        let over_popup = canvas::centre(scene.popup.unwrap());
+        let zoom = view.view.zoom;
+        view.scroll(&short(over_popup), -100.0);
         assert_eq!(view.panel_scroll, scene.panel_max_scroll);
-        assert!(texts(&view.scene(&short(NOWHERE))).contains(&"5 XP"));
-        view.scroll(&short(over_panel), 100.0);
+        assert_eq!(view.view.zoom, zoom);
+        view.scroll(&short(over_popup), 100.0);
         assert_eq!(view.panel_scroll, 0.0);
     }
 
@@ -2232,7 +2352,7 @@ mod tests {
     }
 
     #[test]
-    fn the_panel_shows_order_repeats_and_what_a_table_holds() {
+    fn the_window_shows_order_repeats_and_what_a_table_holds() {
         let book = gamma();
         let mut progress = Progress::default();
         let mut view = opened(&book, &progress);
@@ -2243,16 +2363,21 @@ mod tests {
 
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         let shown = texts(&scene);
-        for text in ["Optional", "Repeatable", "Tasks, in order", "Random: Loot", "- 4x Cookie", "- A cake!"] {
-            assert!(shown.contains(&text), "{text} in {shown:?}");
-        }
-        for text in ["Your choice: Picks", "- 4x Iron ingot", "- 2 levels"] {
-            assert!(shown.contains(&text), "{text} in {shown:?}");
-        }
-        assert!(shown.iter().any(|text| text.contains("Craft 3x Bread")), "{shown:?}");
+        assert!(shown.contains(&"Tasks, in order"), "{shown:?}");
+        assert!(shown.iter().any(|t| t.contains("optional") && t.contains("repeatable")), "{shown:?}");
         // The checkmark waits for the bread, and nothing is claimed before the quest is done.
         assert_eq!(zone(&scene, &check), None);
         assert_eq!((zone(&scene, &claim), zone(&scene, &pick(0))), (None, None));
+        // A random reward's tooltip lists what it can give; a choice shows each entry.
+        let icons: Vec<&str> = scene
+            .draws
+            .iter()
+            .filter_map(|d| match d {
+                Draw::Item { item, size, .. } if *size == 16.0 => Some(item.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert!(icons.contains(&"minecraft:chest") && icons.contains(&"minecraft:iron_ingot"), "{icons:?}");
 
         // The bread is baked: the checkmark can be ticked.
         progress = progress_after(&book, &[QuestEvent::Crafted { task: "g/bake/bread".into(), count: 3 }]);
@@ -2268,21 +2393,18 @@ mod tests {
         );
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         assert_eq!(zone(&scene, &Action::Claim("g/bake/pick".into())), None);
-        assert_eq!(
-            click(&mut view, &book, &progress, &claim),
-            Reaction::Send(ToServer::Claim { reward: "g/bake/loot".into(), choice: None })
-        );
-        assert_eq!(
-            click(&mut view, &book, &progress, &pick(1)),
-            Reaction::Send(ToServer::Claim { reward: "g/bake/pick".into(), choice: Some(1) })
-        );
+        let random = tip(&view, &book, &progress, &claim).unwrap();
+        assert!(random.starts_with("Random: Loot: 4x Cookie, A cake!"), "{random}");
+        assert_eq!(click(&mut view, &book, &progress, &claim), Reaction::Send(ToServer::Claim { reward: "g/bake/loot".into(), choice: None }));
+        assert_eq!(click(&mut view, &book, &progress, &pick(1)), Reaction::Send(ToServer::Claim { reward: "g/bake/pick".into(), choice: Some(1) }));
 
-        // Started over: the panel says how often it was done.
+        // Started over: the window says how often it was done.
         let mut again = Progress::default();
         again.repeats.insert("g/bake".into(), 1);
-        assert!(texts(&view.scene(&screen(&book, &again, NOWHERE))).contains(&"Repeatable, done once"));
+        let said = |p: &Progress| texts(&view.scene(&screen(&book, p, NOWHERE))).iter().any(|t| t.contains("done once"));
+        assert!(said(&again));
         again.repeats.insert("g/bake".into(), 3);
-        assert!(texts(&view.scene(&screen(&book, &again, NOWHERE))).contains(&"Repeatable, done 3 times"));
+        assert!(texts(&view.scene(&screen(&book, &again, NOWHERE))).iter().any(|t| t.contains("done 3 times")));
     }
 
     #[test]

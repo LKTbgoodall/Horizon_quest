@@ -11,7 +11,7 @@
       "description": [
         "This is your quest book. Each node on the page is a quest, and the lines show which quest opens which.",
         "Click a quest to read it. When its tasks are done, come back here to claim the rewards.",
-        "Tick the box below to begin."
+        "Click the book under Tasks to begin."
       ],
       "icon": "minecraft:writable_book",
       "x": 0, "y": 0,

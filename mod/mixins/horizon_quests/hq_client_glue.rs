@@ -19,6 +19,7 @@ use horizon_client::hud::HudBatch;
 use horizon_client::items::ItemStack;
 use horizon_client::mod_api::NativeScreenView;
 use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 /// This player's settings (hq_config), as `horizon_quests-client.toml` last
@@ -62,6 +63,11 @@ struct ClientState {
     /// A `Hello` went out on joining the world, so the tracked quest and
     /// toasts work before the book is first opened.
     greeted: bool,
+    /// The item drawn for an item tag (`#minecraft:logs`): the first item of
+    /// the game's list that has it. Tags met while painting wait in
+    /// `tags_wanted` for the next tick, which can read the item list.
+    tag_icons: HashMap<String, String>,
+    tags_wanted: HashSet<String>,
 }
 
 impl ClientState {
@@ -79,6 +85,8 @@ impl ClientState {
             toasts: book_ui::Toasts::default(),
             settings_read: false,
             greeted: false,
+            tag_icons: HashMap::new(),
+            tags_wanted: HashSet::new(),
         }
     }
 
@@ -107,6 +115,8 @@ fn open_key(game: &Game<'_>) -> String {
 
 /// The player's setting that keeps the tracked quest (a full quest id).
 const TRACKED_SETTING: &str = "tracked";
+/// The icon of an item tag no item has.
+const TAG_FALLBACK: &str = "minecraft:barrier";
 /// The most recipes the recipe view lists for one item.
 const RECIPE_LIMIT: usize = 64;
 
@@ -154,6 +164,18 @@ fn paint(game: &Game<'_>, batch: &mut HudBatch, draws: Vec<Draw>) {
                 game.native_text(batch, &text, at, colour, shadow);
             }
             Draw::Item { item, at, size } => {
+                // An item tag shows one of its items, once the tick found it.
+                let item = if item.starts_with('#') {
+                    match with(|s| s.tag_icons.get(&item).cloned()) {
+                        Some(found) => found,
+                        None => {
+                            with(|s| s.tags_wanted.insert(item));
+                            continue;
+                        }
+                    }
+                } else {
+                    item
+                };
                 let stack = ItemStack { item: Arc::from(item.as_str()), count: 1, damage: 0, extra: None };
                 game.native_item_stack(batch, &stack, at, size);
             }
@@ -239,6 +261,21 @@ pub(super) fn tick(game: &mut Game<'_>) {
             let _ = s.sender.send(&ToServer::Hello { protocol: net::PROTOCOL, version: meta::VERSION.into() });
             s.greeted = true;
         });
+    }
+    // Items for the tags the book met, from the game's item list.
+    let wanted: Vec<String> = with(|s| s.tags_wanted.drain().collect());
+    if !wanted.is_empty()
+        && let Some(all) = game.native_recipes()
+    {
+        let found: Vec<(String, String)> = wanted
+            .into_iter()
+            .map(|tag| {
+                let name = tag.trim_start_matches('#');
+                let item = all.items.iter().find(|item| item.tags.iter().any(|t| t == name)).map(|item| item.id.clone());
+                (tag, item.unwrap_or_else(|| TAG_FALLBACK.to_owned()))
+            })
+            .collect();
+        with(|s| s.tag_icons.extend(found));
     }
     // The recipes the player asked for, looked up where the game lets us.
     if let Some(wanted) = with(|s| s.view.recipe_wanted.take()) {
