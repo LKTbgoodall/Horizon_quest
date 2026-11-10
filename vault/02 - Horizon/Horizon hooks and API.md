@@ -100,7 +100,7 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 | Place a block | `native_place_block` | ✅ API 14 |
 | **Advancement** | `native_player_advancement_done(player, name, advancement)` | ✅ API 249 |
 | | `native_player_advancement_progress` (320), `native_player_advancement_criterion_grant` (339) | ✅ |
-| **Dimension** | `native_player_changed_dimension(player, name, from, to)`. ⚠ The docs contradict themselves on singleplayer (NM:2278 vs NM:1291): **to be tested** | ✅ API 154 |
+| **Dimension** | `native_player_changed_dimension(player, name, from, to)`. ⚠ **Not heard outside a dedicated server** at `fdc87ae`: we poll the player's place instead (v0.0.6) | ✅ API 154 |
 | | `native_player_portal` (271), `native_player_teleported` (170) | ✅ |
 | **Position / zone** | `native_player_tick` (every tick for every player) or polling `native_server_players()` | ✅ API 31 |
 | | `native_player_move(...)` | ⏳ |
@@ -108,7 +108,8 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 | **Structure** | ❌ **not documented** | ❌ |
 | **Stat** | `native_player_stat_award(player, name, stat_type, stat, value, cancel)` | ✅ API 321 |
 | | reading `native_player_stats(uuid)`, `native_player_stat(...)` | ⏳ |
-| **XP** | `native_player_xp_change` (394), `native_player_level_change(player, name, from, to)` (347) | ✅ |
+| **XP** | `native_player_xp_change` (394), `native_player_level_change(player, name, from: i32, to: i32)` (347, after the new level is applied; a guest's state is swapped in). Reading the level without an event: `NativeServerPlayer.xp_level` is ⏳ (`@API:server_player_state@`) | ✅ |
+| **Craft** | `native_item_crafted(player, recipe: &str, stack: &ItemStack)` (161, after the take); `native_furnace_extract(player, name, pos, item: &str, count: u32)` (228, no player swapped in) | ✅ |
 | Use an item | `native_use_item` (13), `native_use_item_on` (13), `native_living_entity_use_item_finish` (90, eat/drink) | ✅ |
 | Interact with an entity | `native_interact_entity` (29) | ✅ |
 | Fish, tame, breed | `native_player_fish` (160), `native_entity_tame` (220), `native_entity_breed` (213) | ✅ |
@@ -116,10 +117,12 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 | **Custom trigger** | `native_trigger_criterion(uuid, trigger, test)`: fires a datapack advancement | ✅ API 69 |
 | Tick | `native_server_tick` (4), `native_level_tick_pre/post` (23) | ✅ |
 
-### Whose state is in place (read in `ext/horizon` `1453e0e`, 2026-11-10)
+### Whose state is in place (read in `ext/horizon` `1453e0e`, 2026-11-10; corrected at the pin `fdc87ae` on 2026-11-10, Session 13)
 - The **item helpers of API 9** (`native_carried_items`, `native_take_items`, `native_count_items`…) act on the **acting player**: inside `native_perform_command` that is the command's player; in a hook with no player swapped in, it is the **host**.
-- `native_net_from_client` runs from `run_native_net` "with the hub back in the game": **no player swapped in**. So a book request that takes items must put the player in place first.
-- `native_as_player(uuid, f: impl FnOnce(&mut Self)) -> bool` (`native_server.rs`, `pub(super)`): runs `f` with that player's state in place; the host directly when they are the acting one, a guest through `as_guest` (only when no other player is swapped in); false when the player is not here or dead. The engine uses it itself for `native_give_experience` / `native_give_levels`. ❓ **Not in `native-hooks.json` nor in `native-mods.md`**: an engine method, not a numbered helper, so it could change without notice. We use it for book hand-ins since v0.0.4 (no numbered helper takes items from a given player and also works for the host).
+- `native_net_from_client` runs from `run_native_net` "with the hub back in the game": **no player swapped in**. So a book request that takes items must reach the player from outside (below).
+- ❌ `native_as_player(uuid, f)` (`native_server.rs`) is a **private** method at the pin `fdc87ae` (plain `fn`, not `pub(super)` as this note said): a mod's module is a sibling of `native_server`, so calling it is `error[E0624]: method native_as_player is private`. v0.0.4 and v0.0.5 called it and **did not compile** (proved by `tools/check-glue.ps1`, Session 13). The engine keeps it for `native_give_experience` / `native_give_levels`. **Never call an engine method that is not in `native-hooks.json` or `native-mods.md`.**
+- Since v0.0.6 a book hand-in uses catalog helpers only. The host (not among `native_server_players()`): the state in place, `native_carried_items` + `native_take_items` (9). A hub guest: `native_inventory(uuid, Player)` (132) to count their plain stacks, then `native_run_command("clear <name> <item> <n>")` (21), which runs where no player is swapped in. `/clear` goes by item id, so an item the guest also holds in a damaged, named or enchanted stack is left alone (`hq_session::hand_in_plan`).
+- `native_server_players()` (8) lists the **hub's guests** that are placed ("empty on a client and in a world nobody else can join"); `NativeServerPlayer` has `dimension` and `position`. The host is not in it: their place is `native_player()` (`x`, `y`, `z`, `dimension`), the game's own state outside a player's turn.
 - `native_inventory(uuid, kind)` / `native_set_inventory_slot` / `native_take_stacks` look the player up among the **LAN hub's guests**; anyone else is read from (or written to) their **player file**, and with no hub at all they answer `NoServer`. ❓ **To check in game**: in single player, is the host one of the hub's guests? If not, item polling (`look_at_inventory`) would see the host's saved file, not their live inventory, or nothing.
 
 ## 3. Giving rewards

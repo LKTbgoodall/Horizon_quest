@@ -425,6 +425,59 @@ pub fn reward_command(command: &str, name: &str, uuid: u128) -> Option<String> {
     Some(line.replace("{player}", name).replace("{uuid}", &player_id(uuid)))
 }
 
+/// What a hand-in for `wanted` takes from an inventory read as stacks
+/// `(item id, count, plain)`: each item and how many of it, in the order the
+/// items are first met, never more than the task lacks. An item the player
+/// also holds in a stack that is not plain (damaged, named, enchanted) is
+/// left alone: the take goes by item id and could not spare that stack.
+pub fn hand_in_plan(wanted: &Wanted, stacks: &[(&str, u32, bool)], in_tag: &dyn Fn(&str, &str) -> bool) -> Vec<(String, u32)> {
+    let mut held: Vec<(&str, u64, bool)> = Vec::new();
+    for &(item, count, plain) in stacks {
+        match held.iter_mut().find(|(id, _, _)| *id == item) {
+            Some((_, total, all_plain)) => {
+                *total += u64::from(count);
+                *all_plain &= plain;
+            }
+            None => held.push((item, u64::from(count), plain)),
+        }
+    }
+    let mut left = wanted.missing;
+    let mut plan = Vec::new();
+    for (item, total, all_plain) in held {
+        let counts = match &wanted.item {
+            ItemMatch::Id(id) => id == item,
+            ItemMatch::Tag(tag) => in_tag(tag, item),
+        };
+        let take = u32::try_from(total.min(left)).unwrap_or(u32::MAX);
+        if counts && all_plain && take > 0 {
+            left -= u64::from(take);
+            plan.push((item.to_owned(), take));
+        }
+    }
+    plan
+}
+
+/// The console line that takes `count` of `item` from a player: vanilla's
+/// `/clear`. None for a name or an item that could not be written safely on
+/// a command line.
+pub fn clear_command(name: &str, item: &str, count: u32) -> Option<String> {
+    let item = resource_id(item)?;
+    (safe_name(name) && count > 0).then(|| format!("clear {name} {item} {count}"))
+}
+
+/// What a toast reward shows: its title (the reward's `title`, else a plain
+/// heading) and its text.
+pub fn toast(title: Option<&str>, text: &str) -> (String, String) {
+    let title = title.map(str::trim).filter(|title| !title.is_empty()).unwrap_or("Quest reward");
+    (title.to_owned(), text.trim().to_owned())
+}
+
+/// The chat line that stands for a toast, for a player whose client has no
+/// book to show it.
+pub fn toast_line(title: &str, text: &str) -> String {
+    if text.is_empty() { title.to_owned() } else { format!("{title}: {text}") }
+}
+
 /// Unix seconds now.
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn now() -> u64 {
@@ -612,6 +665,179 @@ mod tests {
         assert_eq!(lines[0], "Start: 0/3 quests");
         assert!(lines.iter().any(|l| l == " - Logs: open (0/4 #minecraft:logs)"), "{lines:?}");
         assert!(!lines.iter().any(|l| l.contains("bread")), "a locked quest is not listed: {lines:?}");
+    }
+
+    /// Crafts by id and by tag, a level, a level behind a dependency, and a
+    /// place behind another.
+    const WORK: &str = r##"{ "id": "w", "title": "Work", "quests": [
+        { "id": "bake", "title": "Bake", "x": 0,
+          "tasks": [ { "id": "t", "type": "craft", "item": "bread", "count": 2 } ] },
+        { "id": "burn", "title": "Burn", "x": 1,
+          "tasks": [ { "id": "t", "type": "craft", "item": "#minecraft:logs", "count": 2 } ] },
+        { "id": "grow", "title": "Grow", "x": 2,
+          "tasks": [ { "id": "t", "type": "xp_levels", "levels": 3 } ] },
+        { "id": "walk", "title": "Walk", "x": 3, "dependencies": ["grow"],
+          "tasks": [ { "id": "t", "type": "location", "dimension": "overworld", "from": [0, 60, 0], "to": [4, 70, 4] } ] },
+        { "id": "later", "title": "Later", "x": 4, "dependencies": ["burn"],
+          "tasks": [ { "id": "t", "type": "xp_levels", "levels": 1 } ] }
+    ] }"##;
+
+    fn work() -> Session {
+        let loaded = load(None, &[("w.json", WORK)]);
+        assert_eq!(loaded.errors(), 0, "{:?}", loaded.problems);
+        let mut s = Session::new(Book::new(loaded.file));
+        s.join(7, "Steve", Ok(Progress::default()));
+        s.process(1);
+        s
+    }
+
+    fn completed(s: &Session, quest: &str) -> bool {
+        s.player(7).unwrap().progress.is_completed(quest)
+    }
+
+    #[test]
+    fn crafts_count_for_open_craft_tasks_by_id_and_by_tag() {
+        let mut s = work();
+        let lines = s.summary(7);
+        for line in [" - Bake: open (0/2 craft minecraft:bread)", " - Burn: open (0/2 craft #minecraft:logs)", " - Grow: open (0/3 experience levels)"] {
+            assert!(lines.iter().any(|l| l == line), "{line} in {lines:?}");
+        }
+        s.crafted(7, "minecraft:bread", 1, &logs);
+        s.crafted(7, "bread", 1, &logs);
+        s.crafted(7, "minecraft:oak_log", 2, &logs);
+        // Nothing asks for sticks, that is no item, and nobody is player 8.
+        s.crafted(7, "minecraft:stick", 9, &logs);
+        s.crafted(7, "Not An Item", 1, &logs);
+        s.crafted(8, "minecraft:bread", 2, &logs);
+        let effects = s.process(2);
+        assert_eq!(effects.len(), 4, "{effects:?}");
+        assert!(completed(&s, "w/bake") && completed(&s, "w/burn"));
+        // Done: more bread reports nothing.
+        s.crafted(7, "minecraft:bread", 1, &logs);
+        assert!(s.process(3).is_empty());
+    }
+
+    #[test]
+    fn levels_and_places_are_watched_while_a_task_waits_for_them() {
+        let mut s = work();
+        // An experience task waits, but the level is not known before it changes.
+        assert!(!s.observe(7));
+        assert!(s.process(2).is_empty());
+        s.set_level(7, 2);
+        s.process(3);
+        assert_eq!(s.player(7).unwrap().progress.task("w/grow/t"), 2);
+        // A level below zero is zero.
+        s.set_level(7, -4);
+        s.process(4);
+        assert_eq!((s.player(7).unwrap().level, s.player(7).unwrap().progress.task("w/grow/t")), (Some(0), 0));
+        s.set_level(7, 3);
+        s.process(5);
+        assert!(completed(&s, "w/grow"));
+
+        // The next quest asks where they stand, in whole blocks.
+        assert!(s.observe(7));
+        s.at(7, "overworld", [4.9, 64.0, -0.5]);
+        assert!(s.process(6).is_empty());
+        s.at(7, "minecraft:overworld", [4.9, 64.0, 0.0]);
+        s.process(7);
+        assert!(completed(&s, "w/walk"));
+        assert!(!s.observe(7));
+        assert!(!s.observe(8));
+    }
+
+    #[test]
+    fn a_level_heard_earlier_counts_when_its_task_opens() {
+        let mut s = work();
+        s.set_level(7, 9);
+        s.process(2);
+        assert!(completed(&s, "w/grow") && !completed(&s, "w/later"));
+        s.crafted(7, "minecraft:birch_log", 2, &logs);
+        s.process(3);
+        assert!(completed(&s, "w/burn") && !completed(&s, "w/later"));
+        // The level has not changed since: the next look reports it again.
+        s.observe(7);
+        s.process(4);
+        assert!(completed(&s, "w/later"));
+    }
+
+    #[test]
+    fn a_quest_waiting_to_start_over_is_woken_by_a_look() {
+        let chapter = r#"{ "id": "r", "title": "R", "quests": [ { "id": "again", "title": "Again",
+            "repeatable": true, "repeat_cooldown": 30, "tasks": [ { "id": "ok", "type": "checkmark" } ] } ] }"#;
+        let loaded = load(None, &[("r.json", chapter)]);
+        assert_eq!(loaded.errors(), 0, "{:?}", loaded.problems);
+        let mut s = Session::new(Book::new(loaded.file));
+        s.join(7, "Steve", Ok(Progress::default()));
+        s.push(7, QuestEvent::Check { task: "r/again/ok".into() });
+        s.process(100);
+        assert!(completed(&s, "r/again"));
+        s.observe(7);
+        assert!(s.process(129).is_empty());
+        // Time alone does nothing: the engine only runs on an event.
+        assert!(s.process(131).is_empty());
+        s.observe(7);
+        assert_eq!(s.process(131), [(7, Effect::QuestStartedOver { quest: "r/again".into() })]);
+        assert!(!completed(&s, "r/again"));
+    }
+
+    #[test]
+    fn a_hand_in_plan_takes_plain_stacks_up_to_what_is_missing() {
+        let wanted = |item: ItemMatch, missing| Wanted { task: "c/q/t".into(), item, missing, consume: true };
+        let oak = || ItemMatch::Id("minecraft:oak_log".into());
+        let any_log = || ItemMatch::Tag("minecraft:logs".into());
+        let stacks = [
+            ("minecraft:oak_log", 3, true),
+            ("minecraft:bread", 5, true),
+            ("minecraft:birch_log", 4, true),
+            ("minecraft:oak_log", 2, true),
+            ("minecraft:spruce_log", 9, false),
+        ];
+        let plan = |wanted: &Wanted| hand_in_plan(wanted, &stacks, &logs);
+        // By id: every stack of the item, and no more than is missing.
+        assert_eq!(plan(&wanted(oak(), 4)), [("minecraft:oak_log".to_owned(), 4)]);
+        assert_eq!(plan(&wanted(oak(), 64)), [("minecraft:oak_log".to_owned(), 5)]);
+        // By tag: the items as they are met, until there is enough. The
+        // spruce is a named stack: left alone.
+        assert_eq!(
+            plan(&wanted(any_log(), 7)),
+            [("minecraft:oak_log".to_owned(), 5), ("minecraft:birch_log".to_owned(), 2)]
+        );
+        assert_eq!(
+            plan(&wanted(any_log(), 64)),
+            [("minecraft:oak_log".to_owned(), 5), ("minecraft:birch_log".to_owned(), 4)]
+        );
+        assert!(plan(&wanted(ItemMatch::Id("minecraft:stone".into()), 3)).is_empty());
+        assert!(plan(&wanted(oak(), 0)).is_empty());
+        // An item also held in a stack that is not plain is left alone whole.
+        let mixed = [("minecraft:bread", 5, true), ("minecraft:bread", 1, false)];
+        assert!(hand_in_plan(&wanted(ItemMatch::Id("minecraft:bread".into()), 3), &mixed, &logs).is_empty());
+    }
+
+    #[test]
+    fn console_lines_for_a_player_refuse_unsafe_text() {
+        assert_eq!(clear_command("Steve_1", "bread", 3).as_deref(), Some("clear Steve_1 minecraft:bread 3"));
+        assert_eq!(clear_command("a b", "bread", 3), None);
+        assert_eq!(clear_command("Steve", "bread 1", 3), None);
+        assert_eq!(clear_command("Steve", "bread", 0), None);
+
+        assert_eq!(
+            reward_command("/effect give {player} minecraft:speed 30", "Steve", 7).as_deref(),
+            Some("effect give Steve minecraft:speed 30")
+        );
+        assert_eq!(reward_command("say {uuid}", "Steve", 7), Some(format!("say {}", player_id(7))));
+        assert_eq!(reward_command("say hi", "Steve; stop", 7), None);
+        assert_eq!(reward_command("  ", "Steve", 7), None);
+        assert_eq!(reward_command("say a\nstop", "Steve", 7), None);
+        assert!(safe_name("Alex_2") && !safe_name("") && !safe_name("seventeen_letters_"));
+    }
+
+    #[test]
+    fn toasts_have_a_title_and_a_chat_line_for_clients_without_the_book() {
+        assert_eq!(toast(Some("Welcome"), " Mind the lava. "), ("Welcome".to_owned(), "Mind the lava.".to_owned()));
+        assert_eq!(toast(None, "Hi"), ("Quest reward".to_owned(), "Hi".to_owned()));
+        assert_eq!(toast(Some("  "), ""), ("Quest reward".to_owned(), String::new()));
+        assert_eq!(toast_line("Welcome", "Mind the lava."), "Welcome: Mind the lava.");
+        assert_eq!(toast_line("Welcome", ""), "Welcome");
     }
 
     #[test]

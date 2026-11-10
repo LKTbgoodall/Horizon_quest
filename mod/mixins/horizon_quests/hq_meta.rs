@@ -4,9 +4,9 @@
 /// The mod's id: its settings folder, its key lines, its net channel prefix.
 pub const ID: &str = "horizon_quests";
 pub const NAME: &str = "Horizon Quests";
-pub const VERSION: &str = "0.0.5";
+pub const VERSION: &str = "0.0.6";
 pub const DESCRIPTION: &str =
-    "An FTB Quests-style quest book. Phase 2: graphical quest book, net sync, server engine.";
+    "An FTB Quests-style quest book: a graphical book, quests with tasks and rewards, synced with the server.";
 
 /// The key that opens the quest book: its name in `horizon-mods.txt`, its
 /// label in Options > Mods, and its default. K is free in vanilla (L opens
@@ -15,7 +15,7 @@ pub const OPEN_KEY: &str = "open_book";
 pub const OPEN_KEY_LABEL: &str = "Open the quest book";
 pub const OPEN_KEY_DEFAULT: &str = "key.keyboard.k";
 
-/// `Horizon Quests 0.0.5`, as Options > Mods titles the row.
+/// `Horizon Quests 0.0.6`, as Options > Mods titles the row.
 pub fn title() -> String {
     format!("{NAME} {VERSION}")
 }

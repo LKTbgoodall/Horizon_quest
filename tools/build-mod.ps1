@@ -63,8 +63,10 @@ New-Item -ItemType Directory -Force $Out | Out-Null
 Remove-Item $Hnmod -ErrorAction SilentlyContinue
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+# The hook API the bundle needs is compatibility.json's, so the two never disagree.
+$Hooks = [int](Get-Content (Join-Path $Root "mod\compatibility.json") -Raw | ConvertFrom-Json).hooks
 $manifest = [ordered]@{
-    game = "26.3"; hooks = 313; horizon = $HorizonRev; id = $ModId; mixins = $MixinsRev; schema = 1; version = $Version
+    game = "26.3"; hooks = $Hooks; horizon = $HorizonRev; id = $ModId; mixins = $MixinsRev; schema = 1; version = $Version
 } | ConvertTo-Json -Compress
 $zip = [IO.Compression.ZipFile]::Open($Hnmod, "Create")
 try {

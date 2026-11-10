@@ -29,6 +29,8 @@ struct ClientState {
     /// Window ticks since the last `Hello` went unanswered; None once the
     /// server answered (or before anything was asked).
     waited: Option<u32>,
+    /// Toasts the server sent, shown on the HUD one at a time.
+    toasts: book_ui::Toasts,
 }
 
 impl ClientState {
@@ -43,12 +45,13 @@ impl ClientState {
             rect: [0.0, 0.0, 800.0, 600.0],
             close_requested: false,
             waited: None,
+            toasts: book_ui::Toasts::default(),
         }
     }
 
-    /// Whether anything is kept from a world: a pack, or a request.
+    /// Whether anything is kept from a world: a pack, a request, or a toast.
     fn in_use(&self) -> bool {
-        self.book.is_some() || self.waited.is_some() || self.sender.waiting() > 0
+        self.book.is_some() || self.waited.is_some() || self.sender.waiting() > 0 || !self.toasts.is_empty()
     }
 }
 
@@ -68,24 +71,52 @@ fn open_key(game: &Game<'_>) -> String {
     game.native_mod_key(meta::ID, meta::OPEN_KEY, meta::OPEN_KEY_DEFAULT)
 }
 
-/// A one-line hint in the top-left corner, hidden while the book is open.
-pub fn hud(game: &mut Game<'_>, batch: &mut HudBatch, corners: &mut Corners) {
-    if !game.native_on(meta::ID)
-        || ours(game)
-        || !game.native_corner_shown(Corner::TopLeft)
-        || game.native_player().is_none()
-    {
+/// A one-line hint in the top-left corner and the toast on show in the
+/// top-right one, both hidden while the book is open.
+pub(super) fn hud(game: &mut Game<'_>, batch: &mut HudBatch, corners: &mut Corners) {
+    if !game.native_on(meta::ID) || ours(game) || game.native_player().is_none() {
         return;
     }
-    let line = meta::hud_hint(&meta::key_label(&open_key(game)));
-    let w = game.native_text_width(&line) + 4.0;
-    let (x, y) = corners.place(Corner::TopLeft, w, 12.0);
-    game.native_fill(batch, [x, y, w, 12.0], 0x7800_0000);
-    game.native_text(batch, &line, [x + 2.0, y + 2.0], 0xFF_FFFF, true);
+    if game.native_corner_shown(Corner::TopLeft) {
+        let line = meta::hud_hint(&meta::key_label(&open_key(game)));
+        let w = game.native_text_width(&line) + 4.0;
+        let (x, y) = corners.place(Corner::TopLeft, w, 12.0);
+        game.native_fill(batch, [x, y, w, 12.0], 0x7800_0000);
+        game.native_text(batch, &line, [x + 2.0, y + 2.0], 0xFF_FFFF, true);
+    }
+    if game.native_corner_shown(Corner::TopRight)
+        && let Some(toast) = with(|s| s.toasts.current().cloned())
+    {
+        let measure = |text: &str| game.native_text_width(text);
+        let [w, h] = book_ui::toast_size(&toast, &measure);
+        let (x, y) = corners.place(Corner::TopRight, w, h);
+        paint(game, batch, book_ui::toast_draws(&toast, [x, y], &measure));
+    }
+}
+
+/// Carries a draw list out with the game's helpers.
+fn paint(game: &Game<'_>, batch: &mut HudBatch, draws: Vec<Draw>) {
+    for draw in draws {
+        match draw {
+            Draw::Fill { rect, colour } => {
+                game.native_fill(batch, rect, colour);
+            }
+            Draw::Quad { corners, colour } => {
+                game.native_quad(batch, corners, colour);
+            }
+            Draw::Text { text, at, colour, shadow } => {
+                game.native_text(batch, &text, at, colour, shadow);
+            }
+            Draw::Item { item, at, size } => {
+                let stack = ItemStack { item: Arc::from(item.as_str()), count: 1, damage: 0, extra: None };
+                game.native_item_stack(batch, &stack, at, size);
+            }
+        }
+    }
 }
 
 /// The open key toggles the book screen and sends Hello to the server.
-pub fn key(game: &mut Game<'_>, key: &str, pressed: bool) {
+pub(super) fn key(game: &mut Game<'_>, key: &str, pressed: bool) {
     if !pressed || !game.native_window() || !game.native_on(meta::ID) || key != open_key(game) {
         return;
     }
@@ -108,7 +139,7 @@ pub fn key(game: &mut Game<'_>, key: &str, pressed: bool) {
 /// Every window tick: dispatch outgoing net frames or close the screen if
 /// requested. Out of a world, the last world's pack and requests are
 /// forgotten, so another server's book starts from nothing.
-pub fn tick(game: &mut Game<'_>) {
+pub(super) fn tick(game: &mut Game<'_>) {
     if !game.native_window() {
         return;
     }
@@ -124,9 +155,14 @@ pub fn tick(game: &mut Game<'_>) {
         with(|s| s.close_requested = false);
         game.native_mod_screen_close(meta::ID);
     }
+    // A toast's time only runs while the HUD shows it: not under the book.
+    let hud_in_view = !ours(game);
     with(|s| {
         if let Some(waited) = &mut s.waited {
             *waited = waited.saturating_add(1);
+        }
+        if hud_in_view {
+            s.toasts.tick();
         }
     });
     flush_net(game);
@@ -149,7 +185,7 @@ fn flush_net(game: &mut Game<'_>) {
 }
 
 /// Incoming net message from the server on channel "horizon_quests:book".
-pub fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
+pub(super) fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
     if channel != net::CHANNEL || !game.native_on(meta::ID) {
         return;
     }
@@ -193,11 +229,14 @@ pub fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
         ToClient::Notice { text } => {
             s.view.notice = text;
         }
+        ToClient::Toast { title, text, icon } => {
+            s.toasts.push(book_ui::Toast { title, text, icon });
+        }
     });
 }
 
 /// Draws the quest book over the world.
-pub fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'_>) {
+pub(super) fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'_>) {
     if !ours(game) {
         return;
     }
@@ -236,32 +275,11 @@ pub fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'
         return;
     }
 
-    for draw in draws {
-        match draw {
-            Draw::Fill { rect, colour } => {
-                game.native_fill(batch, rect, colour);
-            }
-            Draw::Quad { corners, colour } => {
-                game.native_quad(batch, corners, colour);
-            }
-            Draw::Text { text, at, colour, shadow } => {
-                game.native_text(batch, &text, at, colour, shadow);
-            }
-            Draw::Item { item, at, size } => {
-                let stack = ItemStack {
-                    item: Arc::from(item.as_str()),
-                    count: 1,
-                    damage: 0,
-                    extra: None,
-                };
-                game.native_item_stack(batch, &stack, at, size);
-            }
-        }
-    }
+    paint(game, batch, draws);
 }
 
 /// A click on the book activates buttons, chapters, quests or actions.
-pub fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
+pub(super) fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
     if !ours(game) {
         return;
     }
@@ -294,7 +312,7 @@ pub fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canc
 }
 
 /// Dragging pans the canvas.
-pub fn dragged(game: &Game<'_>, delta: [f32; 2], canceled: &mut bool) {
+pub(super) fn dragged(game: &Game<'_>, delta: [f32; 2], canceled: &mut bool) {
     if !ours(game) {
         return;
     }
@@ -318,7 +336,7 @@ pub fn dragged(game: &Game<'_>, delta: [f32; 2], canceled: &mut bool) {
 }
 
 /// The wheel zooms the canvas and scrolls lists.
-pub fn scrolled(game: &Game<'_>, screen: &NativeScreenView<'_>, scroll: [f64; 2], canceled: &mut bool) {
+pub(super) fn scrolled(game: &Game<'_>, screen: &NativeScreenView<'_>, scroll: [f64; 2], canceled: &mut bool) {
     if !ours(game) {
         return;
     }

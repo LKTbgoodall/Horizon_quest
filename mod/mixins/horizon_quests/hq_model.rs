@@ -609,6 +609,67 @@ mod tests {
     }
 
     #[test]
+    fn the_later_task_and_reward_kinds_read() {
+        let quest: Quest = serde_json::from_str(
+            r##"{ "id": "q", "sequential_tasks": true, "repeatable": true, "repeat_cooldown": 300,
+                "tasks": [ { "id": "a", "type": "craft", "item": "#minecraft:planks", "count": 8 },
+                           { "id": "b", "type": "xp_levels", "levels": 5 },
+                           { "id": "c", "type": "dimension", "dimension": "minecraft:the_nether" },
+                           { "id": "d", "type": "location", "from": [0, 60, 0], "to": [16, 80, 16] },
+                           { "id": "e", "type": "advancement", "advancement": "minecraft:story/mine_stone" } ],
+                "rewards": [ { "id": "r", "type": "command", "command": "say hi {player}" },
+                             { "id": "s", "type": "toast", "title": "Well done" },
+                             { "id": "t", "type": "random", "table": "loot" },
+                             { "id": "u", "type": "choice", "table": "picks" } ] }"##,
+        )
+        .unwrap();
+        assert!(quest.sequential_tasks && quest.repeatable);
+        assert_eq!(quest.repeat_cooldown, 300);
+        let goals: Vec<u64> = quest.tasks.iter().map(|task| task.kind.goal()).collect();
+        assert_eq!(goals, [8, 5, 1, 1, 1]);
+        assert_eq!(quest.tasks[0].kind, TaskKind::Craft { item: ItemMatch::Tag("minecraft:planks".into()), count: 8 });
+        assert_eq!(quest.tasks[3].kind, TaskKind::Location { dimension: None, from: [0, 60, 0], to: [16, 80, 16] });
+        assert_eq!(quest.rewards[1].kind, RewardKind::Toast { text: String::new() });
+        assert_eq!(quest.rewards[1].title.as_deref(), Some("Well done"));
+        let tables: Vec<Option<&str>> = quest.rewards.iter().map(|reward| reward.kind.table()).collect();
+        assert_eq!(tables, [None, None, Some("loot"), Some("picks")]);
+        // A quest that says nothing of it is done once, in any order.
+        let plain = Quest::default();
+        assert!(!plain.sequential_tasks && !plain.repeatable && plain.repeat_cooldown == 0);
+        // A task or a reward missing what its type needs is refused.
+        for bad in [r#"{ "type": "xp_levels" }"#, r#"{ "type": "location", "from": [0, 0, 0] }"#, r#"{ "type": "dimension" }"#] {
+            assert!(serde_json::from_str::<Task>(bad).is_err(), "{bad}");
+        }
+        for bad in [r#"{ "type": "command" }"#, r#"{ "type": "random" }"#, r#"{ "type": "choice", "table": 3 }"#] {
+            assert!(serde_json::from_str::<Reward>(bad).is_err(), "{bad}");
+        }
+
+        let table: RewardTable = serde_json::from_str(
+            r#"{ "id": "loot", "entries": [ { "type": "xp", "points": 5 },
+                 { "weight": 3, "title": "Shiny", "type": "item", "item": "minecraft:diamond" } ] }"#,
+        )
+        .unwrap();
+        assert_eq!((table.entries[0].weight, table.entries[1].weight), (1, 3));
+        assert_eq!(table.entries[1].title.as_deref(), Some("Shiny"));
+        assert_eq!(table.entries[1].kind, RewardKind::Item { item: "minecraft:diamond".into(), count: 1 });
+    }
+
+    #[test]
+    fn a_quest_that_started_over_still_counts_as_completed_once() {
+        // A progress file written before repeats and advancements existed.
+        let mut progress: Progress = serde_json::from_str(r#"{ "completed": { "c/q": 5 } }"#).unwrap();
+        assert!(progress.repeats.is_empty() && progress.advancements.is_empty());
+        assert!(progress.ever_completed("c/q") && !progress.ever_completed("c/other"));
+        progress.completed.clear();
+        assert!(!progress.ever_completed("c/q") && !progress.is_started("c/q"));
+        progress.repeats.insert("c/q".into(), 2);
+        progress.advancements.insert("minecraft:story/mine_stone".into());
+        assert!(progress.ever_completed("c/q") && progress.is_started("c/q") && !progress.is_completed("c/q"));
+        let text = serde_json::to_string(&progress).unwrap();
+        assert_eq!(serde_json::from_str::<Progress>(&text).unwrap(), progress);
+    }
+
+    #[test]
     fn ids() {
         for good in ["a", "first_wood", "01-intro", "v1.2", "0123456789abcdef"] {
             assert!(valid_id(good), "{good}");

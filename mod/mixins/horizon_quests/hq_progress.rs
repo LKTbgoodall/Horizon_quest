@@ -629,7 +629,7 @@ fn start_over(book: &Book, progress: &mut Progress, now: u64, out: &mut Outcome)
 
 #[cfg(test)]
 mod tests {
-    use super::super::hq_validate::load;
+    use super::super::hq_validate::{load, load_pack};
     use super::*;
 
     const NOW: u64 = 1000;
@@ -990,5 +990,272 @@ mod tests {
     #[test]
     fn refusals_have_a_text() {
         assert_eq!(Refusal::NothingToClaim.text(), "There is nothing to claim.");
+    }
+
+    /// Crafts, levels, places, advancements, tasks in order, a quest that
+    /// starts over and rewards from tables.
+    const LATER: &str = r##"{ "id": "b", "title": "B", "quests": [
+        { "id": "bake", "title": "t", "x": 0, "repeatable": true, "repeat_cooldown": 60,
+          "tasks": [ { "id": "bread", "type": "craft", "item": "bread", "count": 3 } ],
+          "rewards": [ { "id": "loot", "type": "random", "table": "loot" } ] },
+        { "id": "after", "title": "t", "x": 1, "dependencies": ["bake"],
+          "tasks": [ { "id": "ok", "type": "checkmark" } ] },
+        { "id": "armed", "title": "t", "x": 2, "sequential_tasks": true,
+          "tasks": [ { "id": "sword", "type": "craft", "item": "#minecraft:swords" },
+                     { "id": "skeletons", "type": "kill", "entity": "skeleton", "count": 2 } ] },
+        { "id": "level", "title": "t", "x": 3,
+          "tasks": [ { "id": "five", "type": "xp_levels", "levels": 5 } ],
+          "rewards": [ { "id": "pick", "type": "choice", "table": "picks" },
+                       { "id": "xp", "type": "xp", "points": 1 } ] },
+        { "id": "stone", "title": "t", "x": 4, "dependencies": ["level"],
+          "tasks": [ { "id": "adv", "type": "advancement", "advancement": "story/mine_stone" } ] },
+        { "id": "travel", "title": "t", "x": 5, "optional": true,
+          "tasks": [ { "id": "nether", "type": "dimension", "dimension": "the_nether" },
+                     { "id": "spot", "type": "location", "dimension": "overworld",
+                       "from": [10, 60, 10], "to": [-10, 70, -10] },
+                     { "id": "anywhere", "type": "location", "from": [100, 0, 100], "to": [100, 0, 100] } ] }
+    ] }"##;
+    const LOOT: &str = r#"{ "id": "loot", "entries": [
+        { "weight": 3, "type": "item", "item": "cookie", "count": 4 },
+        { "weight": 0, "type": "xp", "points": 99 },
+        { "weight": 1, "title": "A cake!", "type": "item", "item": "cake" } ] }"#;
+    const PICKS: &str = r#"{ "id": "picks", "entries": [
+        { "type": "item", "item": "iron_ingot", "count": 4 },
+        { "type": "xp_levels", "levels": 2 } ] }"#;
+
+    fn later() -> Book {
+        let loaded = load_pack(Some("{}"), &[("b.json", LATER)], &[("loot.json", LOOT), ("picks.json", PICKS)]);
+        assert_eq!(loaded.problems, [], "the test pack has problems");
+        Book::new(loaded.file)
+    }
+
+    fn crafted(task: &str, count: u64) -> QuestEvent {
+        QuestEvent::Crafted { task: task.into(), count }
+    }
+
+    #[test]
+    fn crafts_add_up_for_open_craft_tasks() {
+        let book = later();
+        let mut progress = Progress::default();
+        let wanted: Vec<(String, u64)> = wanted_crafts(&book, &progress).into_iter().map(|w| (w.task, w.missing)).collect();
+        assert_eq!(wanted, [("b/bake/bread".to_owned(), 3), ("b/armed/sword".to_owned(), 1)]);
+
+        assert_eq!(run(&book, &mut progress, crafted("b/bake/bread", 2)), Outcome { changed: true, effects: vec![] });
+        assert_eq!(wanted_crafts(&book, &progress)[0].missing, 1);
+        // Holding bread is not baking it.
+        assert_eq!(run(&book, &mut progress, items("b/bake/bread", 64)), Outcome::default());
+        let out = run(&book, &mut progress, crafted("b/bake/bread", 5));
+        assert_eq!(out.effects, [task_completed("b/bake/bread"), quest_completed("b/bake")]);
+        assert_eq!(progress.task("b/bake/bread"), 3);
+        // A craft reported for a task that is not a craft task changes nothing.
+        assert_eq!(run(&book, &mut progress, crafted("b/after/ok", 1)), Outcome::default());
+        assert_eq!(run(&book, &mut progress, crafted("b/none/t", 1)), Outcome::default());
+    }
+
+    #[test]
+    fn tasks_in_order_wait_for_the_one_before() {
+        let book = later();
+        let mut progress = Progress::default();
+        // The skeletons do not count before the sword is made.
+        assert_eq!(run(&book, &mut progress, killed("skeleton")), Outcome::default());
+        let out = run(&book, &mut progress, crafted("b/armed/sword", 1));
+        assert_eq!(out.effects, [task_completed("b/armed/sword")]);
+        run(&book, &mut progress, killed("skeleton"));
+        let out = run(&book, &mut progress, killed("skeleton"));
+        assert_eq!(out.effects, [task_completed("b/armed/skeletons"), quest_completed("b/armed")]);
+
+        // Requests from the book are refused the same way.
+        let chapter = r#"{ "id": "s", "title": "S", "quests": [ { "id": "q", "title": "t", "sequential_tasks": true,
+            "tasks": [ { "id": "first", "type": "checkmark" }, { "id": "second", "type": "checkmark" },
+                       { "id": "third", "type": "item", "item": "apple", "consume": true } ] } ] }"#;
+        let book = self::book("{}", &[chapter]);
+        let mut progress = Progress::default();
+        assert_eq!(run(&book, &mut progress, check("s/q/second")), refused(Refusal::NotYet));
+        assert_eq!(submit_request(&book, &progress, "s/q/third"), Err(Refusal::NotYet));
+        assert!(wanted_items(&book, &progress).is_empty());
+        assert_eq!(run(&book, &mut progress, check("s/q/first")).effects, [task_completed("s/q/first")]);
+        assert_eq!(run(&book, &mut progress, check("s/q/second")).effects, [task_completed("s/q/second")]);
+        assert_eq!(submit_request(&book, &progress, "s/q/third").map(|wanted| wanted.missing), Ok(1));
+    }
+
+    #[test]
+    fn an_experience_task_follows_the_level_until_done() {
+        let book = later();
+        let mut progress = Progress::default();
+        let level = |level| QuestEvent::Level { level };
+        assert!(watch(&book, &progress).level);
+        assert!(run(&book, &mut progress, level(3)).changed);
+        assert_eq!(progress.task("b/level/five"), 3);
+        // Levels spent at an enchanting table: the task goes back down.
+        run(&book, &mut progress, level(1));
+        assert_eq!(progress.task("b/level/five"), 1);
+        let out = run(&book, &mut progress, level(30));
+        assert_eq!(out.effects, [task_completed("b/level/five"), quest_completed("b/level")]);
+        assert_eq!(progress.task("b/level/five"), 5);
+        // Done stays done, and nothing waits for the level any more.
+        assert_eq!(run(&book, &mut progress, level(0)), Outcome::default());
+        assert!(!watch(&book, &progress).level);
+    }
+
+    #[test]
+    fn places_are_a_dimension_or_a_box_of_blocks() {
+        let book = later();
+        let mut progress = Progress::default();
+        let at = |dimension: &str, position: [i32; 3]| QuestEvent::At { dimension: dimension.into(), position };
+        assert!(watch(&book, &progress).place);
+        // One block out of the box, then the right blocks of the wrong dimension.
+        assert_eq!(run(&book, &mut progress, at("minecraft:overworld", [11, 64, 0])), Outcome::default());
+        assert_eq!(run(&book, &mut progress, at("minecraft:the_end", [0, 64, 0])), Outcome::default());
+        // Both corners are in the box, whichever way round the pack wrote them.
+        let out = run(&book, &mut progress, at("minecraft:overworld", [-10, 70, 10]));
+        assert_eq!(out.effects, [task_completed("b/travel/spot")]);
+        // A box without a dimension is anywhere.
+        let out = run(&book, &mut progress, at("minecraft:the_nether", [100, 0, 100]));
+        assert_eq!(
+            out.effects,
+            [task_completed("b/travel/nether"), task_completed("b/travel/anywhere"), quest_completed("b/travel")]
+        );
+        assert!(!watch(&book, &progress).place);
+    }
+
+    #[test]
+    fn an_advancement_is_remembered_until_its_quest_opens() {
+        let book = later();
+        let mut progress = Progress::default();
+        let earned = |advancement: &str| QuestEvent::Advancement { advancement: advancement.into() };
+        // One no task names is not kept.
+        assert_eq!(run(&book, &mut progress, earned("minecraft:story/root")), Outcome::default());
+        assert!(progress.advancements.is_empty());
+        // Its quest is still locked: remembered, nothing ticked.
+        assert_eq!(run(&book, &mut progress, earned("minecraft:story/mine_stone")), Outcome { changed: true, effects: vec![] });
+        assert_eq!(progress.task("b/stone/adv"), 0);
+        assert_eq!(run(&book, &mut progress, earned("story/mine_stone")), Outcome::default());
+        // The quest opens: its task is done at once.
+        let out = run(&book, &mut progress, QuestEvent::Level { level: 5 });
+        assert_eq!(
+            out.effects,
+            [
+                task_completed("b/level/five"),
+                quest_completed("b/level"),
+                task_completed("b/stone/adv"),
+                quest_completed("b/stone"),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_repeatable_quest_starts_over_once_claimed_and_cooled_down() {
+        let book = later();
+        let mut progress = Progress::default();
+        let at = |now: u64| Actor::new("steve", now);
+        let bake = crafted("b/bake/bread", 3);
+        let claim = QuestEvent::Claim { reward: "b/bake/loot".into(), choice: None };
+        let started_over = Effect::QuestStartedOver { quest: "b/bake".into() };
+
+        apply(&book, &mut progress, &at(100), &bake);
+        assert!(progress.is_completed("b/bake") && watch(&book, &progress).repeat);
+        // Claimed at once: the minute still runs, from the completion.
+        let out = apply(&book, &mut progress, &at(120), &claim);
+        assert!(matches!(out.effects[..], [Effect::Reward { .. }]), "{out:?}");
+        assert_eq!(apply(&book, &mut progress, &at(159), &QuestEvent::Refresh), Outcome::default());
+        let out = apply(&book, &mut progress, &at(160), &QuestEvent::Refresh);
+        assert_eq!(out, Outcome { changed: true, effects: vec![started_over.clone()] });
+
+        // Its tasks, completion and claims are forgotten; what it opened stays open.
+        assert_eq!((progress.repeats.get("b/bake"), progress.task("b/bake/bread")), (Some(&1), 0));
+        assert!(!progress.is_completed("b/bake") && progress.ever_completed("b/bake"));
+        assert!(!progress.has_claimed("b/bake/loot", "steve"));
+        assert!(book.dependencies_met(book.find("b/after").unwrap(), &progress));
+        assert!(!watch(&book, &progress).repeat);
+
+        // Done again and left unclaimed, it waits however long; the claim
+        // then starts it over in the same go.
+        let out = apply(&book, &mut progress, &at(200), &bake);
+        assert_eq!(out.effects, [task_completed("b/bake/bread"), quest_completed("b/bake")]);
+        assert_eq!(apply(&book, &mut progress, &at(5000), &QuestEvent::Refresh), Outcome::default());
+        let out = apply(&book, &mut progress, &at(5000), &claim);
+        assert!(matches!(&out.effects[..], [Effect::Reward { .. }, last] if *last == started_over), "{out:?}");
+        assert_eq!(progress.repeats.get("b/bake"), Some(&2));
+
+        // An admin's reset forgets how often it was done too.
+        assert_eq!(reset_quest(&book, &mut progress, "b/bake"), Some(true));
+        assert!(!progress.ever_completed("b/bake"));
+    }
+
+    #[test]
+    fn a_random_reward_is_drawn_by_weight() {
+        let book = later();
+        let table = book.table("loot").unwrap();
+        let cookies = RewardKind::Item { item: "minecraft:cookie".into(), count: 4 };
+        let cake = RewardKind::Item { item: "minecraft:cake".into(), count: 1 };
+        // Weights 3, 0 and 1: of four rolls, three are cookies and one the
+        // cake; the entry of weight 0 never comes out.
+        let drawn: Vec<RewardKind> = (0..8).map(|roll| draw(table, roll).unwrap().kind.clone()).collect();
+        assert_eq!(drawn[..4], [cookies.clone(), cookies.clone(), cookies.clone(), cake.clone()]);
+        assert_eq!(drawn[4..], drawn[..4]);
+        assert!(draw(&RewardTable::default(), 7).is_none());
+
+        // Claimed, the reward is the entry that came out, under its title.
+        let mut progress = Progress::default();
+        run(&book, &mut progress, crafted("b/bake/bread", 3));
+        let roll = (0u64..)
+            .find(|roll| {
+                let mut state = *roll;
+                next_roll(&mut state) % 4 == 3
+            })
+            .unwrap();
+        let claim = QuestEvent::Claim { reward: "b/bake/loot".into(), choice: None };
+        let out = apply(&book, &mut progress, &Actor::new("steve", NOW).with_roll(roll), &claim);
+        assert_eq!(
+            out.effects,
+            [Effect::Reward { reward: "b/bake/loot".into(), title: Some("A cake!".into()), kind: cake }]
+        );
+        assert!(progress.has_claimed("b/bake/loot", "steve"));
+    }
+
+    #[test]
+    fn a_choice_reward_gives_the_entry_picked() {
+        let book = later();
+        let mut progress = Progress::default();
+        run(&book, &mut progress, QuestEvent::Level { level: 5 });
+        let claim = |choice| QuestEvent::Claim { reward: "b/level/pick".into(), choice };
+        assert_eq!(run(&book, &mut progress, claim(None)), refused(Refusal::NeedsChoice));
+        assert_eq!(run(&book, &mut progress, claim(Some(2))), refused(Refusal::BadChoice));
+        assert!(progress.claimed.is_empty());
+
+        // "Claim all" gives the rest and leaves the choice to the book.
+        let out = run(&book, &mut progress, QuestEvent::ClaimAll);
+        assert_eq!(
+            out.effects,
+            [Effect::Reward { reward: "b/level/xp".into(), title: None, kind: RewardKind::Xp { points: 1 } }]
+        );
+        assert_eq!(run(&book, &mut progress, QuestEvent::ClaimAll), refused(Refusal::NeedsChoice));
+
+        let out = run(&book, &mut progress, claim(Some(1)));
+        assert_eq!(
+            out.effects,
+            [Effect::Reward { reward: "b/level/pick".into(), title: None, kind: RewardKind::XpLevels { levels: 2 } }]
+        );
+        assert_eq!(run(&book, &mut progress, claim(Some(0))), refused(Refusal::AlreadyClaimed));
+        assert_eq!(run(&book, &mut progress, QuestEvent::ClaimAll), refused(Refusal::NothingToClaim));
+
+        // A pack that claims by itself still leaves the choice to the player.
+        let chapter = r#"{ "id": "c", "title": "C", "quests": [ { "id": "q", "title": "t",
+            "tasks": [ { "id": "ok", "type": "checkmark" } ],
+            "rewards": [ { "id": "pick", "type": "choice", "table": "picks" } ] } ] }"#;
+        let loaded = load_pack(Some(r#"{ "auto_claim_rewards": true }"#), &[("c.json", chapter)], &[("picks.json", PICKS)]);
+        assert_eq!(loaded.problems, []);
+        let auto = Book::new(loaded.file);
+        let mut progress = Progress::default();
+        let out = run(&auto, &mut progress, check("c/q/ok"));
+        assert!(out.effects.contains(&quest_completed("c/q")) && progress.claimed.is_empty(), "{out:?}");
+
+        // A table that is gone gives nothing, and nothing is recorded.
+        let mut file = auto.file().clone();
+        file.reward_tables.clear();
+        let bare = Book::new(file);
+        let claim = QuestEvent::Claim { reward: "c/q/pick".into(), choice: Some(0) };
+        assert_eq!(run(&bare, &mut progress, claim), refused(Refusal::NoTable));
+        assert!(progress.claimed.is_empty());
     }
 }

@@ -296,5 +296,27 @@ mod tests {
         let reward = book.quest(0).rewards[0].kind.clone();
         assert_eq!(say(Effect::Reward { reward: "a/one/r".into(), title: None, kind: reward }).as_deref(), Some("Reward: 2x Apple"));
         assert_eq!(say(Effect::Refused(Refusal::NotOpen)).as_deref(), Some("That quest is not open yet."));
+
+        // What a table gave is named by its entry: its title, else its kind.
+        let cake = RewardKind::Item { item: "minecraft:cake".into(), count: 1 };
+        let drawn = |title: Option<&str>| Effect::Reward { reward: "a/one/r".into(), title: title.map(str::to_owned), kind: cake.clone() };
+        assert_eq!(say(drawn(Some("A cake!"))).as_deref(), Some("Reward: A cake!"));
+        assert_eq!(say(drawn(None)).as_deref(), Some("Reward: Cake"));
+        // A toast is its own message.
+        let toast = RewardKind::Toast { text: "Mind the lava.".into() };
+        assert_eq!(say(Effect::Reward { reward: "a/one/r".into(), title: Some("Welcome".into()), kind: toast }), None);
+        assert_eq!(
+            say(Effect::QuestStartedOver { quest: "a/one".into() }).as_deref(),
+            Some("You can do this quest again: First steps")
+        );
+        assert_eq!(
+            say(Effect::QuestStartedOver { quest: "a/two".into() }).as_deref(),
+            Some("You can do this quest again: a/two")
+        );
+        assert_eq!(say(Effect::QuestStartedOver { quest: "a/gone".into() }), None);
+        assert_eq!(
+            say(Effect::Refused(Refusal::NeedsChoice)).as_deref(),
+            Some("Pick that reward in the quest book: it lets you choose.")
+        );
     }
 }

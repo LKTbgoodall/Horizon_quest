@@ -785,6 +785,137 @@ mod tests {
     }
 
     #[test]
+    fn reward_tables_are_checked_and_a_bad_one_takes_its_chapters_out() {
+        let quest = |table: &str| {
+            format!(
+                r#", "tasks": [ {{ "id": "t", "type": "checkmark" }} ],
+                    "rewards": [ {{ "id": "r", "type": "random", "table": "{table}" }} ]"#
+            )
+        };
+        let (good, empty, nowhere) = (quest("good"), quest("empty"), quest("nowhere"));
+        let chapters = [
+            ("a.json", chapter("a", &[("q", &[], &good)])),
+            ("b.json", chapter("b", &[("q", &[], &empty)])),
+            ("c.json", chapter("c", &[("q", &[], &nowhere)])),
+        ];
+        let chapters: Vec<(&str, &str)> = chapters.iter().map(|(name, text)| (*name, text.as_str())).collect();
+        let tables = [
+            (
+                "1.json",
+                r#"{ "id": "good", "entries": [ { "type": "item", "item": "apple" }, { "weight": 0, "type": "xp", "points": 0 } ] }"#,
+            ),
+            ("2.json", r#"{ "id": "empty", "entries": [] }"#),
+            ("3.json", r#"{ "id": "good", "entries": [ { "type": "xp", "points": 1 } ] }"#),
+            (
+                "4.json",
+                r#"{ "id": "nested", "entries": [ { "type": "random", "table": "good" }, { "type": "item", "item": "No Item" } ] }"#,
+            ),
+            ("5.json", r#"{ "id": "idle", "entries": [ { "weight": 0, "type": "xp", "points": 1 } ] }"#),
+            ("6.json", "not json"),
+        ];
+        let loaded = load_pack(None, &chapters, &tables);
+
+        // The sound table is kept, its item ids written in full; the
+        // chapters that named a table left out, or none at all, go too.
+        let kept: Vec<&str> = loaded.file.reward_tables.iter().map(|table| table.id.as_str()).collect();
+        assert_eq!(kept, ["good"]);
+        assert_eq!(
+            loaded.file.reward_tables[0].entries[0].kind,
+            RewardKind::Item { item: "minecraft:apple".into(), count: 1 }
+        );
+        assert_eq!(ids(&loaded), ["a"]);
+
+        let found = messages(&loaded);
+        assert_eq!(
+            found[..6],
+            [
+                "warning: reward_tables/1.json: entry #2: gives nothing",
+                "error: reward_tables/2.json: the reward table has no `entries`",
+                "error: reward_tables/3.json: another reward table already has the id `good`",
+                "error: reward_tables/4.json: entry #1: an entry cannot be another table",
+                "error: reward_tables/4.json: entry #2: `No Item` is not an item id",
+                "error: reward_tables/5.json: every entry has `weight` 0: nothing can be drawn",
+            ]
+        );
+        assert!(found[6].starts_with("error: reward_tables/6.json: not a valid reward table: "), "{}", found[6]);
+        assert_eq!(
+            found[7..],
+            [
+                "error: chapters/b.json > q: reward `r`: unknown reward table `empty`",
+                "error: chapters/c.json > q: reward `r`: unknown reward table `nowhere`",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_later_tasks_and_rewards_are_checked() {
+        let quest = r#", "repeat_cooldown": 5,
+            "tasks": [ { "id": "a", "type": "xp_levels", "levels": 0 },
+                       { "id": "b", "type": "dimension", "dimension": "The Nether" },
+                       { "id": "c", "type": "advancement", "advancement": "Mine Stone" },
+                       { "id": "d", "type": "location", "dimension": "Over World", "from": [0, 0, 0], "to": [1, 1, 1] },
+                       { "id": "e", "type": "craft", "item": "bread", "count": 0 } ],
+            "rewards": [ { "id": "r", "type": "command", "command": "  " },
+                         { "id": "s", "type": "command", "command": "say a\nsay b" },
+                         { "id": "t", "type": "choice", "table": "picks", "auto_claim": "enabled" } ]"#;
+        let picks = r#"{ "id": "picks", "entries": [ { "type": "xp", "points": 1 } ] }"#;
+        let loaded = load_pack(None, &[("a.json", &chapter("a", &[("q", &[], quest)]))], &[("picks.json", picks)]);
+        assert!(loaded.file.chapters.is_empty());
+        let expected = [
+            "error: chapters/a.json > q: task `a`: `levels` must be at least 1",
+            "error: chapters/a.json > q: task `b`: `The Nether` is not a dimension id",
+            "error: chapters/a.json > q: task `c`: `Mine Stone` is not an advancement id",
+            "error: chapters/a.json > q: task `d`: `Over World` is not a dimension id",
+            "error: chapters/a.json > q: task `e`: `count` must be at least 1",
+            "warning: chapters/a.json > q: `repeat_cooldown` does nothing without `repeatable`",
+            "error: chapters/a.json > q: reward `r`: the `command` is empty",
+            "error: chapters/a.json > q: reward `s`: the `command` must be one line",
+            "warning: chapters/a.json > q: reward `t`: a choice is never claimed automatically",
+        ];
+        assert_eq!(messages(&loaded), expected);
+    }
+
+    #[test]
+    fn a_repeatable_quest_needs_a_task_that_is_used_up() {
+        let load_quest = |extra: &str| load(None, &[("a.json", &chapter("a", &[("q", &[], extra)]))]);
+        let refused = ["error: chapters/a.json > q: a repeatable quest needs a task that is used up each time: \
+                        a kill, a craft, a checkmark or a hand-in"];
+        // Holding items and being somewhere stay true: the quest would
+        // complete again at once, for ever. So would one without tasks.
+        let idle = r#", "repeatable": true, "tasks": [ { "id": "t", "type": "item", "item": "apple" },
+            { "id": "u", "type": "xp_levels", "levels": 1 }, { "id": "v", "type": "dimension", "dimension": "the_end" } ]"#;
+        assert_eq!(messages(&load_quest(idle)), refused);
+        assert_eq!(messages(&load_quest(r#", "repeatable": true"#)), refused);
+        for used_up in [
+            r#"{ "id": "t", "type": "item", "item": "apple", "consume": true }"#,
+            r#"{ "id": "t", "type": "kill", "entity": "zombie" }"#,
+            r#"{ "id": "t", "type": "craft", "item": "bread" }"#,
+            r#"{ "id": "t", "type": "checkmark" }"#,
+        ] {
+            let quest = format!(r#", "repeatable": true, "repeat_cooldown": 60, "tasks": [ {used_up} ]"#);
+            assert_eq!(load_quest(&quest).problems, [], "{used_up}");
+        }
+    }
+
+    #[test]
+    fn places_and_advancements_are_written_in_full() {
+        let text = r#"{ "id": "a", "title": "A", "quests": [ { "id": "q", "title": "t",
+            "tasks": [ { "id": "a", "type": "dimension", "dimension": "the_nether" },
+                       { "id": "b", "type": "advancement", "advancement": "story/mine_stone" },
+                       { "id": "c", "type": "location", "dimension": "overworld", "from": [10, 60, -5], "to": [-10, 70, -9] } ] } ] }"#;
+        let loaded = load(None, &[("a.json", text)]);
+        assert_eq!(loaded.problems, []);
+        let tasks = &loaded.file.chapters[0].quests[0].tasks;
+        assert_eq!(tasks[0].kind, TaskKind::Dimension { dimension: "minecraft:the_nether".into() });
+        assert_eq!(tasks[1].kind, TaskKind::Advancement { advancement: "minecraft:story/mine_stone".into() });
+        // A box's corners are written low then high.
+        assert_eq!(
+            tasks[2].kind,
+            TaskKind::Location { dimension: Some("minecraft:overworld".into()), from: [-10, 60, -9], to: [10, 70, -5] }
+        );
+    }
+
+    #[test]
     fn ids_are_written_in_full() {
         let text = r#"{ "id": "a", "title": "A", "icon": "book", "quests": [ { "id": "q", "title": "t", "icon": "create:gear",
             "tasks": [ { "id": "t", "type": "kill", "entity": "zombie" } ],

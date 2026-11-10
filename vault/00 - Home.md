@@ -11,18 +11,19 @@ updated: 2026-11-10
 | | |
 |---|---|
 | **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded, review fixes in v0.0.4, config file in v0.0.5: **everything that needs no game is done, waiting for the in-game test (solo + LAN)** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]] § Session 11: v0.0.5 adds `config/horizon_quests-server.toml` (`example_chapter`, hooks 397, `hq_config`), the empty-pack message, and the LAN checklist. **110 tests pass**, glue control compile clean |
-| **Code** | `mod/` v0.0.5. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
+| **Last session** | [[2026-11-10]] § Session 13: **v0.0.6 finished and merged into `main`** (glue, manifest, client toasts, 25 new tests). Found and fixed a build break of v0.0.4 / v0.0.5 (`native_as_player` is private at the pin). New `tools/check-glue.ps1` type-checks the glue against the real Horizon source: **clean**. **133 + 2 tests pass** |
+| **Code** | `mod/` v0.0.6. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book` (protocol 2), inventory polling, 9 task types, 7 reward types, reward tables, repeatable quests, tasks in order, HUD toasts, saving, `/quests`. Two example chapters |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | Nothing known: the in-game test of v0.0.5 (solo, then LAN). Watch the single-player host's inventory reads and `native_player_logged_in` for the host ([[Open questions]]) |
-| **In progress** | **v0.0.6 (phase 3, first step), half done on branch `wip/v0.0.6`**: new tasks (craft, xp levels, dimension, location, advancement), new rewards (command, toast, random, choice), reward tables, repeatable quests, sequential tasks. Pure modules done, **glue not adapted yet, no new tests** → [[2026-11-10]] § Session 12 has the exact to-do list. `main` is still v0.0.5 |
+| **Blocking** | Nothing known: the in-game test of v0.0.6 (solo, then LAN). **v0.0.4 and v0.0.5 never compiled: do not test them.** Watch the single-player host's inventory and place reads, and `native_player_logged_in` for the host ([[Open questions]]) |
+| **In progress** | Nothing half done. Next steps of phase 3, one version each, after the in-game test: teams, more config, datapack quests, book polish, assets |
 
 ## ➡️ Next step
-0. Claude: `git checkout wip/v0.0.6`, then finish v0.0.6 as listed in [[2026-11-10]] § Session 12 (glue, mixin manifest, tests, control compile, docs), merge into `main`. Teams, config, datapack, book polish and assets come after, one step each
-1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.5: solo, config file, then LAN)
+0. Claude, before any in-game test request: `powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1` must end with "The glue type-checks" ([[Build, test and tools]])
+1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.6: solo, config file, the "Further afield" chapter, then LAN)
 2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
 3. Fix what the build shows if any (`native/build.log`)
-4. If every box is ticked: phase 2 done, release 0.1.0 (private testing), then phase 3 (V1)
+4. If every box is ticked: phase 2 done, release 0.1.0 (private testing), then the rest of phase 3 (teams first)
+5. Bastien: accept or change [[ADR-011 Repeatable quests start over]]
 
 ## 🗺️ Vault map
 ### 01 · Project

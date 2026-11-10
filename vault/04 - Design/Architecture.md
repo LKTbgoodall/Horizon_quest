@@ -61,21 +61,21 @@ Status on 2026-11-10: ✔ written and tested · ◻ planned.
 | Module | Role | Pure? |
 |---|---|---|
 | ✔ `hq_model` | Types: `Settings`, `Chapter`, `Quest`, `Task`, `Reward`, `QuestFile`, `Progress` + serde; id helpers (`quest_id`, `child_id`, `dependency_id`, `resource_id`) | ✅ |
-| ✔ `hq_validate` | `load` / `load_dir`: read a pack, report every `Problem` with its place, leave bad chapters out; cycle detection; writes item and entity ids in full | ✅ (fs) |
-| ✔ `hq_logic` | `Book`: the pack indexed, dependencies resolved, topological order; `dependencies_met`, `can_progress`, `statuses`, chapter tallies | ✅ |
-| ✔ `hq_progress` | Engine: `apply(book, progress, player, now, event) -> Outcome { changed, effects }`; `wanted_items`, `submit_request`; claims and auto-claim | ✅ |
-| ◻ `hq_rewards` | V1: weighted draws, choice, team vs player (the MVP's claims live in `hq_progress`) | ✅ (injected RNG) |
+| ✔ `hq_validate` | `load` / `load_pack` / `load_dir`: read a pack (chapters and reward tables), report every `Problem` with its place, leave bad chapters and tables out; cycle detection; writes item, entity, dimension and advancement ids in full | ✅ (fs) |
+| ✔ `hq_logic` | `Book`: the pack indexed, dependencies resolved, topological order; `dependencies_met`, `can_progress`, `task_counts` (tasks in order), `table`, `statuses`, chapter tallies | ✅ |
+| ✔ `hq_progress` | Engine: `apply(book, progress, &Actor { player, now, roll }, event) -> Outcome { changed, effects }`; `wanted_items`, `wanted_crafts`, `watch`, `submit_request`; claims and auto-claim; reward tables (`draw`, `next_roll`); repeatable quests (`start_over`, [[ADR-011 Repeatable quests start over]]) | ✅ |
+| ✘ `hq_rewards` | Not needed: weighted draws and choices went into `hq_progress` (v0.0.6). Team vs player claims come with teams | ✅ |
 | ◻ `hq_teams` | V1. Minimal teams: personal, party, progress merge and copy | ✅ |
 | ✔ `hq_commands` | `/quests`: `USAGES` to register, `parse` / `parse_for` (op level), `help`, `report` (validate, reload), `announce` (chat lines for effects) | ✅ |
 | ✔ `hq_canvas` | Canvas maths: pan/zoom `View`, rect tests, grid cells, line quads (the spike's demo nodes and hit testing were removed in v0.0.4; `hq_book` hit-tests its own zones) | ✅ |
-| ✔ `hq_book` | The real book: `BookView::scene(&Screen) -> Scene { draws, zones }` (draw list + click zones), regions, shapes, text wrapping, panel, buttons; `click` / `drag` / `scroll` → `Reaction` | ✅ |
-| ✔ `hq_net` | `ToServer` / `ToClient` (JSON, `PROTOCOL` 1, channel `horizon_quests:book`), frames ≤ 30,000 bytes, `Sender` (16 frames a tick), `Receiver`. (The phase 0 spike `hq_protocol`, ping/pong, was removed in v0.0.4) | ✅ |
+| ✔ `hq_book` | The real book: `BookView::scene(&Screen) -> Scene { draws, zones }` (draw list + click zones), regions, shapes, text wrapping, panel, buttons; `click` / `drag` / `scroll` → `Reaction`. HUD toasts: `Toasts` (queue, 5 s each), `toast_size`, `toast_draws` (v0.0.6) | ✅ |
+| ✔ `hq_net` | `ToServer` / `ToClient` (JSON, `PROTOCOL` 2 since v0.0.6: `Claim { choice }`, `Toast`; channel `horizon_quests:book`), frames ≤ 30,000 bytes, `Sender` (16 frames a tick), `Receiver`. (The phase 0 spike `hq_protocol`, ping/pong, was removed in v0.0.4) | ✅ |
 | ✔ `hq_store` | Atomic JSON reads and writes, `progress/<team>.json`, version check, UUID names. ◻ Writer thread, `teams.json`, `audit.log` | ✅ (fs) |
 | ◻ `hq_import_ftb` | Import FTB JSON5/SNBT → our format (later) | ✅ |
-| ✔ `hq_session` | The server's state while a world is open: players, event queue, inventory look schedule, `dirty` (to save) and `unsynced` (to send) apart; `player_id(uuid)` is the id claims are kept under and the book looks them up under | ✅ |
+| ✔ `hq_session` | The server's state while a world is open: players, event queue, inventory look schedule, `dirty` (to save) and `unsynced` (to send) apart; `player_id(uuid)` is the id claims are kept under and the book looks them up under. v0.0.6: `crafted`, `set_level`, `advancement_done`, `observe` / `at` (place), `hand_in_plan` + `clear_command` (a guest's hand-in), `reward_command`, `toast` / `toast_line` | ✅ |
 | ✔ `hq_config` | The server config file `horizon_quests-server.toml` (TOML, `toml` 1.1 from horizon-client): `DEFAULT_TEXT`, `parse(text) -> (ServerConfig, problems)`; a wrong or unknown setting keeps its default and is logged. Today: `example_chapter` | ✅ |
-| ✔ `hq_server_glue.rs` | Server half: `static STATE: Mutex<Option<State>>`, hook wiring, effects after the lock, net senders/receivers per player, `Hello` answered once while its pack is in flight, book hand-ins through `native_as_player` | ❌ |
-| ✔ `hq_client_glue.rs` | Mod screen, the real book (`hq_book`) drawn and driven, net to the server, loading line with a 5 s "no answer" (`hq_book::loading_line`), state forgotten out of a world. ◻ Toasts | ❌ |
+| ✔ `hq_server_glue.rs` | Server half: `static STATE: Mutex<Option<State>>`, hook wiring, effects after the lock, net senders/receivers per player, `Hello` answered once while its pack is in flight; crafts queued for the tick; book hand-ins: the host in place, a hub guest through `native_inventory` + `/clear` | ❌ |
+| ✔ `hq_client_glue.rs` | Mod screen, the real book (`hq_book`) drawn and driven, net to the server, loading line with a 5 s "no answer" (`hq_book::loading_line`), state forgotten out of a world; toasts drawn on the HUD (top-right corner) | ❌ |
 
 ## How the glue drives the engine (phase 2)
 ```
@@ -87,9 +87,13 @@ server tick, End phase:
     drain the queue              → apply(book, &mut progress, player, now, &event)
     outcome.changed              → hq_store::save_progress, send progress to the book
     outcome.effects              → after the lock is released: give rewards, chat, sound
-book "Submit" request            → native_as_player(player, …): submit_request(book, progress, task) → take ≤ missing items
+book "Submit" request            → submit_request(book, progress, task) → take ≤ missing items (host: in place; guest: /clear)
                                     → QuestEvent::Submitted { task, count: taken }
 login, /quests reload            → QuestEvent::Refresh
+craft / furnace take             → queued (player, item, count); next tick: session.crafted → QuestEvent::Crafted per craft task
+level change, advancement done   → session.set_level / advancement_done → QuestEvent::Level / Advancement
+each look at a player            → session.observe: Level again if a task waits, Refresh if a quest waits to start over;
+                                    when a task waits for a place: native_server_players() / native_player() → QuestEvent::At
 ```
 
 ## How the client glue drives the book (phase 2)
@@ -100,6 +104,7 @@ native_net_from_server           → receiver.push(frame) → ToClient:
                                      Book { file }      → Book::new(file); view.open(&screen)
                                      Progress { .. }    → keep it
                                      Notice { text }    → view.notice = text
+                                     Toast { .. }       → toasts.push; native_hud draws the one on show
 native_screen_render_post        → view.scene(&screen).draws → native_fill / native_quad / native_text / native_item_stack
 mouse pressed / dragged / wheel  → view.click / drag / scroll(&screen)
                                      Reaction::Send(msg) → sender.send(&msg);  Reaction::Close → native_mod_screen_close

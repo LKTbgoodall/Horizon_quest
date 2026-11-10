@@ -44,6 +44,18 @@ cargo test   # in the mod folder; Cargo.toml [lib] → pure rules
 ```
 This is the smp pattern: **all the quest logic in pure modules** (dependencies, progress, rewards, command parsing, menu layout), tested without the game. See [[Architecture]].
 
+## Type-check the glue without the game (`tools/check-glue.ps1`, 2026-11-10)
+`cargo test` never compiles `*_glue.rs` or the hook helpers. This does, on a PC whose launcher has built Horizon once:
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1
+```
+- It runs `horizon-mixins.exe apply --workspace <launcher's source copy of the pin> --mods mod\mixins --out build\check\stage` (source transform only; the output folder must not exist), then `cargo check -p horizon-client --bin horizon-client --locked` in the stage with its own target folder (`build\check\target`). Nothing is built to run, the mod's code is never executed, and no `--trust-native-code` is involved, so Claude may run it.
+- The launcher's pieces it uses: source `%APPDATA%\horizon-launcher\native\source\<horizon rev>\`, tool `native\tools\<mixins rev, 12 chars>\bin\horizon-mixins.exe`. The launcher keeps its own Rust (`horizon-launcher\rust`) and cargo home (`horizon-launcher\cargo`); the script uses the system's rustup toolchain (same 1.99.1) and cargo home, so the first run downloads Horizon's crates.
+- First run about 3 minutes, then about 1 minute. The mod's modules are inlined in `crates\horizon-client\src\game.rs`, so that is the file errors and warnings name.
+- It replaces the hand-written stub crate of Sessions 9 to 11, **which had missed a real build break** (`native_as_player` private): hand-copied signatures prove nothing about visibility.
+- Horizon's own crates give two warnings there (`horizon-friends`, `horizon-protocol`: unused `mut`), so the check cannot run with `-D warnings`; read the warnings that name `game.rs`. v0.0.6 has none.
+- A `pub fn` of a glue module that takes `Game` warns (`private_interfaces`: `Game` is more private than the function). Glue functions are `pub(super)` since v0.0.6.
+
 ## Dedicated server
 ```powershell
 horizon-launcher native-build <folder> --server-output <DIR> --version <TAG> --trust-native-code [--profile ...]

@@ -15,11 +15,12 @@ Inspiration: [[FTB data model]]. On-disk format: [[Quest file format]].
 > - **Text** is plain `String` (see [[Open questions]]).
 > - `Settings` (`quests.json`): `version`, `progression`, `default_shape`, `default_size`, `auto_claim_rewards`, `detection_delay`, `groups`.
 > - `Chapter`: `progression`, `default_shape`, `default_size` are optional and fall back to the settings. No `links` or `images`.
-> - `Quest`: no `repeatable` or `sequential_tasks` yet. A quest **without tasks** completes as soon as its dependencies are met.
+> - `Quest`: `sequential_tasks` (bool), `repeatable` (bool) and `repeat_cooldown` (seconds) since v0.0.6, instead of the draft's `Option<Repeat>`. A quest **without tasks** completes as soon as its dependencies are met.
 > - `Visibility`: `always`, `until_deps_visible` (every dependency shows), `until_deps_complete` (dependencies met), `secret` (until completed). A completed quest always shows; a `hidden` chapter's quests never do.
-> - `TaskKind`: `item` (`item`, `count`, `consume`), `checkmark`, `kill` (`entity`, `count`). `ItemMatch` is `Id` or `Tag` (`#ns:tag`).
-> - `RewardKind`: `item`, `xp`, `xp_levels`. `auto_claim`: `default | disabled | enabled`. No `team` flag yet.
-> - `Progress` (the draft's `TeamProgress`): `version`, `started`, `completed`, `tasks`, `claimed` (reward → set of player UUID strings). Unknown ids are kept.
+> - `TaskKind`: `item` (`item`, `count`, `consume`), `checkmark`, `kill` (`entity`, `count`); since v0.0.6 `craft` (`item`, `count`), `xp_levels` (`levels`, never taken), `dimension` (`dimension`), `location` (`dimension?`, `from`, `to`: a box of blocks, corners included), `advancement` (`advancement`, no criterion). `ItemMatch` is `Id` or `Tag` (`#ns:tag`).
+> - `RewardKind`: `item`, `xp`, `xp_levels`; since v0.0.6 `command` (`command`, always as the console), `toast` (`text`), `random` (`table`), `choice` (`table`). A `Reward` has an optional `title`. `auto_claim`: `default | disabled | enabled`. No `team` flag yet.
+> - `RewardTable { id, entries }`, `TableEntry { weight (1), title, kind }` in `QuestFile.reward_tables` (v0.0.6). An entry's kind is never another table.
+> - `Progress` (the draft's `TeamProgress`): `version`, `started`, `completed`, `tasks`, `claimed` (reward → set of player UUID strings); since v0.0.6 `repeats` (quest → times it started over, instead of the draft's `repeat_ready_at`) and `advancements` (those seen done that a task names). `ever_completed` = completed now or started over at least once. Unknown ids are kept.
 > - Derived states (`hq_logic::QuestState`): `Locked`, `Available`, `InProgress`, `RewardsWaiting`, `Done`, plus `visible`.
 
 ## Identifiers

@@ -38,7 +38,7 @@ updated: 2026-11-10
 - [ ] **Dedicated server**: the public doc says "Not there yet", but `native-mods.md` documents `--server-output`. Is it usable today? → test later (solo/LAN comes first)
 - [ ] **Exact signatures** of `native_hud`, `native_key`, `native_mod_key`… → read `crates/horizon-client/src/game/native_hooks.rs`
 - [ ] **`native_destroy_block`**: how to get the id of the broken block?
-- [ ] **`native_player_changed_dimension`**: the doc contradicts itself on solo (NM:2278 vs NM:1291) → test
+- [x] **`native_player_changed_dimension`**: not heard outside a dedicated server at `fdc87ae` (read in the source, Session 12) → dimension tasks poll the player's place (v0.0.6)
 - [ ] **Ranged and indirect kills (bow, crossbow, trident, potion, pets)**: `native_mob_killed` (API 40) only attributes direct melee blows in current testing. Can projectile damage sources be tracked back to the player, or should we wire `native_living_death(..., attacker, ...)` (API 392) once projectile owner resolution is verified?
 - [ ] **Hooks ⏳ pending**: when will `player_inventory_changed`, `native_add_toast`, `native_title`, `native_boss_bar`, `native_has_permission` get a number? → watch the Nightlies, ask on Discord
 - [ ] Is **`/loot give`** implemented by Horizon?
@@ -61,10 +61,18 @@ updated: 2026-11-10
 - [x] *Example chapter?* → **Yes**, a "Getting started" chapter that a config option can turn off (2026-11-10)
 - [x] *Audience?* → **Published for everyone** on playhorizon.dev (2026-11-10)
 
+## Found finishing v0.0.6 (2026-11-10, Session 13)
+- ❓ **The host's place**: location and dimension tasks read a hub guest from `native_server_players()` and anyone else (the host) from `native_player()`. Is that right for the single-player host, and is `native_player()` the host's during `ServerTickEnd`? → the "The middle of the map" quest of the v0.0.6 checklist answers it.
+- ❓ **Guest hand-in through `/clear`**: `native_run_command` from `native_net_from_client` (no player swapped in) should run; to confirm in the LAN test. Known limit: an item the guest also holds in a damaged, named or enchanted stack is not taken at all.
+- ❓ **`/quests submit` for a guest** uses the API 9 helpers inside their command turn, as since v0.0.2: never tested on LAN.
+- ❓ **Levels and advancements earned before the mod hears of them**: a level is unknown until its first change in the session, and an advancement earned before the mod was installed is never seen (`NativeServerPlayer.xp_level` and `native_player_advancements` are ⏳). Recheck when they get a number.
+- ❓ **Does the launcher's build deny warnings?** `native.py` uses `RUSTFLAGS=-D warnings`, the launcher drops `RUSTFLAGS`, and v0.0.1 built in the launcher although its glue had the same `pub fn …(game: &mut Game)` shape that gives `private_interfaces` warnings under `cargo check` (21 of them in v0.0.6 before its functions became `pub(super)`). So warnings probably do not stop the launcher's build; not proved, and unknown for dead code. v0.0.6 has no warning either way.
+- [ ] **Bastien: the repeatable-quest rules** of [[ADR-011 Repeatable quests start over]] (proposed): starts over only once every reward is claimed and the cooldown, counted from the completion, is over; must have a task that is used up.
+
 ## Found in the first in-game test (2026-11-10)
 - ❓ Other mods' HUD (the minimap) draws over our mod screen, top right. Can a mod screen hide other HUDs, or must the book keep that corner free? Check in phase 2 with the real book's quest panel.
 
 ## Found fixing the v0.0.3 review (2026-11-10)
 - ❓ **Single-player host's inventory**: `native_inventory(uuid)` only reads LAN hub guests live; anyone else is read from their player file. Is the single-player host a hub guest? If not, item tasks would not see the host's live inventory. The v0.0.4 in-game test ("gather 8 logs") answers it. → [[Horizon hooks and API]] § 2 "Whose state is in place"
-- ❓ **`native_as_player`** is an engine method, not a numbered helper (absent from `native-hooks.json` and `native-mods.md`). v0.0.4 uses it for book hand-ins. Ask on the Horizon Discord whether it is meant for mods, or whether a numbered "take items from player X" helper is planned.
+- [x] **`native_as_player`**: *answered 2026-11-10 (Session 13)*: it is a **private** method at `fdc87ae`; v0.0.4 and v0.0.5 did not compile because of it. v0.0.6 takes a guest's items with `native_inventory` + `/clear` instead → [[Horizon hooks and API]] § 2. Still worth asking on the Horizon Discord: is a numbered "take items from player X" helper planned? (`native_take_stacks` is ⏳.)
 - ❓ Does `native_player_logged_in` fire for the host of a single-player world? Everything server-side hangs on it (`Session::join`). → watch in the v0.0.4 test (if the book stays on "Loading", or `/quests progress` says "You are not in the quest book yet", this is why)

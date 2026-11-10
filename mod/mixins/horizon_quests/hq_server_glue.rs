@@ -1,12 +1,15 @@
 // The server half (single player's server thread, a LAN host, later a
 // dedicated server). It keeps a `Session` (hq_session) while a world is open:
-// hooks only record what happened, and the server tick looks at inventories,
-// runs the engine, gives rewards, tells the players, syncs their books over
-// mod messages (hq_net, channel "horizon_quests:book") and saves.
+// hooks only record what happened (a kill, a craft, a level, an advancement),
+// and the server tick looks at inventories and at where players stand, runs
+// the engine, gives rewards, tells the players, syncs their books over mod
+// messages (hq_net, channel "horizon_quests:book") and saves.
 // Server hooks run on the server thread; the state is behind a Mutex. The
-// tick holds it while it reads (inventories, item tags), which call no hook
-// back; it is released before any helper that changes the game (rewards,
-// chat, sends, taking items).
+// tick holds it while it reads (inventories, item tags, the players' places),
+// which call no hook back; it is released before any helper that changes the
+// game (rewards, chat, sends, commands, taking items).
+// Only hooks and helpers of Horizon's catalog are called (native-hooks.json,
+// docs/native-mods.md): an engine method outside it may be private.
 
 use super::hq_commands::{self as commands, Command};
 use super::hq_config::{self as config, ServerConfig};
@@ -14,7 +17,7 @@ use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::{ItemMatch, RewardKind};
 use super::hq_net::{self as net, ToClient, ToServer};
-use super::hq_progress::{Effect, QuestEvent};
+use super::hq_progress::{Effect, QuestEvent, Wanted};
 use super::hq_session::{self as session, Session};
 use super::hq_store as store;
 use super::hq_validate::{self as validate, Loaded};
@@ -52,6 +55,10 @@ struct State {
     /// Players whose answer to a `Hello` (the whole pack) is still being
     /// sent: another `Hello` from them is ignored until it has left.
     greeting: HashSet<u128>,
+    /// What players took out of a crafting grid or a furnace since the last
+    /// tick (player, item, count): the tick matches it against craft tasks,
+    /// where the item tags can be read.
+    crafts: Vec<(u128, String, u32)>,
 }
 
 /// How many problems a report lists in chat.
@@ -75,13 +82,29 @@ fn load_pack(dir: Option<&Path>) -> (Loaded, &'static str) {
         return (validate::load_dir(&quests), "the world's quests folder");
     }
     if !server_config().example_chapter {
-        return (validate::load(None, &[]), "nowhere: the example chapter is turned off (example_chapter = false)");
+        let empty = validate::load_pack(None, &[], &[]);
+        return (empty, "nowhere: the example chapters are turned off (example_chapter = false)");
     }
-    let settings = horizon_client::native_data!("horizon_quests", "quests/quests.json");
-    let chapter = horizon_client::native_data!("horizon_quests", "quests/chapters/01_getting_started.json");
     let text = |bytes: &'static [u8]| std::str::from_utf8(bytes).unwrap_or("");
-    let loaded = validate::load(Some(text(settings)), &[("chapters/01_getting_started.json", text(chapter))]);
-    (loaded, "the built-in example pack")
+    let settings = text(horizon_client::native_data!("horizon_quests", "quests/quests.json"));
+    let chapters = [
+        (
+            "01_getting_started.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/01_getting_started.json")),
+        ),
+        (
+            "02_further_afield.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/02_further_afield.json")),
+        ),
+    ];
+    let tables = [
+        ("baker_loot.json", text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/baker_loot.json"))),
+        (
+            "seasoned_choice.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/seasoned_choice.json")),
+        ),
+    ];
+    (validate::load_pack(Some(settings), &chapters, &tables), "the built-in example pack")
 }
 
 /// A new state for the open world, its pack loaded and reported in the log.
@@ -98,6 +121,7 @@ fn open(game: &Game<'_>) -> State {
         senders: HashMap::new(),
         receivers: HashMap::new(),
         greeting: HashSet::new(),
+        crafts: Vec::new(),
     }
 }
 
@@ -106,7 +130,7 @@ fn tell(game: &mut Game<'_>, uuid: u128, line: &str) {
 }
 
 /// The world opened or closed.
-pub fn lifecycle(game: &mut Game<'_>, phase: WorldPhase) {
+pub(super) fn lifecycle(game: &mut Game<'_>, phase: WorldPhase) {
     if !game.native_on(meta::ID) {
         return;
     }
@@ -136,7 +160,7 @@ fn save(s: &mut State) {
     }
 }
 
-pub fn logged_in(game: &mut Game<'_>, player: u128, name: &str) {
+pub(super) fn logged_in(game: &mut Game<'_>, player: u128, name: &str) {
     if !game.native_on(meta::ID) {
         return;
     }
@@ -157,7 +181,7 @@ pub fn logged_in(game: &mut Game<'_>, player: u128, name: &str) {
     s.session.join(player, name, progress);
 }
 
-pub fn logged_out(game: &mut Game<'_>, player: u128) {
+pub(super) fn logged_out(game: &mut Game<'_>, player: u128) {
     if !game.native_on(meta::ID) {
         return;
     }
@@ -175,7 +199,7 @@ pub fn logged_out(game: &mut Game<'_>, player: u128) {
 }
 
 /// Something may have entered the player's inventory: look at it next tick.
-pub fn poke(game: &Game<'_>, player: u128) {
+pub(super) fn poke(game: &Game<'_>, player: u128) {
     if game.native_on(meta::ID)
         && let Some(s) = state().as_mut()
     {
@@ -183,11 +207,40 @@ pub fn poke(game: &Game<'_>, player: u128) {
     }
 }
 
-pub fn mob_killed(game: &Game<'_>, player: u128, kind: &str) {
+pub(super) fn mob_killed(game: &Game<'_>, player: u128, kind: &str) {
     if game.native_on(meta::ID)
         && let Some(s) = state().as_mut()
     {
         s.session.push(player, QuestEvent::Killed { entity: session::entity_id(kind) });
+    }
+}
+
+/// A player took `count` of `item` out of a crafting grid or a furnace:
+/// craft tasks count it on the next tick, and their inventory is looked at.
+pub(super) fn crafted(game: &Game<'_>, player: u128, item: &str, count: u32) {
+    if game.native_on(meta::ID)
+        && let Some(s) = state().as_mut()
+    {
+        s.session.poke(player);
+        s.crafts.push((player, item.to_owned(), count));
+    }
+}
+
+/// A player's experience level changed to `level`.
+pub(super) fn level_changed(game: &Game<'_>, player: u128, level: i32) {
+    if game.native_on(meta::ID)
+        && let Some(s) = state().as_mut()
+    {
+        s.session.set_level(player, level);
+    }
+}
+
+/// A player completed an advancement.
+pub(super) fn advancement_done(game: &Game<'_>, player: u128, advancement: &str) {
+    if game.native_on(meta::ID)
+        && let Some(s) = state().as_mut()
+    {
+        s.session.advancement_done(player, advancement);
     }
 }
 
@@ -196,11 +249,12 @@ struct Action {
     uuid: u128,
     name: String,
     line: Option<String>,
-    reward: Option<RewardKind>,
+    /// A reward to give: what the pack calls it, and what it is.
+    reward: Option<(Option<String>, RewardKind)>,
 }
 
 /// The end of every server tick: inventories, engine, effects, saving.
-pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
+pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
     if !matches!(phase, ServerTickPhase::ServerTickEnd { .. }) || !game.native_on(meta::ID) {
         return;
     }
@@ -209,8 +263,21 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         let Some(s) = guard.as_mut() else {
             return;
         };
+        for (uuid, item, count) in std::mem::take(&mut s.crafts) {
+            let tags = |tag: &str, item: &str| in_tag(game, tag, item);
+            s.session.crafted(uuid, &item, count, &tags);
+        }
+        // The hub's players are listed once, and only when a task waits for
+        // where someone stands.
+        let mut guests: Option<Vec<NativeServerPlayer>> = None;
         for uuid in s.session.advance() {
             look_at_inventory(game, &mut s.session, uuid);
+            if s.session.observe(uuid) {
+                let guests = guests.get_or_insert_with(|| game.native_server_players());
+                if let Some((dimension, position)) = place(game, guests, uuid) {
+                    s.session.at(uuid, &dimension, position);
+                }
+            }
         }
         let mut effects = std::mem::take(&mut s.pending);
         effects.extend(s.session.process(session::now()));
@@ -231,7 +298,7 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
                 name: s.session.player(uuid).map(|p| p.name.clone()).unwrap_or_default(),
                 line: commands::announce(book, &effect),
                 reward: match effect {
-                    Effect::Reward { kind, .. } => Some(kind),
+                    Effect::Reward { title, kind, .. } => Some((title, kind)),
                     _ => None,
                 },
             })
@@ -254,8 +321,8 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         if let Some(line) = &action.line {
             tell(game, action.uuid, line);
         }
-        if let Some(reward) = action.reward {
-            give(game, action.uuid, &action.name, reward);
+        if let Some((title, reward)) = action.reward {
+            give(game, action.uuid, &action.name, title.as_deref(), reward);
         }
     }
     for (uuid, frames) in outgoing {
@@ -293,14 +360,23 @@ fn look_at_inventory(game: &Game<'_>, session: &mut Session, uuid: u128) {
     }
 }
 
+/// Where player `uuid` stands: a guest of the hub as the hub knows them,
+/// else the host, whose state is the game's own outside a player's turn.
+fn place(game: &Game<'_>, guests: &[NativeServerPlayer], uuid: u128) -> Option<(String, [f64; 3])> {
+    if let Some(guest) = guests.iter().find(|guest| guest.uuid == uuid) {
+        return Some((guest.dimension.clone(), guest.position));
+    }
+    game.native_player().map(|host| (host.dimension.to_owned(), [host.x, host.y, host.z]))
+}
+
 fn in_tag(game: &Game<'_>, tag: &str, item: &str) -> bool {
     let stack = ItemStack { item: Arc::from(item), count: 1, damage: 0, extra: None };
     game.native_server_item_in_tag(&stack, tag).unwrap_or(false)
 }
 
-/// Gives a reward. Items that do not fit go through vanilla's `/give`,
-/// which drops them at the player's feet.
-fn give(game: &mut Game<'_>, uuid: u128, name: &str, reward: RewardKind) {
+/// Gives a reward; `title` is what the pack calls it. Items that do not fit
+/// go through vanilla's `/give`, which drops them at the player's feet.
+fn give(game: &mut Game<'_>, uuid: u128, name: &str, title: Option<&str>, reward: RewardKind) {
     let given = match reward {
         RewardKind::Item { item, count } => {
             let stack = ItemStack { item: Arc::from(item.as_str()), count, damage: 0, extra: None };
@@ -311,6 +387,26 @@ fn give(game: &mut Game<'_>, uuid: u128, name: &str, reward: RewardKind) {
         }
         RewardKind::Xp { points } => game.native_give_experience(uuid, points),
         RewardKind::XpLevels { levels } => game.native_give_levels(uuid, i32::try_from(levels).unwrap_or(i32::MAX)),
+        RewardKind::Command { command } => {
+            session::reward_command(&command, name, uuid).is_some_and(|line| game.native_run_command(&line))
+        }
+        RewardKind::Toast { text } => {
+            // On the screen of a player whose book has talked to us, else
+            // in their chat.
+            let (title, text) = session::toast(title, &text);
+            let toast = ToClient::Toast { title: title.clone(), text: text.clone(), icon: None };
+            let sent = state()
+                .as_mut()
+                .and_then(|s| s.senders.get_mut(&uuid))
+                .is_some_and(|sender| sender.send(&toast).is_ok());
+            if !sent {
+                tell(game, uuid, &session::toast_line(&title, &text));
+            }
+            true
+        }
+        // The engine draws or asks for the table's entry: what reaches the
+        // glue is that entry's kind, never the table.
+        RewardKind::Random { .. } | RewardKind::Choice { .. } => false,
     };
     if !given {
         log::warn!("{}: a reward for {name} could not be given", meta::NAME);
@@ -320,7 +416,7 @@ fn give(game: &mut Game<'_>, uuid: u128, name: &str, reward: RewardKind) {
 
 /// A mod message from a player's client: a book request (hq_net) on channel
 /// "horizon_quests:book". No player's state is swapped in here.
-pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]) {
+pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]) {
     if channel != net::CHANNEL || !game.native_on(meta::ID) {
         return;
     }
@@ -367,9 +463,9 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
                 s.session.push(player, QuestEvent::Check { task });
             }
         }
-        ToServer::Claim { reward } => {
+        ToServer::Claim { reward, choice } => {
             if let Some(s) = state().as_mut() {
-                s.session.push(player, QuestEvent::Claim { reward });
+                s.session.push(player, QuestEvent::Claim { reward, choice });
             }
         }
         ToServer::ClaimAll => {
@@ -378,12 +474,10 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
             }
         }
         ToServer::Submit { task } => {
-            // The items are taken from the acting player: put this one's
-            // state in place first (the host's is in place already).
-            let mut lines = Vec::new();
-            if !game.native_as_player(player, |game| lines = submit(game, player, &task)) {
-                lines = vec!["You cannot hand items in right now.".to_owned()];
-            }
+            // No player's state is swapped in here: a guest of the hub is
+            // reached from outside, the host is the state in place.
+            let guest = game.native_server_players().iter().any(|guest| guest.uuid == player);
+            let lines = submit(game, player, &task, guest);
             if let Some(line) = lines.first() {
                 let mut guard = state();
                 if let Some(s) = guard.as_mut() {
@@ -397,7 +491,7 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
 
 /// The mod's config file: `config/horizon_quests-server.toml`, or the
 /// world's own copy in `serverconfig/`.
-pub fn register_configs(game: &mut Game<'_>, list: &mut Vec<NativeConfig>) {
+pub(super) fn register_configs(game: &mut Game<'_>, list: &mut Vec<NativeConfig>) {
     if game.native_on(meta::ID) {
         list.push(NativeConfig::new(meta::ID, NativeConfigKind::Server, config::DEFAULT_TEXT));
     }
@@ -406,7 +500,7 @@ pub fn register_configs(game: &mut Game<'_>, list: &mut Vec<NativeConfig>) {
 /// A config file was read (`reloaded`: it changed on disk). Ours sets the
 /// server's settings; a change made while a world is open applies at once,
 /// as `/quests reload` does.
-pub fn config_read(game: &mut Game<'_>, file: &NativeConfigFile, reloaded: bool) {
+pub(super) fn config_read(game: &mut Game<'_>, file: &NativeConfigFile, reloaded: bool) {
     if file.mod_id != meta::ID || file.kind != NativeConfigKind::Server || !game.native_on(meta::ID) {
         return;
     }
@@ -422,14 +516,14 @@ pub fn config_read(game: &mut Game<'_>, file: &NativeConfigFile, reloaded: bool)
 }
 
 /// The server stopped: the next world reads its config again.
-pub fn config_dropped(file: &NativeConfigFile) {
+pub(super) fn config_dropped(file: &NativeConfigFile) {
     if file.mod_id == meta::ID && file.kind == NativeConfigKind::Server {
         *CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = ServerConfig::default();
     }
 }
 
 /// The mod's commands in every player's command tree.
-pub fn commands(list: &mut Vec<NativeCommand>) {
+pub(super) fn commands(list: &mut Vec<NativeCommand>) {
     for (usage, level, _) in commands::USAGES {
         list.push(if level == 0 { NativeCommand::new(usage) } else { NativeCommand::op(usage, level) });
     }
@@ -437,7 +531,7 @@ pub fn commands(list: &mut Vec<NativeCommand>) {
 
 /// `/quests ...`, run inside the player's turn: what needs every player in
 /// reach waits for the tick.
-pub fn perform(game: &mut Game<'_>, player: &NativeServerPlayer, command: &str, ran: &mut bool) {
+pub(super) fn perform(game: &mut Game<'_>, player: &NativeServerPlayer, command: &str, ran: &mut bool) {
     if !game.native_on(meta::ID) {
         return;
     }
@@ -457,7 +551,8 @@ pub fn perform(game: &mut Game<'_>, player: &NativeServerPlayer, command: &str, 
 fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Vec<String> {
     let me = player.uuid;
     if let Command::Submit { task } = &command {
-        return submit(game, me, task);
+        // Inside the player's own command: their state is in place.
+        return submit(game, me, task, false);
     }
     if let Command::Reload = &command {
         return reload();
@@ -503,15 +598,41 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
     }
 }
 
-/// A hand-in: takes what the task still lacks from the acting player's plain
-/// stacks. `me` must be the acting player: `/quests submit` runs in their
-/// turn, and a book's request goes through `native_as_player` first.
-fn submit(game: &mut Game<'_>, me: u128, task: &str) -> Vec<String> {
-    let wanted = match state().as_ref().map(|s| s.session.submit_request(me, task)) {
-        Some(Ok(wanted)) => wanted,
+/// A hand-in: takes what the task still lacks from player `me`'s plain
+/// stacks. `outside` says how they are reached: false when their state is in
+/// place (`/quests submit` runs in their turn; the host, for a request of
+/// their book), true for a guest of the hub whose book asked, outside any
+/// player's turn.
+fn submit(game: &mut Game<'_>, me: u128, task: &str, outside: bool) -> Vec<String> {
+    let request = state().as_ref().map(|s| {
+        let name = s.session.player(me).map(|p| p.name.clone()).unwrap_or_default();
+        s.session.submit_request(me, task).map(|wanted| (wanted, name))
+    });
+    let (wanted, name) = match request {
+        Some(Ok(found)) => found,
         Some(Err(e)) => return vec![e],
         None => return vec!["Horizon Quests is not running in this world.".to_owned()],
     };
+    let taken = if outside {
+        match take_from_guest(game, me, &name, &wanted) {
+            Some(taken) => taken,
+            None => return vec!["You cannot hand items in right now.".to_owned()],
+        }
+    } else {
+        take_in_place(game, &wanted)
+    };
+    if taken == 0 {
+        return vec![format!("You carry nothing this task takes ({}).", String::from(wanted.item))];
+    }
+    if let Some(s) = state().as_mut() {
+        s.session.push(me, QuestEvent::Submitted { task: task.to_owned(), count: taken });
+    }
+    vec![format!("Handed in {taken}.")]
+}
+
+/// Takes what `wanted` lacks from the player whose state is in place; how
+/// many it took.
+fn take_in_place(game: &mut Game<'_>, wanted: &Wanted) -> u64 {
     let candidates: Vec<String> = game
         .native_carried_items()
         .into_iter()
@@ -529,13 +650,26 @@ fn submit(game: &mut Game<'_>, me: u128, task: &str) -> Vec<String> {
         }
         taken += u64::from(game.native_take_items(&item, left));
     }
-    if taken == 0 {
-        return vec![format!("You carry nothing this task takes ({}).", String::from(wanted.item))];
+    taken
+}
+
+/// Takes what `wanted` lacks from a guest of the hub, outside any player's
+/// turn: their inventory is read (API 132), then vanilla's `/clear` takes
+/// each item (API 21). None when their inventory cannot be read right now
+/// (logging in, or dead).
+fn take_from_guest(game: &mut Game<'_>, uuid: u128, name: &str, wanted: &Wanted) -> Option<u64> {
+    let inventory = game.native_inventory(uuid, NativeInventoryKind::Player).ok()?;
+    let stacks: Vec<(&str, u32, bool)> =
+        inventory.slots.iter().flatten().map(|s| (&*s.item, s.count, s.damage == 0 && s.extra.is_none())).collect();
+    let tags = |tag: &str, item: &str| in_tag(game, tag, item);
+    let plan = session::hand_in_plan(wanted, &stacks, &tags);
+    let mut taken = 0;
+    for (item, count) in plan {
+        if session::clear_command(name, &item, count).is_some_and(|line| game.native_run_command(&line)) {
+            taken += u64::from(count);
+        }
     }
-    if let Some(s) = state().as_mut() {
-        s.session.push(me, QuestEvent::Submitted { task: task.to_owned(), count: taken });
-    }
-    vec![format!("Handed in {taken}.")]
+    Some(taken)
 }
 
 /// `/quests reload`: reads the pack again. A pack whose quests.json is

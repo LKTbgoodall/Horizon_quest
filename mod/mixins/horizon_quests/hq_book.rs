@@ -15,6 +15,7 @@ use super::hq_canvas::{self as canvas, View};
 use super::hq_logic::{Book, QuestState, Status};
 use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, Shape, TableEntry, Task, TaskKind};
 use super::hq_net::ToServer;
+use std::collections::VecDeque;
 
 #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SHADE: u32 = 0xD010_1018;
@@ -987,6 +988,105 @@ pub fn loading_line(notice: &str, waited: u32) -> &str {
     }
 }
 
+/// A toast: a small box the HUD shows for a few seconds (a toast reward).
+/// `icon` is an item id.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Toast {
+    pub title: String,
+    pub text: String,
+    pub icon: Option<String>,
+}
+
+/// Window ticks a toast stays on the HUD (5 seconds).
+pub const TOAST_TICKS: u32 = 100;
+/// The most toasts that wait their turn: more than that and the new one is
+/// dropped, so a server cannot fill a client's memory with them.
+const TOAST_QUEUE: usize = 8;
+/// The widest a toast's box gets; longer lines are shortened.
+const TOAST_WIDTH: f32 = 200.0;
+const TOAST_ICON: f32 = 16.0;
+const TOAST_LINE: f32 = 10.0;
+const TOAST_BACK: u32 = 0xE010_1018;
+const TOAST_EDGE: u32 = 0xFFFF_C040;
+const TOAST_TITLE: u32 = 0xFF_C040;
+
+/// The toasts waiting for the HUD, shown one at a time, oldest first.
+#[derive(Clone, Debug, Default)]
+pub struct Toasts {
+    waiting: VecDeque<Toast>,
+    /// Ticks the first one has been on show.
+    shown: u32,
+}
+
+impl Toasts {
+    pub fn push(&mut self, toast: Toast) {
+        if self.waiting.len() < TOAST_QUEUE {
+            self.waiting.push_back(toast);
+        }
+    }
+
+    /// The toast to draw now.
+    pub fn current(&self) -> Option<&Toast> {
+        self.waiting.front()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.waiting.is_empty()
+    }
+
+    /// One window tick with the HUD in view: the toast on show leaves after
+    /// `TOAST_TICKS`, and the next one takes its place.
+    pub fn tick(&mut self) {
+        if self.waiting.is_empty() {
+            return;
+        }
+        self.shown += 1;
+        if self.shown >= TOAST_TICKS {
+            self.waiting.pop_front();
+            self.shown = 0;
+        }
+    }
+}
+
+/// Where a toast's lines start, from its box's left edge.
+fn toast_indent(toast: &Toast) -> f32 {
+    if toast.icon.is_some() { PAD + TOAST_ICON + PAD } else { PAD }
+}
+
+/// A toast's lines (its title, then its text when it has one), shortened to
+/// fit the widest box.
+fn toast_lines(toast: &Toast, measure: &dyn Fn(&str) -> f32) -> Vec<String> {
+    let room = TOAST_WIDTH - toast_indent(toast) - PAD;
+    [&toast.title, &toast.text].into_iter().filter(|line| !line.is_empty()).map(|line| fit_text(line, room, measure)).collect()
+}
+
+/// The width and height of a toast's box.
+pub fn toast_size(toast: &Toast, measure: &dyn Fn(&str) -> f32) -> [f32; 2] {
+    let lines = toast_lines(toast, measure);
+    let widest = lines.iter().map(|line| measure(line)).fold(0.0, f32::max);
+    let icon = if toast.icon.is_some() { TOAST_ICON } else { 0.0 };
+    [toast_indent(toast) + widest + PAD, (lines.len() as f32 * TOAST_LINE).max(icon) + 2.0 * PAD]
+}
+
+/// What draws `toast` in a box of `toast_size` whose top-left corner is `at`.
+pub fn toast_draws(toast: &Toast, at: [f32; 2], measure: &dyn Fn(&str) -> f32) -> Vec<Draw> {
+    let [w, h] = toast_size(toast, measure);
+    let [x, y] = at;
+    let mut draws = vec![
+        Draw::Fill { rect: [x, y, w, h], colour: TOAST_BACK },
+        Draw::Fill { rect: [x, y, w, 1.0], colour: TOAST_EDGE },
+    ];
+    for (i, line) in toast_lines(toast, measure).into_iter().enumerate() {
+        let colour = if i == 0 { TOAST_TITLE } else { INK };
+        let line_y = y + PAD + 1.0 + i as f32 * TOAST_LINE;
+        draws.push(Draw::Text { text: line, at: [x + toast_indent(toast), line_y], colour, shadow: true });
+    }
+    if let Some(icon) = &toast.icon {
+        draws.push(Draw::Item { item: icon.clone(), at: [x + PAD, y + PAD], size: TOAST_ICON });
+    }
+    draws
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::hq_progress::{Actor, QuestEvent, apply};
@@ -1489,6 +1589,184 @@ mod tests {
         assert_eq!(view.click(&screen(&book, &progress, centre)), Reaction::Nothing);
         view.drag(&screen(&book, &progress, centre), [5.0, 5.0]);
         view.scroll(&screen(&book, &progress, centre), 1.0);
+    }
+
+    /// One quest with everything the later versions added: optional,
+    /// repeatable, tasks in order, a random and a choice reward.
+    const GAMMA: &str = r#"{ "id": "g", "title": "Gamma", "quests": [
+        { "id": "bake", "title": "Bake", "optional": true, "repeatable": true, "repeat_cooldown": 60,
+          "sequential_tasks": true,
+          "tasks": [ { "id": "bread", "type": "craft", "item": "bread", "count": 3 },
+                     { "id": "ok", "type": "checkmark" } ],
+          "rewards": [ { "id": "loot", "type": "random", "table": "loot" },
+                       { "id": "pick", "type": "choice", "table": "picks" } ] } ] }"#;
+    const LOOT: &str = r#"{ "id": "loot", "entries": [
+        { "weight": 3, "type": "item", "item": "cookie", "count": 4 },
+        { "title": "A cake!", "type": "item", "item": "cake" } ] }"#;
+    const PICKS: &str = r#"{ "id": "picks", "entries": [
+        { "type": "item", "item": "iron_ingot", "count": 4 },
+        { "type": "xp_levels", "levels": 2 } ] }"#;
+
+    fn gamma() -> Book {
+        let loaded = super::super::hq_validate::load_pack(
+            None,
+            &[("g.json", GAMMA)],
+            &[("loot.json", LOOT), ("picks.json", PICKS)],
+        );
+        assert_eq!(loaded.problems, []);
+        Book::new(loaded.file)
+    }
+
+    #[test]
+    fn labels_of_the_later_tasks_and_rewards() {
+        let task = |json: &str| task_label(&serde_json::from_str::<Task>(json).unwrap());
+        assert_eq!(task(r#"{ "type": "craft", "item": "minecraft:bread", "count": 3 }"#), "Craft 3x Bread");
+        assert_eq!(task(r##"{ "type": "craft", "item": "#minecraft:planks" }"##), "Craft Planks (any)");
+        assert_eq!(task(r#"{ "type": "xp_levels", "levels": 5 }"#), "Reach level 5");
+        assert_eq!(task(r#"{ "type": "dimension", "dimension": "minecraft:the_nether" }"#), "Go to: The nether");
+        // A box is named by its middle.
+        assert_eq!(task(r#"{ "type": "location", "from": [-16, 60, -16], "to": [16, 70, 17] }"#), "Go near 0, 65, 0");
+        assert_eq!(
+            task(r#"{ "type": "location", "dimension": "minecraft:overworld", "from": [10, 0, 10], "to": [20, 0, 20] }"#),
+            "Go near 15, 0, 15 (Overworld)"
+        );
+        assert_eq!(
+            task(r#"{ "type": "advancement", "advancement": "minecraft:story/mine_stone" }"#),
+            "Advancement: Mine stone"
+        );
+        assert_eq!(task(r#"{ "type": "xp_levels", "levels": 5, "title": "Get wiser" }"#), "Get wiser");
+
+        let reward = |json: &str| reward_label(&serde_json::from_str::<Reward>(json).unwrap());
+        assert_eq!(reward(r#"{ "type": "command", "command": "say hi" }"#), "A special reward");
+        assert_eq!(reward(r#"{ "type": "command", "title": "A minute of speed", "command": "x" }"#), "A minute of speed");
+        assert_eq!(reward(r#"{ "type": "toast", "text": "Mind the lava." }"#), "Mind the lava.");
+        assert_eq!(reward(r#"{ "type": "toast" }"#), "A message");
+        assert_eq!(reward(r#"{ "type": "random", "table": "baker_loot" }"#), "Random: Baker loot");
+        assert_eq!(reward(r#"{ "type": "choice", "table": "picks" }"#), "Your choice: Picks");
+
+        let book = gamma();
+        let entries: Vec<String> = book.table("loot").unwrap().entries.iter().map(entry_label).collect();
+        assert_eq!(entries, ["4x Cookie", "A cake!"]);
+        // A craft quest shows what it makes.
+        assert_eq!(quest_icon(book.quest(0)), "minecraft:bread");
+    }
+
+    #[test]
+    fn the_panel_shows_order_repeats_and_what_a_table_holds() {
+        let book = gamma();
+        let mut progress = Progress::default();
+        let mut view = opened(&book, &progress);
+        click(&mut view, &book, &progress, &Action::Quest(0));
+        let check = Action::Check("g/bake/ok".into());
+        let claim = Action::Claim("g/bake/loot".into());
+        let pick = |entry| Action::Choose("g/bake/pick".into(), entry);
+
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let shown = texts(&scene);
+        for text in ["Optional", "Repeatable", "Tasks, in order", "Random: Loot", "- 4x Cookie", "- A cake!"] {
+            assert!(shown.contains(&text), "{text} in {shown:?}");
+        }
+        for text in ["Your choice: Picks", "- 4x Iron ingot", "- 2 levels"] {
+            assert!(shown.contains(&text), "{text} in {shown:?}");
+        }
+        assert!(shown.iter().any(|text| text.contains("Craft 3x Bread")), "{shown:?}");
+        // The checkmark waits for the bread, and nothing is claimed before the quest is done.
+        assert_eq!(zone(&scene, &check), None);
+        assert_eq!((zone(&scene, &claim), zone(&scene, &pick(0))), (None, None));
+
+        // The bread is baked: the checkmark can be ticked.
+        progress = progress_after(&book, &[QuestEvent::Crafted { task: "g/bake/bread".into(), count: 3 }]);
+        assert_eq!(
+            click(&mut view, &book, &progress, &check),
+            Reaction::Send(ToServer::Check { task: "g/bake/ok".into() })
+        );
+
+        // Completed: the random reward is claimed as a whole, the choice entry by entry.
+        progress = progress_after(
+            &book,
+            &[QuestEvent::Crafted { task: "g/bake/bread".into(), count: 3 }, QuestEvent::Check { task: "g/bake/ok".into() }],
+        );
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert_eq!(zone(&scene, &Action::Claim("g/bake/pick".into())), None);
+        assert_eq!(
+            click(&mut view, &book, &progress, &claim),
+            Reaction::Send(ToServer::Claim { reward: "g/bake/loot".into(), choice: None })
+        );
+        assert_eq!(
+            click(&mut view, &book, &progress, &pick(1)),
+            Reaction::Send(ToServer::Claim { reward: "g/bake/pick".into(), choice: Some(1) })
+        );
+
+        // Started over: the panel says how often it was done.
+        let mut again = Progress::default();
+        again.repeats.insert("g/bake".into(), 1);
+        assert!(texts(&view.scene(&screen(&book, &again, NOWHERE))).contains(&"Repeatable, done once"));
+        again.repeats.insert("g/bake".into(), 3);
+        assert!(texts(&view.scene(&screen(&book, &again, NOWHERE))).contains(&"Repeatable, done 3 times"));
+    }
+
+    #[test]
+    fn toasts_show_one_at_a_time_for_a_while() {
+        let toast = |title: &str| Toast { title: title.into(), text: String::new(), icon: None };
+        let mut toasts = Toasts::default();
+        toasts.tick();
+        assert!(toasts.is_empty() && toasts.current().is_none());
+        toasts.push(toast("one"));
+        toasts.push(toast("two"));
+        for _ in 0..TOAST_TICKS - 1 {
+            toasts.tick();
+        }
+        assert_eq!(toasts.current().unwrap().title, "one");
+        toasts.tick();
+        assert_eq!(toasts.current().unwrap().title, "two");
+        for _ in 0..TOAST_TICKS {
+            toasts.tick();
+        }
+        assert!(toasts.is_empty());
+
+        // A flood is cut short: the first ones stay, the rest is dropped.
+        for i in 0..100 {
+            toasts.push(toast(&i.to_string()));
+        }
+        let mut seen = Vec::new();
+        while let Some(current) = toasts.current() {
+            seen.push(current.title.clone());
+            for _ in 0..TOAST_TICKS {
+                toasts.tick();
+            }
+        }
+        assert_eq!(seen, ["0", "1", "2", "3", "4", "5", "6", "7"]);
+    }
+
+    #[test]
+    fn a_toast_is_a_box_with_its_lines_and_its_icon() {
+        let toast =
+            Toast { title: "Welcome".into(), text: "Mind the lava.".into(), icon: Some("minecraft:obsidian".into()) };
+        // The icon, then the lines: the widest is 14 characters.
+        let [w, h] = toast_size(&toast, &measure);
+        assert_eq!([w, h], [PAD + 16.0 + PAD + 84.0 + PAD, 20.0 + 2.0 * PAD]);
+        let draws = toast_draws(&toast, [100.0, 20.0], &measure);
+        assert_eq!(draws[0], Draw::Fill { rect: [100.0, 20.0, w, h], colour: TOAST_BACK });
+        let lines: Vec<(&str, [f32; 2])> = draws
+            .iter()
+            .filter_map(|draw| match draw {
+                Draw::Text { text, at, .. } => Some((text.as_str(), *at)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(lines, [("Welcome", [124.0, 25.0]), ("Mind the lava.", [124.0, 35.0])]);
+        assert!(draws.contains(&Draw::Item { item: "minecraft:obsidian".into(), at: [104.0, 24.0], size: 16.0 }));
+
+        // A title alone, without an icon: one line.
+        let plain = Toast { title: "Done".into(), text: String::new(), icon: None };
+        assert_eq!(toast_size(&plain, &measure), [PAD + 24.0 + PAD, 10.0 + 2.0 * PAD]);
+        assert_eq!(toast_draws(&plain, [0.0, 0.0], &measure).len(), 3);
+
+        // A long line is shortened to the widest box.
+        let long = Toast { title: "x".repeat(100), text: String::new(), icon: None };
+        assert!(toast_size(&long, &measure)[0] <= TOAST_WIDTH);
+        let shortened = toast_draws(&long, [0.0, 0.0], &measure);
+        assert!(matches!(&shortened[2], Draw::Text { text, .. } if text.ends_with("...") && text.len() < 100));
     }
 
     #[test]

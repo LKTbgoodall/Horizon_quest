@@ -11,10 +11,11 @@ Sources: [[FTB reward types]] × [[Horizon hooks and API]]
 |---|---|---|---|
 | **Item** | `native_give_stack(uuid, stack)` → if anything is left: `native_run_command("summon item …")` at the player's position, the rest is **dropped at the player's feet** (decided 2026-11-10, like FTB) | ✅ | MVP |
 | **XP / levels** | `native_give_experience(uuid, pts)` / `native_give_levels(uuid, lvls)`. If they return `false`, retry on the next tick | ✅ | MVP |
-| **Command** | `native_run_command(line)` on the tick (level 4, console), with `{player}` and `{uuid}` replaced. Later `native_run_command_as` (⏳) | ✅ | V1 |
-| **Toast** | Horizon client: net message → `native_add_toast` (⏳). Vanilla client: injected advancement (`native_data_pack_files`) + `native_trigger_criterion` (69), or a title or an action bar | ⏳ / ✅ | V1 |
-| **Choice** | opens a chest menu listing the table, a click picks | ✅ | V1 |
-| **Random / Loot / AllTable** | **our own weighted tables** (`hq_rewards`, injected RNG for tests) → Item | ✅ | V1/V2 |
+| **Command** | `native_run_command(line)` on the tick (level 4, console), with `{player}` and `{uuid}` replaced (`hq_session::reward_command`: refused for a name that is not a plain player name, or a command of several lines). Later `native_run_command_as` (⏳) | ✅ coded v0.0.6 | V1 |
+| **Toast** | `ToClient::Toast` to a player whose book has talked to the server; the client draws it **on our own HUD** (`hq_book::Toasts`: top-right corner, 5 s, one at a time, its time paused while the book is open). There is no `native_add_toast`, and `native_chat` is not in the catalog. A player without the book gets a chat line (`native_tell`) | ✅ coded v0.0.6 | V1 |
+| **Choice** | the quest panel lists the table's entries with a "Pick" button each → `ToServer::Claim { reward, choice }`. Never auto-claimed; `/quests claim` skips it (`NeedsChoice`) | ✅ coded v0.0.6 | V1 |
+| **Random** | **our own weighted tables** (`reward_tables/*.json`, `hq_progress::draw`, SplitMix64 with the roll injected through `Actor.roll` for tests). An entry is any reward kind but another table. The effect carries the entry that came out, so the glue never sees a table | ✅ coded v0.0.6 | V1 |
+| Loot / AllTable | not yet | ❓ | V2 |
 | Currency | optional bridge to the `smp` economy? (optional `[dependencies]`) | ❓ | V2 |
 | Advancement | `native_set_player_advancements` (⏳) or the `advancement grant` command | ⏳ / ✅ | V2 |
 

@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.0.5"
+version = "0.0.6"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
@@ -274,7 +274,7 @@ bindings = [
   { name = "config", ty = "&crate::game::native_configs::NativeConfigFile", value = "config" },
 ]
 
-# ---- Server: the quest engine (API 3, 4, 40, 57, 161, 228) ----
+# ---- Server: the quest engine (API 3, 4, 40, 57, 161, 228, 249, 347) ----
 
 [[injection]]
 id = "lifecycle"
@@ -335,6 +335,7 @@ helper = "crafted.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "player", ty = "u128", value = "player" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
 ]
 
 [[injection]]
@@ -345,6 +346,30 @@ helper = "furnace_taken.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "player", ty = "u128", value = "player" },
+  { name = "item", ty = "&str", value = "item" },
+  { name = "count", ty = "u32", value = "count" },
+]
+
+[[injection]]
+id = "level_changed"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_level_change"
+helper = "level_changed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+  { name = "to", ty = "i32", value = "to" },
+]
+
+[[injection]]
+id = "advancement_done"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_advancement_done"
+helper = "advancement_done.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+  { name = "advancement", ty = "&str", value = "advancement" },
 ]
 
 [[injection]]
