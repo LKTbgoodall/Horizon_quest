@@ -1,10 +1,10 @@
-// Horizon Quests' identity and the small texts the spikes show. Pure: no game
-// types, so `cargo test` runs it.
+// Horizon Quests' identity and its small fixed texts (Options > Mods, the HUD
+// hint, `/quests`). Pure: no game types, so `cargo test` runs it.
 
 /// The mod's id: its settings folder, its key lines, its net channel prefix.
 pub const ID: &str = "horizon_quests";
 pub const NAME: &str = "Horizon Quests";
-pub const VERSION: &str = "0.0.3";
+pub const VERSION: &str = "0.0.4";
 pub const DESCRIPTION: &str =
     "An FTB Quests-style quest book. Phase 2: graphical quest book, net sync, server engine.";
 
@@ -15,12 +15,12 @@ pub const OPEN_KEY: &str = "open_book";
 pub const OPEN_KEY_LABEL: &str = "Open the quest book";
 pub const OPEN_KEY_DEFAULT: &str = "key.keyboard.k";
 
-/// `Horizon Quests 0.0.2`, as Options > Mods titles the row.
+/// `Horizon Quests 0.0.4`, as Options > Mods titles the row.
 pub fn title() -> String {
     format!("{NAME} {VERSION}")
 }
 
-/// The one-line HUD hint of spike 1.
+/// The one-line HUD hint in the top-left corner.
 pub fn hud_hint(key_label: &str) -> String {
     format!("{} - {} opens the quest book", title(), key_label)
 }
@@ -35,12 +35,9 @@ pub fn key_label(key: &str) -> String {
     }
 }
 
-/// What `/quests` answers on the server (spike 4).
-pub fn command_reply(player: &str, pongs: u32) -> String {
-    format!(
-        "{} is running on this server. Hello {player}! Book pings answered so far: {pongs}.",
-        title()
-    )
+/// The first line `/quests` answers on the server, before the help.
+pub fn command_reply(player: &str) -> String {
+    format!("{} is running on this server. Hello {player}!", title())
 }
 
 #[cfg(test)]
@@ -63,7 +60,6 @@ mod tests {
     fn texts_name_the_mod() {
         assert_eq!(title(), format!("{NAME} {VERSION}"));
         assert_eq!(hud_hint("K"), format!("{NAME} {VERSION} - K opens the quest book"));
-        assert!(command_reply("Steve", 3).contains("Hello Steve!"));
-        assert!(command_reply("Steve", 3).ends_with("so far: 3."));
+        assert_eq!(command_reply("Steve"), format!("{NAME} {VERSION} is running on this server. Hello Steve!"));
     }
 }

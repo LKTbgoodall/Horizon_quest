@@ -1,10 +1,10 @@
 # Horizon Quests: the native mod
 
-The bundle the Horizon launcher builds into the game. Version 0.0.3 adds the **graphical quest book** (`hq_book`) and **real network synchronization** (`hq_net`) to the quest engine (`hq_session`, `hq_server_glue`), replacing the temporary spike screen with the full interactive quest UI.
+The bundle the Horizon launcher builds into the game. Version 0.0.3 added the **graphical quest book** (`hq_book`) and **network synchronization** (`hq_net`) to the quest engine (`hq_session`, `hq_server_glue`). Version 0.0.4 fixes what the review of 0.0.3 found: the build (dead spike code), claims never shown as claimed in the book, and book hand-ins that took the host's items; it also removes the spike's ping/pong.
 
 | Feature | What it provides | Hooks / Modules |
 |---|---|---|
-| **Graphical Book** | Interactive quest canvas: chapter sidebar, zoom, pan, quest details panel, buttons | `hq_book`, `hq_client_glue`, `native_mod_screen_open`, `native_screen_render_post`, input hooks |
+| **Graphical Book** | Interactive quest canvas: chapter sidebar, zoom, pan, quest details panel, buttons | `hq_book`, `hq_canvas`, `hq_client_glue`, `native_mod_screen_open`, `native_screen_render_post`, input hooks |
 | **Network Sync** | Reliable framing (<=30KB frames, 16 frames/tick) for definitions, progress, actions | `hq_net`, channel `horizon_quests:book`, `native_net_send_*`, `native_net_from_*` |
 | **Server Engine** | Tasks (inventory, craft, furnace, kill, checkmark), rewards, atomic JSON saves, `/quests` | `hq_server_glue`, `hq_session`, `hq_progress`, `hq_store` |
 
@@ -18,16 +18,16 @@ mod/
 ├── LICENSE               # MIT
 └── mixins/horizon_quests/
     ├── horizon-mixin.toml
-    ├── hq_meta.rs, hq_protocol.rs, hq_canvas.rs   # pure, tested, in the bundle
-    ├── hq_model.rs, hq_validate.rs, hq_logic.rs,
-    │   hq_progress.rs, hq_store.rs, hq_net.rs,
-    │   hq_book.rs, hq_commands.rs                 # pure, tested, NOT in the bundle yet (phase 1)
+    ├── hq_meta.rs, hq_canvas.rs, hq_model.rs,
+    │   hq_validate.rs, hq_logic.rs, hq_progress.rs,
+    │   hq_store.rs, hq_net.rs, hq_book.rs,
+    │   hq_commands.rs, hq_session.rs              # pure, tested, in the bundle
     ├── hq_client_glue.rs, hq_server_glue.rs       # touch the game
     ├── *.rs                                       # one helper per hook
     └── data/quests/                               # the example pack "Getting started"
 ```
 
-The phase 1 modules (quest files, rules, engine, saving) are only built by `cargo test` for now. They join `horizon-mixin.toml` together with the glue that calls them, because the game build refuses unused code.
+The game builds every module with `-D warnings`, and there the modules are private: code that no glue calls is dead code and breaks the build, even when `cargo test` is clean. Remove what the glue stops calling.
 
 ## Unit tests (any PC with Rust)
 ```bash
@@ -49,15 +49,17 @@ cargo test
    Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order. The Options > Mods row now says **0.0.3**.
+3. Start the game and check, in order. The Options > Mods row now says **0.0.4**.
    Use a **new single-player world** in Survival:
    - [ ] **Build**: it succeeds. If not, send `native/build.log`.
-   - [ ] **Open the Book (K)**: opens the real graphical quest book! You should see the chapters on the left sidebar ("Getting started"), the canvas with quest nodes, dependency lines, icons. The HUD hint disappears while the book is open.
+   - [ ] **Open the Book (K)**: opens the graphical quest book. You should see the chapters on the left sidebar ("Getting started"), the canvas with quest nodes, dependency lines, icons. The HUD hint disappears while the book is open.
    - [ ] **Pan & Zoom**: drag to pan the canvas, mouse wheel to zoom in and out.
    - [ ] **Quest selection**: clicking a quest opens its details panel on the right with description, tasks, and reward previews.
-   - [ ] **Checkmark task**: select the "Welcome" quest and click the confirmation button. It marks as completed and sends updates to the server.
-   - [ ] **Inventory task**: gather 8 logs. The quest completes and updates on both the server and in the graphical book in real time.
-   - [ ] **Claim rewards**: click the claim button in the quest panel. Items and XP arrive; leftovers drop at your feet if inventory is full.
-   - [ ] **Saving**: leave the world and rejoin: pressing K reloads your progress accurately from `saves/<world>/horizon-quests/progress/<your uuid>.json`.
-   - [ ] **`/quests` commands**: `/quests progress`, `check`, `claim`, `submit`, `reload`, `validate` continue to work alongside the graphical book.
+   - [ ] **Checkmark task**: select the "Welcome" quest and click the confirmation button. It completes, in the book too.
+   - [ ] **Inventory task**: gather 8 logs. The quest completes and the book shows it without reopening. (This also tells us whether the host's inventory is read in single player.)
+   - [ ] **Claim rewards**: click the claim button in the quest panel. Items and XP arrive, **the button goes away and the quest shows as done** (fixed in 0.0.4). Leftovers drop at your feet if the inventory is full.
+   - [ ] **Hand in from the book**: the optional "Leftovers" quest (after "First night") takes 8 rotten flesh. Press Submit in its panel: the flesh leaves your inventory and the task counts it (fixed in 0.0.4: it used to take from the host, which in single player is you, so solo looked right already).
+   - [ ] **Saving**: leave the world and rejoin: pressing K shows your progress again, read from `saves/<world>/horizon-quests/progress/<your uuid>.json`.
+   - [ ] **`/quests` commands**: `/quests` (first line: "Horizon Quests 0.0.4 is running on this server. Hello <you>!"), `progress`, `check`, `claim`, `submit`, `reload`, `validate`.
+   - [ ] **Optional, a server without the mod**: on a vanilla server, K opens the book and after about 5 seconds it says "No answer from the server: it may not have Horizon Quests."
 4. Report back: what worked, what didn't, and screenshots of the book!

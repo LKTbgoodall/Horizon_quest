@@ -56,7 +56,7 @@ flowchart LR
 Status on 2026-11-10: ✔ written and tested · ◻ planned.
 
 > [!warning] A pure module joins the bundle with its glue
-> The game is built with `-D warnings`, so a module nothing calls yet is dead code there and breaks the build. A new `hq_*.rs` is first listed in `mod/src/lib.rs` only (for `cargo test`); its `[[module]]` entry in `horizon-mixin.toml` is added in the same commit as the glue that uses it.
+> The game is built with `-D warnings` and its modules are private, so a module (or an item of one) nothing calls is dead code there and breaks the build, even when `cargo test` is clean (there the items are `pub` in a library). A new `hq_*.rs` is first listed in `mod/src/lib.rs` only; its `[[module]]` entry in `horizon-mixin.toml` is added in the same commit as the glue that uses it. When the glue stops calling something, remove it (v0.0.3 broke the build this way: [[2026-11-10]] § Session 9).
 
 | Module | Role | Pure? |
 |---|---|---|
@@ -67,13 +67,14 @@ Status on 2026-11-10: ✔ written and tested · ◻ planned.
 | ◻ `hq_rewards` | V1: weighted draws, choice, team vs player (the MVP's claims live in `hq_progress`) | ✅ (injected RNG) |
 | ◻ `hq_teams` | V1. Minimal teams: personal, party, progress merge and copy | ✅ |
 | ✔ `hq_commands` | `/quests`: `USAGES` to register, `parse` / `parse_for` (op level), `help`, `report` (validate, reload), `announce` (chat lines for effects) | ✅ |
-| ✔ `hq_canvas` | Canvas maths: pan/zoom `View`, hit testing, line quads (phase 0, in the bundle) | ✅ |
+| ✔ `hq_canvas` | Canvas maths: pan/zoom `View`, rect tests, grid cells, line quads (the spike's demo nodes and hit testing were removed in v0.0.4; `hq_book` hit-tests its own zones) | ✅ |
 | ✔ `hq_book` | The real book: `BookView::scene(&Screen) -> Scene { draws, zones }` (draw list + click zones), regions, shapes, text wrapping, panel, buttons; `click` / `drag` / `scroll` → `Reaction` | ✅ |
-| ✔ `hq_net` | `ToServer` / `ToClient` (JSON, `PROTOCOL` 1, channel `horizon_quests:book`), frames ≤ 30,000 bytes, `Sender` (16 frames a tick), `Receiver`. `hq_protocol` is its phase 0 spike (ping/pong) | ✅ |
+| ✔ `hq_net` | `ToServer` / `ToClient` (JSON, `PROTOCOL` 1, channel `horizon_quests:book`), frames ≤ 30,000 bytes, `Sender` (16 frames a tick), `Receiver`. (The phase 0 spike `hq_protocol`, ping/pong, was removed in v0.0.4) | ✅ |
 | ✔ `hq_store` | Atomic JSON reads and writes, `progress/<team>.json`, version check, UUID names. ◻ Writer thread, `teams.json`, `audit.log` | ✅ (fs) |
 | ◻ `hq_import_ftb` | Import FTB JSON5/SNBT → our format (later) | ✅ |
-| ✔ `hq_server_glue.rs` (spike) | Server half. ◻ Global state `static STATE: Mutex<Option<Hq>>`, hook wiring, effect application | ❌ |
-| ✔ `hq_client_glue.rs` (spike) | Mod screen, canvas rendering, input. ◻ The real book, toasts | ❌ |
+| ✔ `hq_session` | The server's state while a world is open: players, event queue, inventory look schedule, `dirty` (to save) and `unsynced` (to send) apart; `player_id(uuid)` is the id claims are kept under and the book looks them up under | ✅ |
+| ✔ `hq_server_glue.rs` | Server half: `static STATE: Mutex<Option<State>>`, hook wiring, effects after the lock, net senders/receivers per player, `Hello` answered once while its pack is in flight, book hand-ins through `native_as_player` | ❌ |
+| ✔ `hq_client_glue.rs` | Mod screen, the real book (`hq_book`) drawn and driven, net to the server, loading line with a 5 s "no answer" (`hq_book::loading_line`), state forgotten out of a world. ◻ Toasts | ❌ |
 
 ## How the glue drives the engine (phase 2)
 ```
@@ -85,7 +86,7 @@ server tick, End phase:
     drain the queue              → apply(book, &mut progress, player, now, &event)
     outcome.changed              → hq_store::save_progress, send progress to the book
     outcome.effects              → after the lock is released: give rewards, chat, sound
-book "Submit" request            → submit_request(book, progress, task) → take ≤ missing items
+book "Submit" request            → native_as_player(player, …): submit_request(book, progress, task) → take ≤ missing items
                                     → QuestEvent::Submitted { task, count: taken }
 login, /quests reload            → QuestEvent::Refresh
 ```
@@ -102,7 +103,7 @@ native_screen_render_post        → view.scene(&screen).draws → native_fill /
 mouse pressed / dragged / wheel  → view.click / drag / scroll(&screen)
                                      Reaction::Send(msg) → sender.send(&msg);  Reaction::Close → native_mod_screen_close
 ```
-`Screen` = the book, the progress, the player's name, the window rect, the pointer, and `&|text| game.native_text_width(text)`.
+`Screen` = the book, the progress, the id the player's claims are kept under (`hq_session::player_id`, their UUID: sent in `ToClient::Progress`), the window rect, the pointer, and `&|text| game.native_text_width(text)`.
 The server side mirrors it: one `Sender` and one `Receiver::new(SERVER_MAX_PARTS)` per player; `ToServer` → `hq_net::request_event` → the event queue (`Submit` goes through `submit_request` first).
 
 ## State and threads

@@ -10,15 +10,14 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded as v0.0.3, **waiting for the in-game test** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]]: phase 2 steps 2 & 3: wired `hq_net` and `hq_book` into `hq_server_glue` and `hq_client_glue` (v0.0.3). Real interactive quest book with pan/zoom, chapters, panel, claim buttons and net synchronization. **109 tests pass** |
-| **Code** | `mod/` v0.0.3. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
+| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded, review fixes in v0.0.4, **waiting for the in-game test** → [[Roadmap]] |
+| **Last session** | [[2026-11-10]] § Session 10: v0.0.4 fixes every finding of the v0.0.3 review (dead spike code removed, claims keyed by UUID in the book, book hand-ins through `native_as_player`, sync apart from saving, `Hello` flood, "no answer" loading line, ping/pong removed). **105 tests pass**, glue control compile clean |
+| **Code** | `mod/` v0.0.4. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | v0.0.3 as pushed should not build (dead spike code in `hq_canvas.rs`) and has two logic bugs (claims never shown in the book; book hand-in takes the host's items): see [[2026-11-10]] § Session 9. Fix first, then the in-game test |
+| **Blocking** | Nothing known: the in-game test of v0.0.4. Watch the single-player host's inventory reads and `native_player_logged_in` for the host ([[Open questions]]) |
 
 ## ➡️ Next step
-0. Fix the review findings of [[2026-11-10]] § Session 9 (items 1 to 3 at least) as v0.0.4
-1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.3: the full playable book)
+1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.4)
 2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
 3. Fix what the build shows if any (`native/build.log`)
 4. Release 0.1.0 preparation (polishing, settings toggle)

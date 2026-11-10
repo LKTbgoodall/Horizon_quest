@@ -3,11 +3,10 @@
 //! name, so `super::hq_canvas` reaches the same code in both. Files that touch
 //! the game's types (`*_glue.rs` and the hook helpers) are not listed here.
 //!
-//! The phase 1 modules (`hq_model`, `hq_validate`, `hq_logic`, `hq_progress`,
-//! `hq_store`, `hq_net`, `hq_book`, `hq_commands`) are listed here only, not
-//! yet in `horizon-mixin.toml`: the
-//! game is built with `-D warnings`, and code no glue calls yet is dead code
-//! there. Each one joins the bundle with the glue that uses it (phase 2).
+//! Every module listed here is also a `[[module]]` of `horizon-mixin.toml`.
+//! The game is built with `-D warnings` and its modules are private, so code
+//! no glue calls is dead code there even when `cargo test` builds clean here:
+//! remove what the glue stops calling.
 
 #[path = "../mixins/horizon_quests/hq_book.rs"]
 pub mod hq_book;
@@ -25,8 +24,6 @@ pub mod hq_model;
 pub mod hq_net;
 #[path = "../mixins/horizon_quests/hq_progress.rs"]
 pub mod hq_progress;
-#[path = "../mixins/horizon_quests/hq_protocol.rs"]
-pub mod hq_protocol;
 #[path = "../mixins/horizon_quests/hq_session.rs"]
 pub mod hq_session;
 #[path = "../mixins/horizon_quests/hq_store.rs"]

@@ -116,6 +116,12 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 | **Custom trigger** | `native_trigger_criterion(uuid, trigger, test)`: fires a datapack advancement | ✅ API 69 |
 | Tick | `native_server_tick` (4), `native_level_tick_pre/post` (23) | ✅ |
 
+### Whose state is in place (read in `ext/horizon` `1453e0e`, 2026-11-10)
+- The **item helpers of API 9** (`native_carried_items`, `native_take_items`, `native_count_items`…) act on the **acting player**: inside `native_perform_command` that is the command's player; in a hook with no player swapped in, it is the **host**.
+- `native_net_from_client` runs from `run_native_net` "with the hub back in the game": **no player swapped in**. So a book request that takes items must put the player in place first.
+- `native_as_player(uuid, f: impl FnOnce(&mut Self)) -> bool` (`native_server.rs`, `pub(super)`): runs `f` with that player's state in place; the host directly when they are the acting one, a guest through `as_guest` (only when no other player is swapped in); false when the player is not here or dead. The engine uses it itself for `native_give_experience` / `native_give_levels`. ❓ **Not in `native-hooks.json` nor in `native-mods.md`**: an engine method, not a numbered helper, so it could change without notice. We use it for book hand-ins since v0.0.4 (no numbered helper takes items from a given player and also works for the host).
+- `native_inventory(uuid, kind)` / `native_set_inventory_slot` / `native_take_stacks` look the player up among the **LAN hub's guests**; anyone else is read from (or written to) their **player file**, and with no hub at all they answer `NoServer`. ❓ **To check in game**: in single player, is the host one of the hub's guests? If not, item polling (`look_at_inventory`) would see the host's saved file, not their live inventory, or nothing.
+
 ## 3. Giving rewards
 | Reward | API | Status |
 |---|---|---|

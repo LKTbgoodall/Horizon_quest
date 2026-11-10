@@ -42,7 +42,7 @@ updated: 2026-11-10
 > **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).
 
 ## Phase 2: playable MVP (solo/LAN) 🎯 ⬅️ IN PROGRESS
-> Steps 1, 2 & 3 coded on 2026-11-10 as v0.0.3: server glue + net sync (`hq_net`) + graphical book (`hq_book` via `hq_client_glue`). "Coded" items wait for the in-game test before they are ticked.
+> Steps 1, 2 & 3 coded on 2026-11-10 as v0.0.3: server glue + net sync (`hq_net`) + graphical book (`hq_book` via `hq_client_glue`). v0.0.4 (same day) fixes the review of v0.0.3 (build, claims in the book, book hand-ins for LAN guests, sync and loading robustness). "Coded" items wait for the in-game test before they are ticked.
 
 - [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`: **coded (v0.0.2/v0.0.3), to test**
 - [ ] Tasks: item (polling + pickup/craft/furnace triggers, [[ADR-010 Item detection by polling plus triggers]]), checkmark, kill (`mob_killed`, melee only), hand-in (`/quests submit` or book button): **coded (v0.0.2/v0.0.3), to test**

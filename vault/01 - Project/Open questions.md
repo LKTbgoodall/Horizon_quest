@@ -63,3 +63,8 @@ updated: 2026-11-10
 
 ## Found in the first in-game test (2026-11-10)
 - ❓ Other mods' HUD (the minimap) draws over our mod screen, top right. Can a mod screen hide other HUDs, or must the book keep that corner free? Check in phase 2 with the real book's quest panel.
+
+## Found fixing the v0.0.3 review (2026-11-10)
+- ❓ **Single-player host's inventory**: `native_inventory(uuid)` only reads LAN hub guests live; anyone else is read from their player file. Is the single-player host a hub guest? If not, item tasks would not see the host's live inventory. The v0.0.4 in-game test ("gather 8 logs") answers it. → [[Horizon hooks and API]] § 2 "Whose state is in place"
+- ❓ **`native_as_player`** is an engine method, not a numbered helper (absent from `native-hooks.json` and `native-mods.md`). v0.0.4 uses it for book hand-ins. Ask on the Horizon Discord whether it is meant for mods, or whether a numbered "take items from player X" helper is planned.
+- ❓ Does `native_player_logged_in` fire for the host of a single-player world? Everything server-side hangs on it (`Session::join`). → watch in the v0.0.4 test (if the book stays on "Loading", or `/quests progress` says "You are not in the quest book yet", this is why)

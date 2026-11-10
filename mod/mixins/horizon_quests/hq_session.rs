@@ -22,8 +22,19 @@ pub struct Player {
     pub progress: Progress,
     /// Changed since it was last saved.
     pub dirty: bool,
+    /// Changed since it was last sent to their book. Apart from `dirty`: a
+    /// progress that is never saved is still sent once per change.
+    pub unsynced: bool,
     /// False when their file could not be read: it is never overwritten.
     pub saveable: bool,
+}
+
+impl Player {
+    /// The engine said whether the progress changed.
+    fn changed(&mut self, changed: bool) {
+        self.dirty |= changed;
+        self.unsynced |= changed;
+    }
 }
 
 #[derive(Debug)]
@@ -75,7 +86,7 @@ impl Session {
             Ok(progress) => (progress, true),
             Err(_) => (Progress::default(), false),
         };
-        self.players.insert(uuid, Player { name: name.to_owned(), progress, dirty: false, saveable });
+        self.players.insert(uuid, Player { name: name.to_owned(), progress, dirty: false, unsynced: false, saveable });
         self.push(uuid, QuestEvent::Refresh);
         self.poke(uuid);
     }
@@ -151,8 +162,8 @@ impl Session {
             let Some(player) = self.players.get_mut(&uuid) else {
                 continue;
             };
-            let outcome = engine::apply(&self.book, &mut player.progress, &id(uuid), now, &event);
-            player.dirty |= outcome.changed;
+            let outcome = engine::apply(&self.book, &mut player.progress, &player_id(uuid), now, &event);
+            player.changed(outcome.changed);
             effects.extend(outcome.effects.into_iter().map(|e| (uuid, e)));
         }
         effects
@@ -171,13 +182,14 @@ impl Session {
         out
     }
 
-    /// Every player whose progress changed since last sync/save.
-    #[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-    pub fn dirty_players(&self) -> Vec<(u128, String, Progress)> {
+    /// The progress to send to the books now: every one changed since it
+    /// was last sent, with the id its claims are recorded under.
+    pub fn take_unsynced(&mut self) -> Vec<(u128, String, Progress)> {
         let mut out = Vec::new();
-        for (&uuid, player) in &self.players {
-            if player.dirty {
-                out.push((uuid, player.name.clone(), player.progress.clone()));
+        for (&uuid, player) in &mut self.players {
+            if player.unsynced {
+                player.unsynced = false;
+                out.push((uuid, player_id(uuid), player.progress.clone()));
             }
         }
         out.sort_unstable_by_key(|(uuid, _, _)| *uuid);
@@ -187,9 +199,9 @@ impl Session {
     /// `/quests complete`: what it did, or why not.
     pub fn force_complete(&mut self, uuid: u128, quest: &str, now: u64) -> Result<Vec<Effect>, String> {
         let player = self.players.get_mut(&uuid).ok_or("That player is not on.")?;
-        let outcome = engine::force_complete(&self.book, &mut player.progress, &id(uuid), now, quest)
+        let outcome = engine::force_complete(&self.book, &mut player.progress, &player_id(uuid), now, quest)
             .ok_or_else(|| format!("There is no quest `{quest}`."))?;
-        player.dirty |= outcome.changed;
+        player.changed(outcome.changed);
         Ok(outcome.effects)
     }
 
@@ -198,7 +210,7 @@ impl Session {
         let player = self.players.get_mut(&uuid).ok_or("That player is not on.")?;
         let changed = engine::reset_quest(&self.book, &mut player.progress, quest)
             .ok_or_else(|| format!("There is no quest `{quest}`."))?;
-        player.dirty |= changed;
+        player.changed(changed);
         self.poke(uuid);
         Ok(changed)
     }
@@ -207,7 +219,7 @@ impl Session {
     pub fn reset_all(&mut self, uuid: u128) -> Result<(), String> {
         let player = self.players.get_mut(&uuid).ok_or("That player is not on.")?;
         player.progress = Progress::default();
-        player.dirty = true;
+        player.changed(true);
         self.push(uuid, QuestEvent::Refresh);
         self.poke(uuid);
         Ok(())
@@ -220,7 +232,7 @@ impl Session {
             return vec!["You are not in the quest book yet.".to_owned()];
         };
         let book = &self.book;
-        let statuses = book.statuses(&player.progress, &id(uuid));
+        let statuses = book.statuses(&player.progress, &player_id(uuid));
         let mut lines = Vec::new();
         for c in 0..book.file().chapters.len() {
             let chapter = book.chapter(c);
@@ -269,9 +281,9 @@ fn label<'a>(title: &'a str, id: &'a str) -> &'a str {
     if title.is_empty() { id } else { title }
 }
 
-/// A player as the engine names them (claims are kept per player).
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
-fn id(uuid: u128) -> String {
+/// A player as the engine names them: claims are kept per player under
+/// this id, and their book looks its claims up under the same one.
+pub fn player_id(uuid: u128) -> String {
     super::hq_store::uuid_string(uuid)
 }
 
@@ -397,16 +409,48 @@ mod tests {
     }
 
     #[test]
-    fn dirty_players_reports_changed_players() {
+    fn changed_progress_is_sent_once_under_the_claim_id() {
         let mut s = session();
         s.join(7, "Steve", Ok(Progress::default()));
         s.push(7, QuestEvent::Killed { entity: "minecraft:zombie".into() });
-        assert!(s.dirty_players().is_empty());
+        assert!(s.take_unsynced().is_empty());
         s.process(1);
-        let dirty = s.dirty_players();
-        assert_eq!(dirty.len(), 1);
-        assert_eq!(dirty[0].0, 7);
-        assert_eq!(dirty[0].1, "Steve");
+        let unsynced = s.take_unsynced();
+        assert_eq!(unsynced.len(), 1);
+        assert_eq!(unsynced[0].0, 7);
+        // The id claims are recorded under, not the display name.
+        assert_eq!(unsynced[0].1, player_id(7));
+        assert!(s.take_unsynced().is_empty());
+        // Saving is tracked apart: the change still waits to be written.
+        assert_eq!(s.take_dirty().len(), 1);
+    }
+
+    #[test]
+    fn a_claim_shows_as_claimed_under_the_id_sent_to_the_book() {
+        let mut s = session();
+        s.join(7, "Steve", Ok(Progress::default()));
+        s.process(1);
+        let stacks = [("minecraft:oak_log", 4)];
+        for event in item_events(&s.wanted(7), &stacks, &logs) {
+            s.push(7, event);
+        }
+        s.process(2);
+        s.push(7, QuestEvent::ClaimAll);
+        s.process(3);
+        let (_, id, progress) = s.take_unsynced().pop().unwrap();
+        assert!(progress.has_claimed("c/logs/r", &id), "{progress:?}");
+        assert!(!progress.has_claimed("c/logs/r", "Steve"));
+    }
+
+    #[test]
+    fn a_progress_never_saved_is_still_sent_only_once_per_change() {
+        let mut s = session();
+        s.join(7, "Steve", Err("bad file".into()));
+        s.push(7, QuestEvent::Killed { entity: "minecraft:zombie".into() });
+        s.process(1);
+        assert!(s.take_dirty().is_empty());
+        assert_eq!(s.take_unsynced().len(), 1);
+        assert!(s.take_unsynced().is_empty());
     }
 
     #[test]

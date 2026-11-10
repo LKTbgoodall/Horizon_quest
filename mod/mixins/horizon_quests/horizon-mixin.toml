@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.0.3"
+version = "0.0.4"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
@@ -15,12 +15,6 @@ id = "meta"
 file = "crates/horizon-client/src/game.rs"
 name = "hq_meta"
 source = "hq_meta.rs"
-
-[[module]]
-id = "protocol"
-file = "crates/horizon-client/src/game.rs"
-name = "hq_protocol"
-source = "hq_protocol.rs"
 
 [[module]]
 id = "canvas"

@@ -1,10 +1,12 @@
 // The server half (single player's server thread, a LAN host, later a
 // dedicated server). It keeps a `Session` (hq_session) while a world is open:
 // hooks only record what happened, and the server tick looks at inventories,
-// runs the engine, gives rewards, tells the players and saves. It still
-// answers the test book's pings (spike 3) until the real sync replaces them.
-// Server hooks run on the server thread; the state is behind a Mutex, which
-// is never held while a game helper runs.
+// runs the engine, gives rewards, tells the players, syncs their books over
+// mod messages (hq_net, channel "horizon_quests:book") and saves.
+// Server hooks run on the server thread; the state is behind a Mutex. The
+// tick holds it while it reads (inventories, item tags), which call no hook
+// back; it is released before any helper that changes the game (rewards,
+// chat, sends, taking items).
 
 use super::hq_commands::{self as commands, Command};
 use super::hq_logic::Book;
@@ -12,7 +14,6 @@ use super::hq_meta as meta;
 use super::hq_model::{ItemMatch, RewardKind};
 use super::hq_net::{self as net, ToClient, ToServer};
 use super::hq_progress::{Effect, QuestEvent};
-use super::hq_protocol as proto;
 use super::hq_session::{self as session, Session};
 use super::hq_store as store;
 use super::hq_validate::{self as validate, Loaded};
@@ -22,13 +23,9 @@ use crate::game::native_server::{NativeCommand, NativeServerPlayer};
 use horizon_client::items::ItemStack;
 use horizon_client::mod_api::{ServerTickPhase, WorldPhase};
 use horizon_client::text::Text;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering::Relaxed};
 use std::sync::{Arc, Mutex, MutexGuard};
-
-/// The pings answered since the game started.
-static PONGS: AtomicU32 = AtomicU32::new(0);
 
 /// The open world's quest state; None while no world is open.
 static STATE: Mutex<Option<State>> = Mutex::new(None);
@@ -46,6 +43,9 @@ struct State {
     senders: HashMap<u128, net::Sender>,
     /// Incoming net receivers from online players (hq_net).
     receivers: HashMap<u128, net::Receiver>,
+    /// Players whose answer to a `Hello` (the whole pack) is still being
+    /// sent: another `Hello` from them is ignored until it has left.
+    greeting: HashSet<u128>,
 }
 
 /// How many problems a report lists in chat.
@@ -83,6 +83,7 @@ fn open(game: &Game<'_>) -> State {
         pending: Vec::new(),
         senders: HashMap::new(),
         receivers: HashMap::new(),
+        greeting: HashSet::new(),
     }
 }
 
@@ -149,6 +150,7 @@ pub fn logged_out(game: &mut Game<'_>, player: u128) {
     if let Some(s) = state().as_mut() {
         s.senders.remove(&player);
         s.receivers.remove(&player);
+        s.greeting.remove(&player);
         if let Some(progress) = s.session.leave(player)
             && let Some(dir) = &s.dir
             && let Err(e) = store::save_progress(dir, &store::uuid_string(player), &progress)
@@ -199,10 +201,11 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
         let mut effects = std::mem::take(&mut s.pending);
         effects.extend(s.session.process(session::now()));
 
-        // Sync changed progress to clients over hq_net before saving clears dirty
-        for (uuid, name, progress) in s.session.dirty_players() {
+        // Changed progress goes to the books, under the id claims are kept
+        // under (tracked apart from saving: an unsaveable one is sent once).
+        for (uuid, id, progress) in s.session.take_unsynced() {
             if let Some(sender) = s.senders.get_mut(&uuid) {
-                let _ = sender.send(&ToClient::Progress { player: name, progress });
+                let _ = sender.send(&ToClient::Progress { player: id, progress });
             }
         }
 
@@ -228,6 +231,8 @@ pub fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
                 outgoing.push((uuid, frames));
             }
         }
+        let senders = &s.senders;
+        s.greeting.retain(|uuid| senders.get(uuid).is_some_and(|sender| sender.waiting() > 0));
 
         (actions, outgoing)
     };
@@ -299,25 +304,10 @@ fn give(game: &mut Game<'_>, uuid: u128, name: &str, reward: RewardKind) {
     }
 }
 
-/// A mod message from a player's client: answers pings (spike 3) or handles
-/// book requests (hq_net) on channel "horizon_quests:book".
+/// A mod message from a player's client: a book request (hq_net) on channel
+/// "horizon_quests:book". No player's state is swapped in here.
 pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]) {
-    if !game.native_on(meta::ID) {
-        return;
-    }
-    if channel == proto::CHANNEL {
-        let Some(reply) = proto::decode(data).and_then(proto::answer) else {
-            return;
-        };
-        match game.native_net_send_to_player(player, proto::CHANNEL, &proto::encode(reply)) {
-            Ok(()) => {
-                PONGS.fetch_add(1, Relaxed);
-            }
-            Err(e) => log::warn!("{}: could not answer a ping: {e}", meta::NAME),
-        }
-        return;
-    }
-    if channel != net::CHANNEL {
+    if channel != net::CHANNEL || !game.native_on(meta::ID) {
         return;
     }
 
@@ -343,13 +333,18 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
             let Some(s) = guard.as_mut() else {
                 return;
             };
+            // A book that asks again while the pack is still on its way
+            // would only queue it once more.
+            if !s.greeting.insert(player) {
+                return;
+            }
             let sender = s.senders.entry(player).or_default();
             let reply = net::greet(protocol, meta::VERSION);
             let _ = sender.send(&reply);
             if protocol == net::PROTOCOL {
                 let _ = sender.send(&ToClient::Book { file: s.session.book().file().clone() });
                 if let Some(p) = s.session.player(player) {
-                    let _ = sender.send(&ToClient::Progress { player: p.name.clone(), progress: p.progress.clone() });
+                    let _ = sender.send(&ToClient::Progress { player: session::player_id(player), progress: p.progress.clone() });
                 }
             }
         }
@@ -369,7 +364,12 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
             }
         }
         ToServer::Submit { task } => {
-            let lines = submit(game, player, &task);
+            // The items are taken from the acting player: put this one's
+            // state in place first (the host's is in place already).
+            let mut lines = Vec::new();
+            if !game.native_as_player(player, |game| lines = submit(game, player, &task)) {
+                lines = vec!["You cannot hand items in right now.".to_owned()];
+            }
             if let Some(line) = lines.first() {
                 let mut guard = state();
                 if let Some(s) = guard.as_mut() {
@@ -421,7 +421,7 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
     };
     match command {
         Command::Help => {
-            let mut lines = vec![meta::command_reply(&player.name, PONGS.load(Relaxed))];
+            let mut lines = vec![meta::command_reply(&player.name)];
             lines.extend(commands::help(player.permission));
             lines
         }
@@ -456,8 +456,9 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
     }
 }
 
-/// `/quests submit`: takes what the task still lacks from the player's
-/// plain stacks (the player's state is in place: this is their turn).
+/// A hand-in: takes what the task still lacks from the acting player's plain
+/// stacks. `me` must be the acting player: `/quests submit` runs in their
+/// turn, and a book's request goes through `native_as_player` first.
 fn submit(game: &mut Game<'_>, me: u128, task: &str) -> Vec<String> {
     let wanted = match state().as_ref().map(|s| s.session.submit_request(me, task)) {
         Some(Ok(wanted)) => wanted,

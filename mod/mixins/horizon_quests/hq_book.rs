@@ -871,6 +871,23 @@ fn draw_tooltip(scene: &mut Scene, s: &Screen<'_>, text: &str) {
     scene.text(text, [left + 3.0, top + 2.0], INK);
 }
 
+/// Window ticks the book waits for the server's first answer before it says
+/// none is coming (5 seconds).
+pub const ANSWER_TIMEOUT: u32 = 100;
+
+/// The line the book shows while it has no pack yet, `waited` ticks after it
+/// asked: the server's notice when it sent one (an incompatible version),
+/// else a server that never answered most likely has no Horizon Quests.
+pub fn loading_line(notice: &str, waited: u32) -> &str {
+    if !notice.is_empty() {
+        notice
+    } else if waited >= ANSWER_TIMEOUT {
+        "No answer from the server: it may not have Horizon Quests."
+    } else {
+        "Loading quests from server..."
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::hq_progress::{QuestEvent, apply};
@@ -1360,5 +1377,14 @@ mod tests {
         let shown = view.scene(&screen(&book, &progress, NOWHERE));
         assert!(texts(&shown).contains(&"That quest is not open yet."));
         assert!(texts(&shown).contains(&"drag: move | wheel: zoom | Esc: close"));
+    }
+
+    #[test]
+    fn loading_says_when_no_answer_comes() {
+        assert_eq!(loading_line("", 0), "Loading quests from server...");
+        assert_eq!(loading_line("", ANSWER_TIMEOUT - 1), "Loading quests from server...");
+        assert!(loading_line("", ANSWER_TIMEOUT).contains("may not have Horizon Quests"));
+        // A notice from the server (an incompatible version) wins at once.
+        assert_eq!(loading_line("Incompatible quest mod", 0), "Incompatible quest mod");
     }
 }

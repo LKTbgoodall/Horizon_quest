@@ -3,7 +3,7 @@
 // (hq_net) on channel "horizon_quests:book". Screen hooks borrow the game
 // immutably, so the client state lives in a thread local on the window thread.
 
-use super::hq_book::{BookView, Draw, Reaction, Screen};
+use super::hq_book::{self as book_ui, BookView, Draw, Reaction, Screen};
 use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::Progress;
@@ -26,6 +26,9 @@ struct ClientState {
     receiver: net::Receiver,
     rect: [f32; 4],
     close_requested: bool,
+    /// Window ticks since the last `Hello` went unanswered; None once the
+    /// server answered (or before anything was asked).
+    waited: Option<u32>,
 }
 
 impl ClientState {
@@ -39,7 +42,13 @@ impl ClientState {
             receiver: net::Receiver::new(net::CLIENT_MAX_PARTS),
             rect: [0.0, 0.0, 800.0, 600.0],
             close_requested: false,
+            waited: None,
         }
+    }
+
+    /// Whether anything is kept from a world: a pack, or a request.
+    fn in_use(&self) -> bool {
+        self.book.is_some() || self.waited.is_some() || self.sender.waiting() > 0
     }
 }
 
@@ -90,20 +99,36 @@ pub fn key(game: &mut Game<'_>, key: &str, pressed: bool) {
                 protocol: net::PROTOCOL,
                 version: meta::VERSION.into(),
             });
+            s.waited = Some(0);
         });
         flush_net(game);
     }
 }
 
-/// Every window tick: dispatch outgoing net frames or close the screen if requested.
+/// Every window tick: dispatch outgoing net frames or close the screen if
+/// requested. Out of a world, the last world's pack and requests are
+/// forgotten, so another server's book starts from nothing.
 pub fn tick(game: &mut Game<'_>) {
     if !game.native_window() {
+        return;
+    }
+    if game.native_player().is_none() {
+        with(|s| {
+            if s.in_use() {
+                *s = ClientState::new();
+            }
+        });
         return;
     }
     if with(|s| s.close_requested) {
         with(|s| s.close_requested = false);
         game.native_mod_screen_close(meta::ID);
     }
+    with(|s| {
+        if let Some(waited) = &mut s.waited {
+            *waited = waited.saturating_add(1);
+        }
+    });
     flush_net(game);
 }
 
@@ -139,11 +164,15 @@ pub fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
         return;
     };
     with(|s| match msg {
-        ToClient::Welcome { .. } => {}
+        ToClient::Welcome { .. } => {
+            s.waited = None;
+        }
         ToClient::Incompatible { protocol, version } => {
+            s.waited = None;
             s.view.notice = format!("Incompatible quest mod: server is {version} (proto {protocol})");
         }
         ToClient::Book { file } => {
+            s.waited = None;
             let book = Book::new(file);
             let measure = |text: &str| text.len() as f32 * 6.0;
             let screen = Screen {
@@ -176,7 +205,7 @@ pub fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'
     let mouse = screen.mouse;
     let measure = |text: &str| game.native_text_width(text);
 
-    let (draws, empty) = with(|s| {
+    let (draws, loading) = with(|s| {
         s.rect = rect;
         if let Some(book) = &s.book {
             let scr = Screen {
@@ -189,21 +218,21 @@ pub fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'
             };
             s.view.open(&scr);
             let scene = s.view.scene(&scr);
-            (scene.draws, false)
+            (scene.draws, None)
         } else {
-            (Vec::new(), true)
+            let line = book_ui::loading_line(&s.view.notice, s.waited.unwrap_or(0));
+            (Vec::new(), Some(line.to_owned()))
         }
     });
 
-    if empty {
-        // Loading state: dark backdrop and a message while waiting for the book
+    if let Some(line) = loading {
+        // No pack yet: a dark backdrop and where the request stands.
         game.native_fill(batch, rect, 0xD010_1018);
         let [x, y, w, h] = rect;
         game.native_fill(batch, [x, y, w, 24.0], 0xFF20_2030);
         game.native_text(batch, &format!("{} - Loading", meta::title()), [x + 6.0, y + 8.0], 0xFF_FFFF, true);
-        let notice = "Loading quests from server...";
-        let nw = game.native_text_width(notice);
-        game.native_text(batch, notice, [x + (w - nw) / 2.0, y + h / 2.0], 0xFF_C040, true);
+        let nw = game.native_text_width(&line);
+        game.native_text(batch, &line, [x + (w - nw) / 2.0, y + h / 2.0], 0xFF_C040, true);
         return;
     }
 
