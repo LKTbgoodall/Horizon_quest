@@ -8,6 +8,8 @@
 //! game is built with `-D warnings`, and code no glue calls yet is dead code
 //! there. Each one joins the bundle with the glue that uses it (phase 2).
 
+#[path = "../mixins/horizon_quests/hq_book.rs"]
+pub mod hq_book;
 #[path = "../mixins/horizon_quests/hq_canvas.rs"]
 pub mod hq_canvas;
 #[path = "../mixins/horizon_quests/hq_logic.rs"]
