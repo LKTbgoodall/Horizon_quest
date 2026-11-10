@@ -36,15 +36,19 @@ cd mod
 cargo test
 ```
 
-## Test in game (home PC)
-1. Get the latest code:
+## Test in game
+1. Get the latest code (on another PC):
    ```bash
    git pull
    ```
-2. Build it into the instance. Run this yourself; an agent must never pass `--trust-native-code`. Add `--instance NAME` if you don't use the default instance.
-   ```bash
-   horizon-launcher native-build mod/mixins/horizon_quests --trust-native-code
+2. Package, install and build it. Run this yourself from the repo root; an agent must never run the build step, which passes `--trust-native-code`. Add `-Instance NAME` if your instance is not `mon-horizon`.
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1
    ```
+   The script packs `build/horizon_quests.hnmod`, copies it into the instance's `horizon-native-mods`, turns it on in `horizon-mods.txt`, and runs `horizon-launcher native-build --instance mon-horizon` with every native mod of the instance. `-NoBuild` stops before the build; `-Uninstall` takes the mod out.
+
+   Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
+
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
 3. Start the game and check, in order:
    - [ ] **Build**: it succeeds. If not, send `native/build.log` (launcher data folder, or the launcher's "Build log" button).

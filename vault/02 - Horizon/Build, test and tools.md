@@ -84,3 +84,10 @@ Home PC:
 - [x] Horizon launcher and Minecraft Java (according to Bastien, 2026-11-10)
 - [ ] Git, and a clone of https://github.com/LKTbgoodall/Horizon_quest
 - [ ] Smart App Control off if builds get blocked (os error 4551)
+
+## Installing our mod in an instance (learned 2026-11-10)
+- `horizon-launcher native-build <mod folder> --trust-native-code` builds the instance's installed mods **plus** that folder, but does **not** install it: the launcher's Mods tab does not list it, shows "To recompile", and the next build from the launcher (its "Compile" button) **drops the mod**.
+- To install it for real: a `.hnmod` (zip, `/` separators) with `horizon-native.json` (`game`, `hooks`, `horizon`, `id`, `mixins`, `schema` 1, `version`) and the bundle under `mixins/<id>/`, copied into `%APPDATA%\horizon\instances\<instance>\horizon-native-mods\`, plus the line `mod.<id>:true` in `horizon-mods.txt` of the instance. Then `native-build --instance <instance>` with no folder.
+- `tools\build-mod.ps1` does all of that (modelled on Bastien's script in his `organa` project). `build/` is gitignored.
+- Paths on Bastien's PC: launcher `%LOCALAPPDATA%\Programs\Horizon Launcher\horizon-launcher.exe` (not on PATH; it is a windowed app, so PowerShell's `&` does not wait for it, `Start-Process -Wait` does), data `%APPDATA%\horizon-launcher` (`native/build.log`, `native/built.json`, `versions/`), instances `%APPDATA%\horizon\instances\` (default `mon-horizon`).
+- First real build: 2026-11-10, Horizon `fdc87ae`, mixins `5a64af9`, profile performance, 4 min 12 s incremental, **no compile error** in our glue. The mod now pins `fdc87ae`.

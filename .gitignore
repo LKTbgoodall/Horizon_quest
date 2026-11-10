@@ -13,3 +13,6 @@ vault/.trash/
 # OS
 .DS_Store
 Thumbs.db
+
+# Packaged mod (tools/build-mod.ps1)
+build/

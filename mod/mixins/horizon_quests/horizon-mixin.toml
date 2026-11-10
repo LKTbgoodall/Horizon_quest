@@ -3,11 +3,11 @@ id = "horizon_quests"
 version = "0.0.1"
 priority = 100
 
-# The commit it was written against. It uses only native hook points
+# The commit it was built and tested on (native-build, 2026-11-10).
 # ("hooks": 313 in compatibility.json, for native_item_stack), so the launcher
 # builds it on any Horizon that has them.
 [compatibility]
-horizon_revision = "1453e0e614af4b2d04dd0d228a94162b5d459910"
+horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
 
 # Pure modules (also built by `cargo test` through src/lib.rs).
 [[module]]

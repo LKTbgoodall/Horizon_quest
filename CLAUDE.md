@@ -37,8 +37,8 @@ Vault conventions: `[[Note title]]` wiki links, YAML frontmatter, API status ✅
 - **Commit and push after each step** without asking: Bastien tests by pulling on another PC. Commit messages in English.
 
 ## Machines
-- **Dev PC (this one)**: no game, so no in-game test. Rust stable 1.99.1 `x86_64-pc-windows-gnu` is installed via rustup (`%USERPROFILE%\.cargo\bin`) for `cargo test`.
-- **Home PC (Windows)**: Horizon launcher + Minecraft. Bastien runs `git pull` there, builds with `horizon-launcher native-build … --trust-native-code`, tests in game and reports back.
+- **Dev PC (this one)**: has the Horizon launcher and the game too (found 2026-11-10: `%LOCALAPPDATA%\Programs\Horizon Launcher\horizon-launcher.exe`, instance `mon-horizon`), so Bastien can test here; Claude may read `%APPDATA%\horizon-launcher\native\build.log` directly. Rust stable 1.99.1 `x86_64-pc-windows-gnu` is installed via rustup (`%USERPROFILE%\.cargo\bin`) for `cargo test`.
+- **Home PC (Windows)**: Horizon launcher + Minecraft. Bastien runs `git pull` there, runs `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1` (packages, installs and builds; it passes `--trust-native-code`, so never Claude), tests in game and reports back.
 - So: prepare ready-to-run commands for the home PC, and ask for screenshots or `native/build.log` when something needs checking in game.
 
 ## Mod identity
