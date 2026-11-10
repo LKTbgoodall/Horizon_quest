@@ -17,7 +17,7 @@ updated: 2026-11-10
 | **Blocking** | Nothing. Spike 3 passed, so ADR-008 holds |
 
 ## ➡️ Next step
-1. Optional: check the Options > Mods row, the click-select gold frame and LAN
+1. Optional: the LAN test (everything else in phase 0 is confirmed)
 2. Bastien: answer the design questions in [[Open questions]] § Decisions to make
 3. (Phase 0 test passed on 2026-11-10: nothing to fix)
 4. Phase 2: server glue (state, load, tick, events, save) → net sync → the real book (`hq_book` replaces the spike's drawing) → commands → [[Roadmap]]

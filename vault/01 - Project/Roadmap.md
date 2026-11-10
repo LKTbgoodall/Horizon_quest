@@ -18,8 +18,8 @@ updated: 2026-11-10
 - [x] References cloned into `ext/` (gitignored): `horizon` sparse at `1453e0e` (2026-11-10) + `horizon-mods` (2026-11-10)
 - [x] Real signatures checked in `native_hooks.rs` (`NATIVE_HOOKS_API` 415) → [[Horizon hooks and API]] § 0 (2026-11-10)
 - [x] Mod skeleton in `mod/` (v0.0.1, hooks 313, MIT), 16 unit tests pass with `-D warnings` (2026-11-10)
-- [x] **Spike 1, hello world**: HUD hint shown in solo (2026-11-10, dev PC). Options > Mods row not reported yet
-- [x] **Spike 2, test book**: K opens the mod screen; 6 nodes, item icons, lines; pan and zoom work (footer showed zoom 1.77, pan 5,4) (2026-11-10). Click-select gold frame not reported yet
+- [x] **Spike 1, hello world**: HUD hint shown in solo (2026-11-10, dev PC). Options > Mods row "Horizon Quests 0.0.1: ON" + Settings button seen
+- [x] **Spike 2, test book**: K opens the mod screen; 6 nodes, item icons, lines; pan and zoom work (footer showed zoom 1.77, pan 5,4) (2026-11-10). Click-select works: gold frame + name top right
 - [x] **Spike 3, mod messages in solo**: `NET OK: pong #14 received`, one pong per opening, 14 in a row with no loss (2026-11-10). **ADR-008 holds**
 - [x] **Spike 4, server command**: `/quests` answers `Hello __LKT__! Book pings answered so far: 14.` (2026-11-10)
 

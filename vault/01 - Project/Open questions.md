@@ -59,3 +59,6 @@ updated: 2026-11-10
 - [x] *FTB Quests import?* → **Yes, later** (phase 5); keep our format convertible (2026-11-10)
 - [x] *Example chapter?* → **Yes**, a "Getting started" chapter that a config option can turn off (2026-11-10)
 - [x] *Audience?* → **Published for everyone** on playhorizon.dev (2026-11-10)
+
+## Found in the first in-game test (2026-11-10)
+- ❓ Other mods' HUD (the minimap) draws over our mod screen, top right. Can a mod screen hide other HUDs, or must the book keep that corner free? Check in phase 2 with the real book's quest panel.
