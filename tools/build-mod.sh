@@ -13,15 +13,17 @@
 # Usage:
 #   tools/build-mod.sh [--instance NAME] [--instance-dir DIR] [--no-install] [--no-build] [--uninstall]
 #
-# The instance folder is found under ~/.config/horizon/instances/NAME or
-# ~/.local/share/horizon/instances/NAME (XDG variables respected); pass
-# --instance-dir when it is elsewhere (`horizon-launcher instance list` shows
-# each instance's folder). The launcher is `horizon-launcher` on the PATH, or
-# $HORIZON_LAUNCHER.
+# Without --instance: the default instance (on Linux, the game home
+# ~/.local/share/horizon, or $HORIZON_HOME) and the launcher's selected one.
+# With --instance NAME: ~/.config/horizon/instances/NAME or
+# ~/.local/share/horizon/instances/NAME. --instance-dir DIR overrides the
+# folder (the one that holds horizon-native-mods). The launcher is
+# $HORIZON_LAUNCHER, else `horizon-launcher` on the PATH, else the binary the
+# applications-menu entry (horizon-launcher.desktop) points at.
 set -euo pipefail
 
 mod_id="horizon_quests"
-instance="mon-horizon"
+instance=""
 instance_dir=""
 no_install=0
 no_build=0
@@ -58,13 +60,50 @@ find_instance() {
         echo "$instance_dir"
         return
     fi
-    for base in "${XDG_CONFIG_HOME:-$HOME/.config}" "${XDG_DATA_HOME:-$HOME/.local/share}" "$HOME/Library/Application Support"; do
-        if [ -d "$base/horizon/instances/$instance" ]; then
-            echo "$base/horizon/instances/$instance"
+    local data="${XDG_DATA_HOME:-$HOME/.local/share}"
+    if [ -n "$instance" ]; then
+        for base in "${XDG_CONFIG_HOME:-$HOME/.config}" "$data" "$HOME/Library/Application Support"; do
+            if [ -d "$base/horizon/instances/$instance" ]; then
+                echo "$base/horizon/instances/$instance"
+                return
+            fi
+        done
+    else
+        # No name: the default instance, which on Linux is the game home itself.
+        for home in "${HORIZON_HOME:-}" "$data/horizon" "$HOME/Library/Application Support/horizon"; do
+            if [ -n "$home" ] && [ -d "$home/horizon-native-mods" ]; then
+                echo "$home"
+                return
+            fi
+        done
+    fi
+    echo "Instance not found. Pass --instance-dir DIR: the folder that holds horizon-native-mods" >&2
+    echo "(find ~ -maxdepth 7 -type d -name horizon-native-mods lists them)." >&2
+    exit 1
+}
+
+find_launcher() {
+    if [ -n "${HORIZON_LAUNCHER:-}" ]; then
+        echo "$HORIZON_LAUNCHER"
+        return
+    fi
+    if command -v horizon-launcher > /dev/null; then
+        command -v horizon-launcher
+        return
+    fi
+    # The applications-menu entry the launcher writes points at its binary.
+    local entry="${XDG_DATA_HOME:-$HOME/.local/share}/applications/horizon-launcher.desktop" exec
+    if [ -f "$entry" ]; then
+        exec="$(sed -n 's/^Exec=//p' "$entry" | head -n 1)"
+        exec="${exec%% %*}"
+        exec="${exec#\"}"
+        exec="${exec%\"}"
+        if [ -x "$exec" ]; then
+            echo "$exec"
             return
         fi
-    done
-    echo "Instance \"$instance\" not found. Run \`horizon-launcher instance list\`, then pass --instance NAME or --instance-dir DIR." >&2
+    fi
+    echo "horizon-launcher not found: set HORIZON_LAUNCHER=/path/to/horizon-launcher." >&2
     exit 1
 }
 
@@ -128,7 +167,12 @@ echo "Installed in $dir."
 [ "$no_build" = 1 ] && exit 0
 
 # 3. Build the game with every native mod turned on in the instance.
-launcher="${HORIZON_LAUNCHER:-horizon-launcher}"
-command -v "$launcher" > /dev/null || { echo "$launcher not found: put it on the PATH or set HORIZON_LAUNCHER." >&2; exit 1; }
-"$launcher" native-build --instance "$instance" --trust-native-code
+launcher="$(find_launcher)"
+echo "Launcher: $launcher"
+if [ -n "$instance" ]; then
+    "$launcher" native-build --instance "$instance" --trust-native-code
+else
+    # No name: the launcher's selected instance.
+    "$launcher" native-build --trust-native-code
+fi
 echo "Ready: start Horizon from the launcher."
