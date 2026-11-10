@@ -79,5 +79,5 @@ updated: 2026-11-10
 
 ## Found in Session 15 (2026-11-10)
 - ❓ **A mod key in Controls > Key Binds**: no hook today (the list is static). Ask the Horizon devs for one; until then the key lives in Options > Mods > Horizon Quests.
-- ❓ **The Quest Book's texture**: needs a companion content mod with the namespace `horizon_quests` (assets). Can a content mod and a native mod share an id? Does the LAN content check then need the same file on the guest? Waiting for Bastien's go.
+- ❓ **The Quest Book's texture**: *done in v0.1.2* (content half in the same `.hmod`, `side = "client"` so the LAN check never compares it; organa already ran a content and a native mod with one id). To confirm in game: the texture shows, Options > Mods is fine with the two halves, the LAN guest joins.
 - ❓ **The Quest Book on a server without the mod / with the mod removed**: a code-declared item is in the content check; in a save, an item whose mod is gone is unknown. To watch.

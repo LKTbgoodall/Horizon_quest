@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Packages Horizon Quests as a .hnmod, installs it in a Horizon instance and
-# builds the game: the Linux (and macOS) twin of tools/build-mod.ps1.
+# Packages Horizon Quests as one .hmod (code and content), installs it in a
+# Horizon instance and builds the game: the Linux (and macOS) twin of
+# tools/build-mod.ps1.
 #
-#   1. Packs build/horizon_quests.hnmod from mod/mixins/horizon_quests (.rs,
-#      .toml and the data/ files that native_data! compiles in).
-#   2. Unless --no-install: copies it into the instance's horizon-native-mods
-#      and turns it on, so the launcher lists it and keeps it in every build.
+#   1. Packs build/horizon_quests.hmod, the one file of the mod: its native
+#      code (horizon-native.json, mixins/horizon_quests/) and its content
+#      (horizon-mod.toml and assets/ from mod/content: the Quest Book's look).
+#   2. Unless --no-install: the pinned launcher still builds native code only
+#      from horizon-native-mods/<id>.hnmod, so the code half goes there and the
+#      content half to horizon-mods/<id>.hmod, both cut from the same sources;
+#      the mod is turned on.
 #   3. Unless --no-build: runs `horizon-launcher native-build` on the instance.
 #
 # Step 3 passes --trust-native-code: only the player runs this script, never an agent.
@@ -42,8 +46,11 @@ done
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 bundle="$root/mod/mixins/$mod_id"
+content="$root/mod/content"
 out="$root/build"
-hnmod="$out/$mod_id.hnmod"
+hmod="$out/$mod_id.hmod"
+native_part="$out/install/$mod_id.hnmod"
+content_part="$out/install/$mod_id.hmod"
 
 # The commits the mod was built and tested on (the launcher's native/built.json).
 horizon_rev="fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
@@ -121,47 +128,78 @@ set_mod_line() { # $1: true to turn the mod on, false to take it out
 
 if [ "$uninstall" = 1 ]; then
     dir="$(find_instance)"
-    rm -f "$dir/horizon-native-mods/$mod_id.hnmod"
+    rm -f "$dir/horizon-native-mods/$mod_id.hnmod" "$dir/horizon-mods/$mod_id.hmod"
     set_mod_line "$dir" false
     echo "Horizon Quests removed from $dir. Run native-build again to rebuild the game without it."
     exit 0
 fi
 
-# 1. The .hnmod package: a zip of horizon-native.json and mixins/<id>/...
+content_version="$(sed -n 's/^version = "\([^"]*\)".*/\1/p' "$content/horizon-mod.toml" | head -n 1)"
+if [ "$content_version" != "$version" ]; then
+    echo "mod/content/horizon-mod.toml says $content_version, the bundle $version." >&2
+    exit 1
+fi
+
+# 1. Two staged halves: native (horizon-native.json, mixins/<id>/...) and
+# content (horizon-mod.toml, assets/, data/).
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
-mkdir -p "$stage/mixins/$mod_id" "$out"
-printf '{"game":"26.3","hooks":%s,"horizon":"%s","id":"%s","mixins":"%s","schema":1,"version":"%s"}' \
-    "$hooks" "$horizon_rev" "$mod_id" "$mixins_rev" "$version" > "$stage/horizon-native.json"
+native="$stage/native"
+cont="$stage/content"
+mkdir -p "$native/mixins/$mod_id" "$cont" "$out/install"
+printf '{"game":"26.3","hooks":%s,"horizon":"%s","id":"%s","mixins":"%s","schema":1,"version":"%s"}'     "$hooks" "$horizon_rev" "$mod_id" "$mixins_rev" "$version" > "$native/horizon-native.json"
 (
     cd "$bundle"
     find . -type f \( -name '*.rs' -o -name '*.toml' -o -path './data/*' \) -not -path '*/target/*' | while read -r f; do
-        mkdir -p "$stage/mixins/$mod_id/$(dirname "$f")"
-        cp "$f" "$stage/mixins/$mod_id/$f"
+        mkdir -p "$native/mixins/$mod_id/$(dirname "$f")"
+        cp "$f" "$native/mixins/$mod_id/$f"
     done
 )
-[ -f "$root/mod/LICENSE" ] && cp "$root/mod/LICENSE" "$stage/mixins/$mod_id/LICENSE"
-rm -f "$hnmod"
-# Files only, no folder entries, as the Windows script packs them.
-(cd "$stage" && { echo horizon-native.json; find mixins -type f | sort; }) > "$stage.list"
-trap 'rm -rf "$stage" "$stage.list"' EXIT
-if command -v bsdtar > /dev/null; then
-    (cd "$stage" && bsdtar --format zip -n -cf "$hnmod" -T "$stage.list")
-elif command -v zip > /dev/null; then
-    (cd "$stage" && zip -q -D "$hnmod" -@ < "$stage.list")
-elif command -v python3 > /dev/null; then
-    (cd "$stage" && xargs -d '\n' python3 -m zipfile -c "$hnmod" < "$stage.list")
-else
-    echo "Need bsdtar, zip or python3 to make the package." >&2
-    exit 1
-fi
-echo "Package: $hnmod (version $version)"
+[ -f "$root/mod/LICENSE" ] && cp "$root/mod/LICENSE" "$native/mixins/$mod_id/LICENSE"
+cp "$content/horizon-mod.toml" "$cont/"
+for top in assets data; do
+    [ -d "$content/$top" ] && cp -R "$content/$top" "$cont/"
+done
+# Every entry gets the same date, so the same sources make the same file.
+find "$stage" -type f -exec touch -t 202601010000 {} +
+
+# A zip of the halves given (folders of $stage) merged, files only, no
+# folder entries, in a stable order.
+make_zip() { # $1: the zip, then the halves
+    local zip="$1" flat="$stage/flat" list="$stage/list" d
+    shift
+    rm -rf "$zip" "$flat" "$list"
+    mkdir -p "$flat"
+    for d in "$@"; do
+        cp -R "$stage/$d/." "$flat/"
+    done
+    find "$flat" -type f -exec touch -t 202601010000 {} +
+    (cd "$flat" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) > "$list"
+    if command -v bsdtar > /dev/null; then
+        (cd "$flat" && bsdtar --format zip -n -cf "$zip" -T "$list")
+    elif command -v zip > /dev/null; then
+        (cd "$flat" && zip -q -X -D "$zip" -@ < "$list")
+    elif command -v python3 > /dev/null; then
+        (cd "$flat" && python3 -c 'import sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
+    for name in open(sys.argv[2]).read().splitlines():
+        z.write(name, name)' "$zip" "$list")
+    else
+        echo "Need bsdtar, zip or python3 to make the package." >&2
+        exit 1
+    fi
+}
+make_zip "$hmod" content native
+make_zip "$native_part" native
+make_zip "$content_part" content
+echo "The mod: $hmod (version $version)"
 [ "$no_install" = 1 ] && exit 0
 
-# 2. Install it in the instance.
+# 2. Install it: the code where the launcher builds it, the content where the game reads it.
 dir="$(find_instance)"
-[ -d "$dir/horizon-native-mods" ] || mkdir -p "$dir/horizon-native-mods"
-cp "$hnmod" "$dir/horizon-native-mods/$mod_id.hnmod"
+mkdir -p "$dir/horizon-native-mods" "$dir/horizon-mods"
+cp "$native_part" "$dir/horizon-native-mods/$mod_id.hnmod"
+cp "$content_part" "$dir/horizon-mods/$mod_id.hmod"
 set_mod_line "$dir" true
 echo "Installed in $dir."
 [ "$no_build" = 1 ] && exit 0
