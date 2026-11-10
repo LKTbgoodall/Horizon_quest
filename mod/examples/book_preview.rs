@@ -115,7 +115,18 @@ fn svg(scene: &Scene, mouse: [f32; 2]) -> String {
         out,
         r##"<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#78a7ff"/><stop offset="1" stop-color="#c8dcff"/></linearGradient></defs><rect width="{w}" height="{h}" fill="url(#sky)"/><path d="M0 170 L70 130 L150 165 L240 120 L330 160 L410 125 L480 150 L480 270 L0 270 Z" fill="#5d8f4a"/><rect y="200" width="{w}" height="70" fill="#6aa84f"/>"##
     );
-    for draw in &scene.draws {
+    // No textures here: a sprite is drawn as its fallback.
+    fn flatten(draws: &[Draw], out: &mut Vec<Draw>) {
+        for draw in draws {
+            match draw {
+                Draw::Sprite { fallback, .. } => flatten(fallback, out),
+                other => out.push(other.clone()),
+            }
+        }
+    }
+    let mut flat = Vec::new();
+    flatten(&scene.draws, &mut flat);
+    for draw in &flat {
         match draw {
             Draw::Fill { rect: [x, y, w, h], colour } => {
                 let _ = write!(
@@ -162,6 +173,8 @@ fn svg(scene: &Scene, mouse: [f32; 2]) -> String {
                     size * 0.5
                 );
             }
+            // Flattened above.
+            Draw::Sprite { .. } => {}
         }
     }
     if mouse[0] >= 0.0 && mouse[1] >= 0.0 {

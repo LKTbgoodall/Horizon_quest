@@ -157,6 +157,11 @@ fn paint(game: &Game<'_>, batch: &mut HudBatch, draws: Vec<Draw>) {
                 let stack = ItemStack { item: Arc::from(item.as_str()), count: 1, damage: 0, extra: None };
                 game.native_item_stack(batch, &stack, at, size);
             }
+            Draw::Sprite { name, src, dst, fallback } => {
+                if !game.native_sprite(batch, &name, src, dst) {
+                    paint(game, batch, fallback);
+                }
+            }
         }
     }
 }

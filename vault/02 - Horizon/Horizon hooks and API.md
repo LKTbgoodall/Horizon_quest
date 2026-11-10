@@ -170,7 +170,7 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
   - `native_screen_key_released_pre` (118);
   - `native_screen_opening/init_post/closing` (365-367).
 - **Drawing**:
-  - `native_fill`, `native_text`, `native_text_width`, `native_sprite` (GUI textures `assets/<ns>/textures/gui`);
+  - `native_fill`, `native_text`, `native_text_width`, `native_sprite(&self, batch, name, src: [x,y,w,h] in the sprite's pixels, dst: GUI rect) -> bool` (API 19; GUI textures `assets/<ns>/textures/gui/<path>.png` of every non-minecraft namespace are packed into the HUD atlas as `<ns>:gui/<path>`; no tint, false when missing) ✅ used since v0.6.0 for the book's node frames;
   - `native_quad(batch, points, argb)` → **dependency lines**;
   - `native_item_stack(batch, stack, at, size)` (313) → **quest icons**;
   - `native_item_model` (111);

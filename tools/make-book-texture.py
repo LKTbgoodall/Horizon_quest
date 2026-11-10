@@ -12,7 +12,9 @@ spots.
     python tools/make-book-texture.py [gold|violet]
 
 writes mod/content/assets/horizon_quests/textures/item/quest_book.png (the
-"gold" accents by default) and, for a look at both, build/quest_book_preview.png
+"gold" accents by default), the mod's icon for the registry, mod/icon.png (the
+same book 16 times larger: 256 x 256), and, for a look at both,
+build/quest_book_preview.png
 (each variant 24 times larger, side by side). No third-party library: the PNG
 is written with zlib.
 """
@@ -108,7 +110,12 @@ def main():
     os.makedirs(os.path.dirname(preview), exist_ok=True)
     with open(preview, "wb") as f:
         f.write(png(rgba_rows(joined, PREVIEW_SCALE)))
+    # The registry's icon (playhorizon.dev): the book, pixel for pixel, 16 times larger.
+    icon = os.path.join(root, "mod", "icon.png")
+    with open(icon, "wb") as f:
+        f.write(png(rgba_rows(draw(accent), 16)))
     print(out)
+    print(icon)
     print(preview)
 
 

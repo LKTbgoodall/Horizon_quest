@@ -82,6 +82,10 @@ pub enum Draw {
     Text { text: String, at: [f32; 2], colour: u32, shadow: bool },
     /// An item's icon, `size` pixels wide, its top-left corner at `at`.
     Item { item: String, at: [f32; 2], size: f32 },
+    /// Part `src` of GUI sprite `name` (a texture of the mod's content),
+    /// stretched into `dst`; `fallback` is drawn instead when the game has
+    /// no such sprite (the content half is not installed).
+    Sprite { name: String, src: [f32; 4], dst: [f32; 4], fallback: Vec<Draw> },
 }
 
 /// What a click does. Nodes are `Book` node indexes; ids are full ids.
@@ -184,9 +188,7 @@ impl Scene {
     }
 
     fn polygon(&mut self, shape: Shape, centre: [f32; 2], radius: f32, colour: u32) {
-        for corners in polygon_quads(&shape_points(shape, centre, radius)) {
-            self.draws.push(Draw::Quad { corners, colour });
-        }
+        self.draws.extend(polygon_draws(shape, centre, radius, colour));
     }
 
     /// A button with its right edge at `right`: its box, label and zone.
@@ -266,6 +268,35 @@ pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]
             [cx + radius * angle.cos(), cy - radius * angle.sin()]
         })
         .collect()
+}
+
+/// A shape filled with `colour`, as quads.
+fn polygon_draws(shape: Shape, centre: [f32; 2], radius: f32, colour: u32) -> Vec<Draw> {
+    polygon_quads(&shape_points(shape, centre, radius)).into_iter().map(|corners| Draw::Quad { corners, colour }).collect()
+}
+
+/// The node frames' sprite sheet (`tools/make-node-textures.py`): a row per
+/// shape, a column per state, each cell `NODE_CELL` pixels square.
+pub const NODE_SPRITE: &str = "horizon_quests:gui/nodes";
+const NODE_CELL: f32 = 32.0;
+
+/// The cell of the node sprite sheet for a node of this shape and state.
+pub fn node_cell(shape: Shape, state: QuestState) -> [f32; 4] {
+    let row = match shape {
+        Shape::Square => 0.0,
+        Shape::Circle => 1.0,
+        Shape::Diamond => 2.0,
+        Shape::Hexagon => 3.0,
+        Shape::Octagon => 4.0,
+    };
+    let column = match state {
+        QuestState::Locked => 0.0,
+        QuestState::Available => 1.0,
+        QuestState::InProgress => 2.0,
+        QuestState::RewardsWaiting => 3.0,
+        QuestState::Done => 4.0,
+    };
+    [column * NODE_CELL, row * NODE_CELL, NODE_CELL, NODE_CELL]
 }
 
 /// A convex polygon with an even number of corners, as quads fanned from
@@ -789,8 +820,11 @@ impl BookView {
             if selected == Some(n) {
                 scene.polygon(node.shape, centre, radius + 2.0, SELECTED);
             }
-            scene.polygon(node.shape, centre, radius, state_look(statuses[n].state).0);
-            scene.polygon(node.shape, centre, (radius - 1.5).max(0.0), NODE_FILL);
+            // The frame's texture, or the same shape as polygons without it.
+            let state = statuses[n].state;
+            let mut fallback = polygon_draws(node.shape, centre, radius, state_look(state).0);
+            fallback.extend(polygon_draws(node.shape, centre, (radius - 1.5).max(0.0), NODE_FILL));
+            scene.draws.push(Draw::Sprite { name: NODE_SPRITE.to_owned(), src: node_cell(node.shape, state), dst: b, fallback });
             // A diamond has less room inside than the other shapes.
             let share = if node.shape == Shape::Diamond { 0.45 } else { 0.6 };
             let icon = (b[2] * share).clamp(4.0, 64.0);
@@ -1678,6 +1712,27 @@ mod tests {
             Reaction::Send(ToServer::Submit { task: "a/next/planks".into() })
         );
         assert_eq!(click(&mut view, &book, &progress, &Action::Close), Reaction::Close);
+    }
+
+    #[test]
+    fn nodes_are_drawn_from_the_frame_sheet_with_polygons_to_fall_back_on() {
+        let (book, progress) = (book(), Progress::default());
+        let view = opened(&book, &progress);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let frames: Vec<(&[f32; 4], &Vec<Draw>)> = scene
+            .draws
+            .iter()
+            .filter_map(|d| match d {
+                Draw::Sprite { name, src, fallback, .. } if name == NODE_SPRITE => Some((src, fallback)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(frames.len(), 2, "one per node shown");
+        // The open quest is "available", the other "locked", each in its shape's row.
+        let shape = book.nodes()[0].shape;
+        assert_eq!(*frames[0].0, node_cell(shape, QuestState::Available));
+        assert_eq!(node_cell(Shape::Octagon, QuestState::Done), [128.0, 128.0, 32.0, 32.0]);
+        assert!(frames.iter().all(|(_, fallback)| fallback.iter().all(|d| matches!(d, Draw::Quad { .. })) && !fallback.is_empty()));
     }
 
     #[test]

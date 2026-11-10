@@ -2,6 +2,7 @@
 //! into one `horizon_quests.hmod`: same mod, same version, and the Quest
 //! Book's model and texture where the game looks for them.
 
+use horizon_mod_horizon_quests::hq_book::NODE_SPRITE;
 use horizon_mod_horizon_quests::hq_meta::{BOOK_ITEM, ID, NAME, VERSION};
 use std::path::Path;
 
@@ -39,4 +40,24 @@ fn the_book_has_its_model_and_texture() {
     // IHDR: 16 x 16, 8-bit RGBA.
     assert_eq!(&png[16..24], &[0, 0, 0, 16, 0, 0, 0, 16]);
     assert_eq!(&png[24..26], &[8, 6]);
+}
+
+#[test]
+fn the_node_frames_are_where_the_book_draws_them_from() {
+    // `horizon_quests:gui/nodes` is `assets/horizon_quests/textures/gui/nodes.png`.
+    let (namespace, path) = NODE_SPRITE.split_once(':').unwrap();
+    let png = std::fs::read(content().join("assets").join(namespace).join("textures").join(format!("{path}.png"))).unwrap();
+    assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+    // IHDR: 5 shapes x 5 states of 32 x 32 pixels, 8-bit RGBA.
+    assert_eq!(&png[16..24], &[0, 0, 0, 160, 0, 0, 0, 160]);
+    assert_eq!(&png[24..26], &[8, 6]);
+}
+
+#[test]
+fn the_registry_icon_is_a_small_square_png() {
+    // playhorizon.dev asks for a PNG icon of at most 256 KiB.
+    let png = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/icon.png")).unwrap();
+    assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+    assert_eq!(&png[16..24], &[0, 0, 1, 0, 0, 0, 1, 0]);
+    assert!(png.len() <= 256 * 1024);
 }

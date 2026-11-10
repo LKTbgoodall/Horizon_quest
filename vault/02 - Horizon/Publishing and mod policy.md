@@ -10,7 +10,7 @@ Back: [[Horizon - Overview]]
 ## Process
 1. The source code must be in a **public repository** under a free license (SPDX name: MIT, Apache-2.0, GPL…). For us: https://github.com/LKTbgoodall/Horizon_quest. License to be chosen, see [[Open questions]].
 2. `python3 native/tools/native.py package <folder>` produces `native/target/<id>-<version>.hnmod`, then prints the size and the sha256.
-3. Form at https://playhorizon.dev/mods/submit (GitHub login): file, id, game version (26.3), Markdown description, authors, license, source URL, PNG icon ≤ 256 KiB.
+3. Form at https://playhorizon.dev/mods/submit (GitHub login): file, id, game version (26.3), Markdown description, authors, license, source URL, PNG icon ≤ 256 KiB (ours: `mod/icon.png`, 256 x 256, 1.3 KB, since v0.6.0).
 4. A **PR** is opened automatically on `horizon-rust/horizon-mods`, with `mods/<id>.toml` and `icons/<id>.png`.
 5. **Human review**: a maintainer reads **every line** of the `.hnmod`, and **every update** of a native mod is reviewed.
 6. Each published version requires a new `version`. « A published file never changes. »
