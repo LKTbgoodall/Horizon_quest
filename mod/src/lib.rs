@@ -5,6 +5,8 @@
 
 #[path = "../mixins/horizon_quests/hq_canvas.rs"]
 pub mod hq_canvas;
+#[path = "../mixins/horizon_quests/hq_logic.rs"]
+pub mod hq_logic;
 #[path = "../mixins/horizon_quests/hq_meta.rs"]
 pub mod hq_meta;
 #[path = "../mixins/horizon_quests/hq_model.rs"]
