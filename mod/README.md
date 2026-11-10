@@ -53,6 +53,12 @@ It ends with "The glue type-checks against Horizon fdc87ae", or with the compile
    ```
    The script packs `build/horizon_quests.hnmod`, copies it into the instance's `horizon-native-mods`, turns it on in `horizon-mods.txt`, and runs `horizon-launcher native-build --instance mon-horizon` with every native mod of the instance. `-NoBuild` stops before the build; `-Uninstall` takes the mod out.
 
+   **On Linux (or macOS)**, the same with bash:
+   ```bash
+   bash tools/build-mod.sh --instance NAME
+   ```
+   It finds the instance under `~/.config/horizon/instances/NAME` or `~/.local/share/horizon/instances/NAME`; if it is elsewhere, add `--instance-dir DIR` (`horizon-launcher instance list` shows each instance's folder). The launcher must be on the `PATH` as `horizon-launcher`, or set `HORIZON_LAUNCHER=/path/to/it`. `--no-build` and `--uninstall` work as on Windows. It needs `bsdtar` (always there on Arch), `zip` or `python3`.
+
    Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
