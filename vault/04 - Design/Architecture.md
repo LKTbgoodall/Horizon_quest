@@ -73,6 +73,7 @@ Status on 2026-11-10: ✔ written and tested · ◻ planned.
 | ✔ `hq_store` | Atomic JSON reads and writes, `progress/<team>.json`, version check, UUID names. ◻ Writer thread, `teams.json`, `audit.log` | ✅ (fs) |
 | ◻ `hq_import_ftb` | Import FTB JSON5/SNBT → our format (later) | ✅ |
 | ✔ `hq_session` | The server's state while a world is open: players, event queue, inventory look schedule, `dirty` (to save) and `unsynced` (to send) apart; `player_id(uuid)` is the id claims are kept under and the book looks them up under | ✅ |
+| ✔ `hq_config` | The server config file `horizon_quests-server.toml` (TOML, `toml` 1.1 from horizon-client): `DEFAULT_TEXT`, `parse(text) -> (ServerConfig, problems)`; a wrong or unknown setting keeps its default and is logged. Today: `example_chapter` | ✅ |
 | ✔ `hq_server_glue.rs` | Server half: `static STATE: Mutex<Option<State>>`, hook wiring, effects after the lock, net senders/receivers per player, `Hello` answered once while its pack is in flight, book hand-ins through `native_as_player` | ❌ |
 | ✔ `hq_client_glue.rs` | Mod screen, the real book (`hq_book`) drawn and driven, net to the server, loading line with a 5 s "no answer" (`hq_book::loading_line`), state forgotten out of a world. ◻ Toasts | ❌ |
 

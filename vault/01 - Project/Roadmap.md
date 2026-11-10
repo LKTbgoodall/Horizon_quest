@@ -37,12 +37,12 @@ updated: 2026-11-10
 - [x] `hq_book`: the whole book as a draw list + click zones: regions (header, chapter list, canvas, quest panel, footer), nodes with shapes / sizes / state colours, dependency lines, fit-to-canvas, text wrapping, buttons (Check, Submit, Claim, Claim all), tooltip, click / drag / wheel handling (2026-11-10)
 - [x] `hq_commands`: `/quests` forms, op levels, help, validation report, chat lines for effects; `force_complete` and `reset_quest` in `hq_progress` (2026-11-10)
 - [x] Example chapter "Getting started" in `data/quests/` (11 quests), with an end-to-end test that finishes it (2026-11-10)
-- [ ] Config option to turn the example chapter off (needs `native_register_configs`: glue, phase 2)
+- [ ] Config option to turn the example chapter off: `example_chapter` in `config/horizon_quests-server.toml` (`hq_config`, API 397): **coded (v0.0.5), to test**
 
 > **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).
 
 ## Phase 2: playable MVP (solo/LAN) 🎯 ⬅️ IN PROGRESS
-> Steps 1, 2 & 3 coded on 2026-11-10 as v0.0.3: server glue + net sync (`hq_net`) + graphical book (`hq_book` via `hq_client_glue`). v0.0.4 (same day) fixes the review of v0.0.3 (build, claims in the book, book hand-ins for LAN guests, sync and loading robustness). "Coded" items wait for the in-game test before they are ticked.
+> Steps 1, 2 & 3 coded on 2026-11-10 as v0.0.3: server glue + net sync (`hq_net`) + graphical book (`hq_book` via `hq_client_glue`). v0.0.4 (same day) fixes the review of v0.0.3 (build, claims in the book, book hand-ins for LAN guests, sync and loading robustness). v0.0.5 adds the server config file (`example_chapter`): everything of phase 2 that needs no game is now coded. "Coded" items wait for the in-game test before they are ticked.
 
 - [ ] Server glue: global state, `server_tick`, `world_lifecycle`, `player_logged_in/out`: **coded (v0.0.2/v0.0.3), to test**
 - [ ] Tasks: item (polling + pickup/craft/furnace triggers, [[ADR-010 Item detection by polling plus triggers]]), checkmark, kill (`mob_killed`, melee only), hand-in (`/quests submit` or book button): **coded (v0.0.2/v0.0.3), to test**
@@ -53,7 +53,7 @@ updated: 2026-11-10
 - [ ] Opening: key (`native_mod_key`, default K) and HUD hint hiding while open: **coded (v0.0.3), to test**
 - [ ] Notifications: chat message on completion: **coded (v0.0.2/v0.0.3), to test**
 - [ ] Commands: `/quests` help, progress, claim, check, submit, reload, validate, complete, reset, reset_all → [[Commands and permissions]]: **coded (v0.0.2/v0.0.3), to test**
-- [ ] Test in solo and LAN on the home PC
+- [ ] Test in solo and LAN on the home PC: checklist in `mod/README.md` § Test in game (solo steps 3, LAN step 4)
 - [ ] **Release 0.1.0** (private testing)
 
 ## Phase 3: V1

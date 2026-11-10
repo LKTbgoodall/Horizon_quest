@@ -14,7 +14,7 @@ API: [[Horizon hooks and API]] §1 and §4 · Decision: [[ADR-005 Progress as JS
 | Definitions shipped as a datapack (V1) | `data/<ns>/horizon_quests/*.json` via `native_add_server_reload_listeners` + `NativeReloadListener::json` | reloaded by `/reload`, distributable |
 | Example quests | embedded in the bundle's `data/` (`native_data!`) | demo without configuration |
 | **Progress and teams** | `<world>/horizon-quests/` (via `native_world_dir()`) | follows the world's backups (smp pattern) |
-| Mod config | `config/horizon_quests-server.toml` / `-client.toml` via `native_register_configs` | standard |
+| Mod config | `config/horizon_quests-server.toml` (a world may override it in `<world>/serverconfig/`) via `native_register_configs`, since v0.0.5; `-client.toml` later | standard |
 | Client UI preferences | `native_setting` / `native_set_setting` | per local player |
 
 ## Progress files

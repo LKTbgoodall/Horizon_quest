@@ -443,6 +443,24 @@ mod tests {
     }
 
     #[test]
+    fn turning_the_pack_off_and_on_keeps_the_progress() {
+        let mut s = session();
+        s.join(7, "Steve", Ok(Progress::default()));
+        s.push(7, QuestEvent::Killed { entity: "minecraft:zombie".into() });
+        s.push(7, QuestEvent::Killed { entity: "minecraft:zombie".into() });
+        s.process(1);
+        assert!(s.player(7).unwrap().progress.is_completed("c/zombie"));
+        // example_chapter = false: an empty pack, refreshed for everyone.
+        let full = s.book().clone();
+        s.set_book(Book::new(load(None, &[]).file));
+        s.process(2);
+        assert!(s.player(7).unwrap().progress.is_completed("c/zombie"));
+        s.set_book(full);
+        s.process(3);
+        assert!(s.player(7).unwrap().progress.is_completed("c/zombie"));
+    }
+
+    #[test]
     fn a_progress_never_saved_is_still_sent_only_once_per_change() {
         let mut s = session();
         s.join(7, "Steve", Err("bad file".into()));

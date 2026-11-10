@@ -1,11 +1,11 @@
 [mod]
 id = "horizon_quests"
-version = "0.0.4"
+version = "0.0.5"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
-# ("hooks": 313 in compatibility.json, for native_item_stack), so the launcher
-# builds it on any Horizon that has them.
+# "hooks": 397 in compatibility.json (the config files; native_item_stack
+# needs 313), so the launcher builds it on any Horizon that has them.
 [compatibility]
 horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
 
@@ -69,6 +69,12 @@ id = "commands"
 file = "crates/horizon-client/src/game.rs"
 name = "hq_commands"
 source = "hq_commands.rs"
+
+[[module]]
+id = "config"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_config"
+source = "hq_config.rs"
 
 [[module]]
 id = "session"
@@ -225,6 +231,47 @@ bindings = [
   { name = "player", ty = "&crate::game::native_server::NativeServerPlayer", value = "player" },
   { name = "command", ty = "&str", value = "command" },
   { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+# ---- Server: the config file (API 397) ----
+
+[[injection]]
+id = "register_configs"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_register_configs"
+helper = "register_configs.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "configs", ty = "&mut Vec<crate::game::native_configs::NativeConfig>", value = "&mut *configs" },
+]
+
+[[injection]]
+id = "config_loading"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_config_loading"
+helper = "config_loading.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "config", ty = "&crate::game::native_configs::NativeConfigFile", value = "config" },
+]
+
+[[injection]]
+id = "config_reloading"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_config_reloading"
+helper = "config_reloading.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "config", ty = "&crate::game::native_configs::NativeConfigFile", value = "config" },
+]
+
+[[injection]]
+id = "config_unloading"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_config_unloading"
+helper = "config_unloading.rs"
+bindings = [
+  { name = "config", ty = "&crate::game::native_configs::NativeConfigFile", value = "config" },
 ]
 
 # ---- Server: the quest engine (API 3, 4, 40, 57, 161, 228) ----

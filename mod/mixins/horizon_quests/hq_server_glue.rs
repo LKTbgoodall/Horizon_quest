@@ -9,6 +9,7 @@
 // chat, sends, taking items).
 
 use super::hq_commands::{self as commands, Command};
+use super::hq_config::{self as config, ServerConfig};
 use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::{ItemMatch, RewardKind};
@@ -17,6 +18,7 @@ use super::hq_progress::{Effect, QuestEvent};
 use super::hq_session::{self as session, Session};
 use super::hq_store as store;
 use super::hq_validate::{self as validate, Loaded};
+use super::native_configs::{NativeConfig, NativeConfigFile, NativeConfigKind};
 use super::native_inventories::NativeInventoryKind;
 use crate::game::Game;
 use crate::game::native_server::{NativeCommand, NativeServerPlayer};
@@ -29,6 +31,10 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 /// The open world's quest state; None while no world is open.
 static STATE: Mutex<Option<State>> = Mutex::new(None);
+
+/// The server's settings (hq_config), as its config file last said. Read
+/// before the world opens; the defaults until then.
+static CONFIG: Mutex<ServerConfig> = Mutex::new(ServerConfig { example_chapter: true });
 
 struct State {
     session: Session,
@@ -55,13 +61,21 @@ fn state() -> MutexGuard<'static, Option<State>> {
     STATE.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+fn server_config() -> ServerConfig {
+    *CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 /// The pack: `<world>/horizon-quests/quests/` when the world has one, else
-/// the example pack compiled into the bundle.
+/// the example pack compiled into the bundle, unless the server's config
+/// turned it off.
 fn load_pack(dir: Option<&Path>) -> (Loaded, &'static str) {
     if let Some(quests) = dir.map(|d| d.join("quests"))
         && quests.join("quests.json").is_file()
     {
         return (validate::load_dir(&quests), "the world's quests folder");
+    }
+    if !server_config().example_chapter {
+        return (validate::load(None, &[]), "nowhere: the example chapter is turned off (example_chapter = false)");
     }
     let settings = horizon_client::native_data!("horizon_quests", "quests/quests.json");
     let chapter = horizon_client::native_data!("horizon_quests", "quests/chapters/01_getting_started.json");
@@ -378,6 +392,39 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
                 }
             }
         }
+    }
+}
+
+/// The mod's config file: `config/horizon_quests-server.toml`, or the
+/// world's own copy in `serverconfig/`.
+pub fn register_configs(game: &mut Game<'_>, list: &mut Vec<NativeConfig>) {
+    if game.native_on(meta::ID) {
+        list.push(NativeConfig::new(meta::ID, NativeConfigKind::Server, config::DEFAULT_TEXT));
+    }
+}
+
+/// A config file was read (`reloaded`: it changed on disk). Ours sets the
+/// server's settings; a change made while a world is open applies at once,
+/// as `/quests reload` does.
+pub fn config_read(game: &mut Game<'_>, file: &NativeConfigFile, reloaded: bool) {
+    if file.mod_id != meta::ID || file.kind != NativeConfigKind::Server || !game.native_on(meta::ID) {
+        return;
+    }
+    let (read, problems) = config::parse(&file.text);
+    for problem in &problems {
+        log::warn!("{}: {}: {problem}", meta::NAME, file.path.display());
+    }
+    let before = std::mem::replace(&mut *CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner()), read);
+    if reloaded && before != read {
+        let lines = reload();
+        log::info!("{}: {} changed: {}", meta::NAME, file.path.display(), lines.join(" | "));
+    }
+}
+
+/// The server stopped: the next world reads its config again.
+pub fn config_dropped(file: &NativeConfigFile) {
+    if file.mod_id == meta::ID && file.kind == NativeConfigKind::Server {
+        *CONFIG.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = ServerConfig::default();
     }
 }
 

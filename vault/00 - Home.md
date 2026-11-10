@@ -10,17 +10,17 @@ updated: 2026-11-10
 ## 📍 Where we are
 | | |
 |---|---|
-| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded, review fixes in v0.0.4, **waiting for the in-game test** → [[Roadmap]] |
-| **Last session** | [[2026-11-10]] § Session 10: v0.0.4 fixes every finding of the v0.0.3 review (dead spike code removed, claims keyed by UUID in the book, book hand-ins through `native_as_player`, sync apart from saving, `Hello` flood, "no answer" loading line, ping/pong removed). **105 tests pass**, glue control compile clean |
-| **Code** | `mod/` v0.0.4. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
+| **Phase** | Phase 0 ✅ (2026-11-10); phase 1 done; **phase 2 in progress**: steps 1, 2 & 3 (server engine, net sync, graphical book) coded, review fixes in v0.0.4, config file in v0.0.5: **everything that needs no game is done, waiting for the in-game test (solo + LAN)** → [[Roadmap]] |
+| **Last session** | [[2026-11-10]] § Session 11: v0.0.5 adds `config/horizon_quests-server.toml` (`example_chapter`, hooks 397, `hq_config`), the empty-pack message, and the LAN checklist. **110 tests pass**, glue control compile clean |
+| **Code** | `mod/` v0.0.5. Full client/server quest engine with real graphical book, net sync over `horizon_quests:book`, inventory polling, rewards, saving, `/quests` |
 | **Key choices** | `horizon_quests`, MIT, graphical book first, solo/LAN first, English-only in-game text, published for everyone |
-| **Blocking** | Nothing known: the in-game test of v0.0.4. Watch the single-player host's inventory reads and `native_player_logged_in` for the host ([[Open questions]]) |
+| **Blocking** | Nothing known: the in-game test of v0.0.5 (solo, then LAN). Watch the single-player host's inventory reads and `native_player_logged_in` for the host ([[Open questions]]) |
 
 ## ➡️ Next step
-1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.4)
+1. Bastien: `git pull`, `powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1`, then the checklist in `mod/README.md` § Test in game (v0.0.5: solo, config file, then LAN)
 2. Verify in-game: book opening with K, pan/zoom, chapter sidebar, quest panel, checkmarks, item tasks, claims, and atomic saving
 3. Fix what the build shows if any (`native/build.log`)
-4. Release 0.1.0 preparation (polishing, settings toggle)
+4. If every box is ticked: phase 2 done, release 0.1.0 (private testing), then phase 3 (V1)
 
 ## 🗺️ Vault map
 ### 01 · Project

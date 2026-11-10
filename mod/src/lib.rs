@@ -14,6 +14,8 @@ pub mod hq_book;
 pub mod hq_canvas;
 #[path = "../mixins/horizon_quests/hq_commands.rs"]
 pub mod hq_commands;
+#[path = "../mixins/horizon_quests/hq_config.rs"]
+pub mod hq_config;
 #[path = "../mixins/horizon_quests/hq_logic.rs"]
 pub mod hq_logic;
 #[path = "../mixins/horizon_quests/hq_meta.rs"]

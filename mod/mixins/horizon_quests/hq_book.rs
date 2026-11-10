@@ -619,6 +619,14 @@ impl BookView {
         selected: Option<usize>,
     ) -> Option<String> {
         let book = s.book;
+        if book.file().chapters.is_empty() {
+            // No pack in the world and the example chapter turned off.
+            let area = scene.regions.canvas;
+            let [cx, cy] = canvas::centre(area);
+            let width = (s.measure)(NO_QUESTS);
+            scene.text(NO_QUESTS, [cx - width / 2.0, cy - 4.0], INK);
+            return None;
+        }
         if self.chapter >= book.file().chapters.len() {
             return None;
         }
@@ -870,6 +878,9 @@ fn draw_tooltip(scene: &mut Scene, s: &Screen<'_>, text: &str) {
     scene.fill([left, top, width, 12.0], TOOLTIP);
     scene.text(text, [left + 3.0, top + 2.0], INK);
 }
+
+/// What the canvas says when the pack has no chapter at all.
+pub const NO_QUESTS: &str = "This world has no quests.";
 
 /// Window ticks the book waits for the server's first answer before it says
 /// none is coming (5 seconds).
@@ -1377,6 +1388,19 @@ mod tests {
         let shown = view.scene(&screen(&book, &progress, NOWHERE));
         assert!(texts(&shown).contains(&"That quest is not open yet."));
         assert!(texts(&shown).contains(&"drag: move | wheel: zoom | Esc: close"));
+    }
+
+    #[test]
+    fn an_empty_pack_says_so_and_clicks_do_nothing() {
+        let book = Book::new(load(None, &[]).file);
+        let progress = Progress::default();
+        let mut view = opened(&book, &progress);
+        let shown = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(texts(&shown).contains(&NO_QUESTS));
+        let centre = canvas::centre(regions(RECT, false).canvas);
+        assert_eq!(view.click(&screen(&book, &progress, centre)), Reaction::Nothing);
+        view.drag(&screen(&book, &progress, centre), [5.0, 5.0]);
+        view.scroll(&screen(&book, &progress, centre), 1.0);
     }
 
     #[test]

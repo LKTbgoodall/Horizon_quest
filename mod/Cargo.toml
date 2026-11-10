@@ -1,6 +1,6 @@
 [package]
 name = "horizon-mod-horizon-quests"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2024"
 license = "MIT"
 publish = false
@@ -11,7 +11,9 @@ description = "Horizon Quests: an FTB Quests-style quest book for Horizon, as a 
 [lib]
 path = "src/lib.rs"
 
-# Both are in Horizon's Cargo.lock, so the game has them too (like smp).
+# All three are dependencies of horizon-client (in Horizon's Cargo.lock), so
+# the game has them too (like smp).
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+toml = "1.1"  # Horizon fdc87ae locks 1.1.6: tested against the same
