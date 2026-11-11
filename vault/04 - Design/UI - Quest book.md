@@ -13,7 +13,7 @@ Reference: [[FTB editor and UI]] · API: [[Horizon hooks and API]] §5 · Decisi
 
 > [!important] Coded, pure, in `hq_book.rs` (2026-11-10): not seen in game yet
 > `BookView::scene(&Screen)` returns a **draw list** (`Fill`, `Quad`, `Text`, `Item`) and **click zones**; `click`, `drag` and `scroll` handle input. The glue will only carry the draws out. What it does, as built:
-> - Regions: header 24 px (chapter title, subtitle, tally, close), chapter list (22 % of the width, 70 to 130 px), canvas, quest panel when a quest is selected (34 %, 110 to 200 px), footer 14 px ("Claim all (n)", the server's last notice, help).
+> - Regions (since v0.8.10): no top band; a strip of 18 px on the left (the closed chapter list, opened on hover as a panel of 30 % of the width, 110 to 170 px, over the canvas), the canvas, the quest window over it, and one bottom band of 14 px (chapter name and tally, "Claim all (n)", the last notice, the party, help, close).
 > - Chapter list: ungrouped chapters, then each group with its chapters; icon, title, `done/total`; hidden chapters are not listed.
 > - Canvas: dependency lines (grey, green once the dependency is completed; only inside the chapter), nodes as fans of quads for the 5 shapes, frame in the state's colour (locked grey, available white, in progress yellow, rewards waiting blue, done green), gold ring when selected, item icon, tooltip with the title on hover. Opening a chapter fits it to the canvas (never zoomed in past 1).
 > - Panel: title bar with a close button; subtitle, state, "Needs:" for a locked quest, description (wrapped), tasks with `[x]` marks, counts and **Check** / **Submit** buttons, rewards with **Claim** buttons or "(claimed)". Scrolls with the wheel. Opening it does not move the quests on screen.
