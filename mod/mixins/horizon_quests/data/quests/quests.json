@@ -5,5 +5,8 @@
   "default_size": 1.0,
   "auto_claim_rewards": false,
   "detection_delay": 20,
-  "groups": []
+  "groups": [
+    { "id": "basics", "title": "Basics" },
+    { "id": "exploration", "title": "Exploration" }
+  ]
 }

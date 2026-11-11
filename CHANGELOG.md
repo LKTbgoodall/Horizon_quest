@@ -4,6 +4,10 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.8
+- Chapter groups fold: a group heading in the chapter list has a triangle (down when open, right when folded) and a click folds or unfolds it, for as long as the client runs.
+- The example pack gathers its chapters in two groups, "Basics" and "Exploration".
+
 ## 0.8.7
 - The octagon shape is gone: "octagon" in a pack reads as a hexagon; the example quests that had one are hexagons. The node sheet is 4 shapes x 4 states (the blue rewards-waiting column is gone: those quests use the done cell and their "!" badge).
 - Node icons are about 10 % smaller (square 0.54, circle 0.47, hexagon 0.43, diamond 0.34 of the drawn box).

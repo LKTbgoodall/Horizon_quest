@@ -79,6 +79,8 @@ pub enum Draw {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Action {
     Chapter(usize),
+    /// Fold or unfold a group of the chapter list (its id).
+    Group(String),
     Quest(usize),
     /// Close the quest window.
     Deselect,
@@ -200,14 +202,15 @@ pub struct Screen<'a> {
 /// A row of the chapter list.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Row {
-    /// A group's heading.
-    Group(String),
+    /// A group's heading: its id and its title.
+    Group { id: String, title: String },
     Chapter(usize),
 }
 
 /// The chapter list: chapters without a group first, then each group of
-/// quests.json with its chapters. Hidden chapters are not listed.
-pub fn sidebar_rows(book: &Book) -> Vec<Row> {
+/// quests.json with its chapters, unless the group is folded (its id in
+/// `folded`). Hidden chapters are not listed.
+pub fn sidebar_rows(book: &Book, folded: &[String]) -> Vec<Row> {
     let file = book.file();
     let groups = &file.settings.groups;
     let group_of = |c: usize| file.chapters[c].group.as_deref().filter(|g| groups.iter().any(|group| group.id == *g));
@@ -217,8 +220,11 @@ pub fn sidebar_rows(book: &Book) -> Vec<Row> {
         let members: Vec<usize> = listed().filter(|&c| group_of(c) == Some(group.id.as_str())).collect();
         // Two groups of the same id: the first one has the chapters.
         if !members.is_empty() && !groups[..g].iter().any(|earlier| earlier.id == group.id) {
-            rows.push(Row::Group(if group.title.is_empty() { group.id.clone() } else { group.title.clone() }));
-            rows.extend(members.into_iter().map(Row::Chapter));
+            let title = if group.title.is_empty() { group.id.clone() } else { group.title.clone() };
+            rows.push(Row::Group { id: group.id.clone(), title });
+            if !folded.contains(&group.id) {
+                rows.extend(members.into_iter().map(Row::Chapter));
+            }
         }
     }
     rows
@@ -243,6 +249,18 @@ pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]
             [cx + radius * angle.cos(), cy - radius * angle.sin()]
         })
         .collect()
+}
+
+/// A group heading's triangle in a 5-pixel box at `at`: pointing down
+/// when the group is open, right when folded. One quad, its last corner
+/// doubled, in `shape_points`' turning order.
+fn fold_arrow(at: [f32; 2], folded: bool) -> [[f32; 2]; 4] {
+    let [x, y] = at;
+    if folded {
+        [[x + 1.0, y + 5.0], [x + 4.5, y + 2.5], [x + 1.0, y], [x + 1.0, y]]
+    } else {
+        [[x + 2.5, y + 4.0], [x + 5.0, y + 0.5], [x, y + 0.5], [x, y + 0.5]]
+    }
 }
 
 /// `colour` darker, for the chevrons on a line of that colour.
@@ -539,6 +557,8 @@ pub struct BookView {
     /// The quest whose window is open.
     pub selected: Option<usize>,
     pub sidebar_scroll: f32,
+    /// The groups of the chapter list folded by the player (their ids).
+    pub folded: Vec<String>,
     pub popup_scroll: f32,
     /// The last thing the server said (a refusal), for the footer.
     pub notice: String,
@@ -567,11 +587,11 @@ impl BookView {
     /// The book opens, or a new pack arrived: keep the place when there is
     /// one, else show the first chapter.
     pub fn open(&mut self, s: &Screen<'_>) {
-        let listed: Vec<usize> = sidebar_rows(s.book)
+        let listed: Vec<usize> = sidebar_rows(s.book, &[])
             .into_iter()
             .filter_map(|row| match row {
                 Row::Chapter(c) => Some(c),
-                Row::Group(_) => None,
+                Row::Group { .. } => None,
             })
             .collect();
         if !self.fitted || !listed.contains(&self.chapter) {
@@ -619,6 +639,13 @@ impl BookView {
         let action = self.scene(s).action_at(s.mouse).cloned();
         match action {
             Some(Action::Chapter(c)) => self.show_chapter(s, c),
+            Some(Action::Group(id)) => {
+                if let Some(i) = self.folded.iter().position(|g| *g == id) {
+                    self.folded.remove(i);
+                } else {
+                    self.folded.push(id);
+                }
+            }
             Some(Action::Quest(n)) => self.select(Some(n)),
             Some(Action::Deselect) => self.select(None),
             Some(Action::Check(task)) => return Reaction::Send(ToServer::Check { task }),
@@ -855,7 +882,7 @@ impl BookView {
     fn draw_sidebar(&self, scene: &mut Scene, s: &Screen<'_>) {
         let area = scene.regions.sidebar;
         scene.fill(area, SIDEBAR);
-        let rows = sidebar_rows(s.book);
+        let rows = sidebar_rows(s.book, &self.folded);
         scene.sidebar_max_scroll = (rows.len() as f32 * ROW + 2.0 * PAD - area[3]).max(0.0);
         let [x, _, w, _] = area;
         for (i, row) in rows.iter().enumerate() {
@@ -864,9 +891,17 @@ impl BookView {
                 continue;
             }
             match row {
-                Row::Group(title) => {
-                    let title = fit_text(title, w - 2.0 * PAD, s.measure);
-                    scene.text(title, [x + PAD, rect[1] + 3.0], GOLD_INK);
+                Row::Group { id, title } => {
+                    if canvas::inside(rect, s.mouse) {
+                        scene.fill(rect, ROW_HOVER);
+                    }
+                    // A small triangle: down when open, right when folded.
+                    let folded = self.folded.contains(id);
+                    scene.draws.push(Draw::Quad { corners: fold_arrow([x + PAD, rect[1] + 4.0], folded), colour: GOLD_INK });
+                    let left = x + PAD + 8.0;
+                    let title = fit_text(title, x + w - PAD - left, s.measure);
+                    scene.text(title, [left, rect[1] + 3.0], GOLD_INK);
+                    scene.zones.push((rect, Action::Group(id.clone())));
                 }
                 Row::Chapter(c) => {
                     let chapter = s.book.chapter(*c);
@@ -2327,7 +2362,25 @@ mod tests {
     #[test]
     fn the_chapter_list_has_ungrouped_chapters_then_groups() {
         // The hidden chapter and the group without chapters are not listed.
-        assert_eq!(sidebar_rows(&book()), [Row::Chapter(0), Row::Group("Main story".into()), Row::Chapter(1)]);
+        let main = || Row::Group { id: "main".into(), title: "Main story".into() };
+        assert_eq!(sidebar_rows(&book(), &[]), [Row::Chapter(0), main(), Row::Chapter(1)]);
+        // A folded group keeps its heading, without its chapters.
+        assert_eq!(sidebar_rows(&book(), &["main".into()]), [Row::Chapter(0), main()]);
+    }
+
+    #[test]
+    fn a_click_on_a_group_heading_folds_and_unfolds_it() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        let group = Action::Group("main".into());
+        assert_eq!(click(&mut view, &book, &progress, &group), Reaction::Nothing);
+        assert_eq!(view.folded, ["main"]);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(zone(&scene, &group).is_some());
+        assert_eq!(zone(&scene, &Action::Chapter(1)), None);
+        click(&mut view, &book, &progress, &group);
+        assert!(view.folded.is_empty());
+        assert!(zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Chapter(1)).is_some());
     }
 
     #[test]
@@ -2966,7 +3019,8 @@ mod tests {
         assert_eq!(zone(&scene, &Action::Quest(0)), None);
         // Only the chapter's icon in the list is left.
         assert_eq!(scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count(), 1);
-        assert!(!scene.draws.iter().any(|draw| matches!(draw, Draw::Quad { .. })));
+        // No quad but the group heading's triangle in the list.
+        assert!(!scene.draws.iter().any(|draw| matches!(draw, Draw::Quad { colour, .. } if *colour != GOLD_INK)));
     }
 
     #[test]
@@ -2986,7 +3040,7 @@ mod tests {
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
         assert_eq!(icons, 2);
         let sidebar_fill = scene.draws.iter().position(|draw| *draw == Draw::Fill { rect: scene.regions.sidebar, colour: SIDEBAR });
-        let last_quad = scene.draws.iter().rposition(|draw| matches!(draw, Draw::Quad { .. }));
+        let last_quad = scene.draws.iter().rposition(|draw| matches!(draw, Draw::Quad { colour, .. } if *colour != GOLD_INK));
         assert!(sidebar_fill > last_quad);
         // The pointer over the covered half is over the chapter list, not the quest.
         assert_eq!(scene.action_at([area[0] - 3.0, at[1]]), None);
