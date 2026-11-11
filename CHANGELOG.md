@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.10.7
+- The "Choose one reward" window is opaque: the quest window's text no longer shows through it.
+
 ## 0.10.6
 - A hand-in that works says nothing (no "Handed in 8."): the book and the toasts already show the progress. A refusal still says why.
 

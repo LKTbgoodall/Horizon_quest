@@ -1202,6 +1202,8 @@ impl BookView {
 const POPUP_SIZE: [f32; 2] = [300.0, 200.0];
 const POPUP_BAR: f32 = 16.0;
 const POPUP_BACK: u32 = 0xF41C_2230;
+/// The choice window, opaque: it sits over the quest window's text.
+const CHOICE_BACK: u32 = 0xFF1C_2230;
 const POPUP_EDGE: u32 = 0xFF3A_4458;
 /// The "Tasks" heading's colour.
 const TASK_INK: u32 = 0x7C7C_FF;
@@ -1996,7 +1998,7 @@ fn draw_choice(scene: &mut Scene, s: &Screen<'_>, names: &HashMap<String, String
     let entries = table.entries.len().min(TABLE_ROWS);
     let b = over_book(s, scene, [CHOICE_WIDTH, POPUP_BAR + 2.0 * PAD + TEXT + entries as f32 * ICON_CELL + PAD]);
     let [_, _, bw, bh] = b;
-    scene.fill(b, POPUP_BACK);
+    scene.fill(b, CHOICE_BACK);
     scene.fill([b[0], b[1], bw, 1.0], POPUP_EDGE);
     scene.fill([b[0], b[1] + bh - 1.0, bw, 1.0], POPUP_EDGE);
     scene.fill([b[0], b[1], 1.0, bh], POPUP_EDGE);
