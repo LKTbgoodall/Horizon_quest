@@ -18,7 +18,6 @@ use std::collections::{HashMap, HashSet};
 
 /// A player on the server.
 #[derive(Clone, Debug)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Player {
     pub name: String,
     /// The team whose progress they play on: their party's id, else their
@@ -76,7 +75,6 @@ impl Default for Rules {
 const NOT_ON: &str = "You are not in the quest book yet.";
 
 #[derive(Debug)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Session {
     book: Book,
     players: HashMap<u128, Player>,
@@ -107,7 +105,6 @@ pub struct Session {
     party_changed: HashSet<u128>,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Session {
     pub fn new(book: Book) -> Self {
         let seed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos() as u64);
@@ -817,7 +814,6 @@ impl Session {
 }
 
 /// How far the quest's tasks are: ` (8/16 minecraft:oak_log, 0/1 checkmark)`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn tasks(book: &Book, progress: &Progress, n: usize) -> String {
     let parts: Vec<String> = book
         .quest(n)
@@ -841,7 +837,6 @@ fn tasks(book: &Book, progress: &Progress, n: usize) -> String {
     if parts.is_empty() { String::new() } else { format!(" ({})", parts.join(", ")) }
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn label<'a>(title: &'a str, id: &'a str) -> &'a str {
     if title.is_empty() { id } else { title }
 }
@@ -854,7 +849,6 @@ pub fn player_id(uuid: u128) -> String {
 
 /// How many of the stacks (`(item id, count)`) `item` matches. `in_tag(tag,
 /// item)` answers for tags, from the world's item tags.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn count_item(stacks: &[(&str, u32)], item: &ItemMatch, in_tag: &dyn Fn(&str, &str) -> bool) -> u64 {
     stacks
         .iter()
@@ -867,7 +861,6 @@ pub fn count_item(stacks: &[(&str, u32)], item: &ItemMatch, in_tag: &dyn Fn(&str
 }
 
 /// What an inventory look reports for the tasks `wanted`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn item_events(wanted: &[Wanted], stacks: &[(&str, u32)], in_tag: &dyn Fn(&str, &str) -> bool) -> Vec<QuestEvent> {
     wanted
         .iter()
@@ -877,7 +870,6 @@ pub fn item_events(wanted: &[Wanted], stacks: &[(&str, u32)], in_tag: &dyn Fn(&s
 }
 
 /// An entity type as kill tasks name it (`zombie` → `minecraft:zombie`).
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn entity_id(kind: &str) -> String {
     resource_id(kind).unwrap_or_else(|| kind.to_owned())
 }
@@ -915,14 +907,12 @@ pub fn advancement_probe_command(name: &str, advancement: &str) -> Option<String
 /// The console line that gives what a full inventory left over: vanilla's
 /// `/give` drops it at the player's feet. None for a name or an item that
 /// could not be written safely on a command line.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn give_command(name: &str, item: &str, count: u32) -> Option<String> {
     let item = resource_id(item)?;
     (safe_name(name) && count > 0).then(|| format!("give {name} {item} {count}"))
 }
 
 /// Whether `name` is a player name that can be written on a command line.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub fn safe_name(name: &str) -> bool {
     (1..=16).contains(&name.len()) && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
@@ -930,7 +920,6 @@ pub fn safe_name(name: &str) -> bool {
 /// The console line of a command reward for this player: `{player}` is
 /// their name and `{uuid}` their UUID. None for a name that could not be
 /// written safely on a command line, or a command that is not one line.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub fn reward_command(command: &str, name: &str, uuid: u128) -> Option<String> {
     let line = command.trim().trim_start_matches('/');
     if !safe_name(name) || line.is_empty() || line.contains(['\n', '\r']) {
@@ -993,7 +982,6 @@ pub fn toast_line(title: &str, text: &str) -> String {
 }
 
 /// Unix seconds now.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn now() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }

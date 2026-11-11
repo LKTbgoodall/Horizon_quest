@@ -10,15 +10,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::Path;
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const SETTINGS_FILE: &str = "quests.json";
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 const TABLES_FOLDER: &str = "reward_tables";
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const ID_RULE: &str = "an `id` made of lowercase letters, digits, `_`, `-` or `.`";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Severity {
     /// Worth fixing; the chapter still loads.
     Warning,
@@ -27,7 +23,6 @@ pub enum Severity {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Problem {
     pub severity: Severity,
     /// The file, and the quest in it: `chapters/01_start.json > first_wood`.
@@ -35,7 +30,6 @@ pub struct Problem {
     pub message: String,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl fmt::Display for Problem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let kind = match self.severity {
@@ -49,13 +43,11 @@ impl fmt::Display for Problem {
 /// A pack as it loaded: the chapters that are sound, in book order, and
 /// everything found wrong on the way.
 #[derive(Clone, Debug, Default, PartialEq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Loaded {
     pub file: QuestFile,
     pub problems: Vec<Problem>,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Loaded {
     pub fn errors(&self) -> usize {
         self.problems.iter().filter(|p| p.severity == Severity::Error).count()
@@ -66,25 +58,21 @@ impl Loaded {
     }
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn error(place: &str, message: String) -> Problem {
     Problem { severity: Severity::Error, place: place.to_owned(), message }
 }
 
 /// A problem and the chapter it is in (None: quests.json).
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 struct Found {
     chapter: Option<usize>,
     problem: Problem,
 }
 
 #[derive(Default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 struct Finder {
     found: Vec<Found>,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Finder {
     fn add(&mut self, severity: Severity, chapter: Option<usize>, place: &str, message: impl Into<String>) {
         let problem = Problem { severity, place: place.to_owned(), message: message.into() };
@@ -102,7 +90,6 @@ impl Finder {
 
 /// The pack in folder `dir`. A missing quests.json means default settings, a
 /// missing `chapters` folder an empty book.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn load_dir(dir: &Path) -> Loaded {
     let settings = match std::fs::read_to_string(dir.join(SETTINGS_FILE)) {
         Ok(text) => Some(text),
@@ -173,7 +160,6 @@ pub fn load_data(files: &[(String, serde_json::Value)]) -> Option<Loaded> {
 
 /// The `.json` files of `dir/folder`, as (name, text) in file-name order. A
 /// missing folder has none; what cannot be read is a problem.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn read_folder(dir: &Path, folder: &str, problems: &mut Vec<Problem>) -> Vec<(String, String)> {
     let mut sources = Vec::new();
     match std::fs::read_dir(dir.join(folder)) {
@@ -201,7 +187,7 @@ fn read_folder(dir: &Path, folder: &str, problems: &mut Vec<Problem>) -> Vec<(St
 /// The pack made of quests.json's text (None: default settings) and the
 /// chapter files' (name, text), in file-name order: one without reward
 /// tables.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
+#[cfg(test)]
 pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
     load_pack(settings, chapters, &[])
 }
@@ -209,7 +195,6 @@ pub fn load(settings: Option<&str>, chapters: &[(&str, &str)]) -> Loaded {
 /// The pack made of quests.json's text (None: default settings), the
 /// chapter files' and the reward table files' (name, text), each in
 /// file-name order.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub fn load_pack(settings: Option<&str>, chapters: &[(&str, &str)], tables: &[(&str, &str)]) -> Loaded {
     let settings = match settings.map(|text| serde_json::from_str::<Settings>(without_bom(text))) {
         None => Settings::default(),
@@ -287,7 +272,6 @@ pub fn load_pack(settings: Option<&str>, chapters: &[(&str, &str)], tables: &[(&
 }
 
 /// `apple` becomes `minecraft:apple`.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn full(id: &mut String) {
     if let Some(whole) = resource_id(id) {
         *id = whole;
@@ -297,7 +281,6 @@ fn full(id: &mut String) {
 /// Writes the chapter's item, entity, dimension and advancement ids in full
 /// (`apple` becomes `minecraft:apple`), and a location's corners low then
 /// high, so the rest of the mod compares them as they are.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn write_ids_in_full(chapter: &mut Chapter) {
     chapter.icon.iter_mut().for_each(full);
     for quest in &mut chapter.quests {
@@ -324,7 +307,6 @@ fn write_ids_in_full(chapter: &mut Chapter) {
     }
 }
 
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn write_reward_ids_in_full(kind: &mut RewardKind) {
     if let RewardKind::Item { item, .. } = kind {
         full(item);
@@ -333,7 +315,6 @@ fn write_reward_ids_in_full(kind: &mut RewardKind) {
 
 /// What is wrong with what a reward (of a quest or of a table) gives, each
 /// as its severity and a message to put after the reward's name.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn kind_problems(kind: &RewardKind) -> Vec<(Severity, String)> {
     let mut found = Vec::new();
     match kind {
@@ -363,7 +344,6 @@ fn kind_problems(kind: &RewardKind) -> Vec<(Severity, String)> {
 
 /// What is wrong with reward table `table`, read from `place`, given the
 /// tables read before it.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn check_table(place: &str, table: &RewardTable, earlier: &[RewardTable]) -> Vec<Problem> {
     let mut found = Vec::new();
     let mut add = |severity: Severity, message: String| {
@@ -391,19 +371,16 @@ fn check_table(place: &str, table: &RewardTable, earlier: &[RewardTable]) -> Vec
 }
 
 /// Notepad on Windows starts files with a byte-order mark, which is not JSON.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn without_bom(text: &str) -> &str {
     text.strip_prefix('\u{feff}').unwrap_or(text)
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn good_size(size: f32) -> bool {
     size.is_finite() && size > 0.0
 }
 
 /// Everything wrong with the pack. `chapters` are (place, chapter);
 /// `tables` are the ids of the reward tables that loaded.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn find(settings: &Settings, chapters: &[(String, Chapter)], tables: &BTreeSet<&str>) -> Vec<Found> {
     let mut f = Finder::default();
 
@@ -504,12 +481,10 @@ fn find(settings: &Settings, chapters: &[(String, Chapter)], tables: &BTreeSet<&
 
 /// `chapters/01_start.json > first_wood`, or `… > quest #2` without a usable
 /// id.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn quest_place(chapter: &str, q: usize, quest: &Quest) -> String {
     if valid_id(&quest.id) { format!("{chapter} > {}", quest.id) } else { format!("{chapter} > quest #{}", q + 1) }
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn check_look(f: &mut Finder, c: usize, place: &str, icon: Option<&str>, size: Option<f32>, size_name: &str) {
     if let Some(icon) = icon.filter(|icon| resource_id(icon).is_none()) {
         f.error(Some(c), place, format!("icon `{icon}` is not an item id"));
@@ -520,7 +495,6 @@ fn check_look(f: &mut Finder, c: usize, place: &str, icon: Option<&str>, size: O
 }
 
 /// What is wrong inside one quest, its dependencies aside.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest, tables: &BTreeSet<&str>) {
     if quest.title.trim().is_empty() {
         f.warning(Some(c), place, "the quest has no `title`");
@@ -599,7 +573,6 @@ fn check_quest(f: &mut Finder, c: usize, place: &str, quest: &Quest, tables: &BT
 
 /// Which quests can never open because of a dependency cycle: those on one,
 /// and those between two. `edges[i]` lists what quest `i` depends on.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn caught_in_cycles(edges: &[Vec<usize>]) -> Vec<bool> {
     let mut alive = vec![true; edges.len()];
     // Take away, until nothing moves, the quests that depend on nothing left

@@ -15,7 +15,7 @@ use horizon_mod_horizon_quests::hq_book::{Action, BookView, Draw, Scene, Screen}
 use horizon_mod_horizon_quests::hq_logic::Book;
 use horizon_mod_horizon_quests::hq_model::Progress;
 use horizon_mod_horizon_quests::hq_progress::{Actor, QuestEvent, apply};
-use horizon_mod_horizon_quests::hq_validate::{load, load_dir, load_pack};
+use horizon_mod_horizon_quests::hq_validate::{load_dir, load_pack};
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -215,9 +215,10 @@ fn showcase() -> Book {
         "quests": [ { "id": "rod", "title": "Rod", "tasks": [ { "id": "t", "type": "item", "item": "fishing_rod" } ] } ] }"#;
     let intro = r#"{ "id": "intro", "title": "Welcome", "icon": "writable_book",
         "quests": [ { "id": "hello", "title": "Hello", "tasks": [ { "id": "t", "type": "checkmark" } ] } ] }"#;
-    let loaded = load(
+    let loaded = load_pack(
         Some(settings),
         &[("1.json", intro), ("2.json", shapes), ("3.json", nether), ("4.json", farming), ("5.json", fishing)],
+        &[],
     );
     assert!(loaded.problems.is_empty(), "{:?}", loaded.problems);
     Book::new(loaded.file)

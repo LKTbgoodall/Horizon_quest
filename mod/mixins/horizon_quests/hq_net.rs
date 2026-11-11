@@ -15,35 +15,26 @@ use std::collections::VecDeque;
 use std::fmt;
 
 /// The channel, `mod_id:name`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const CHANNEL: &str = "horizon_quests:book";
 /// The version of these messages. A book and a server of different versions
 /// do not talk.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const PROTOCOL: u32 = 3;
 
 /// The most bytes one mod message carries.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const MAX_FRAME: usize = 30_000;
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const HEADER: usize = 8;
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 const MAX_BYTES: usize = MAX_FRAME - HEADER;
 /// The frames a `Sender` lets out in one tick: half of what Horizon allows,
 /// so other traffic of the mod never hits the limit.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const FRAMES_PER_TICK: usize = 16;
 /// The most parts the book accepts for one message from the server (about
 /// 15 MB), and the server from a book: requests are always one small frame.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const CLIENT_MAX_PARTS: u16 = 512;
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const SERVER_MAX_PARTS: u16 = 1;
 
 /// What the book sends.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum ToServer {
     /// First message on joining: the server answers `Welcome`, then the
     /// book and the player's progress, or `Incompatible`.
@@ -65,7 +56,6 @@ pub enum ToServer {
 /// What the server sends.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum ToClient {
     Welcome { protocol: u32, version: String },
     /// The server speaks another protocol: the book says so and stays shut.
@@ -91,7 +81,6 @@ pub enum ToClient {
 }
 
 /// The server's answer to a book's `Hello`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn greet(protocol: u32, version: &str) -> ToClient {
     let version = version.to_owned();
     if protocol == PROTOCOL {
@@ -103,7 +92,6 @@ pub fn greet(protocol: u32, version: &str) -> ToClient {
 
 /// The engine event a book's request stands for. None for `Hello`, and for
 /// `Submit`: the glue first takes the items (`hq_progress::submit_request`).
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn request_event(message: &ToServer) -> Option<QuestEvent> {
     match message {
         ToServer::Check { task } => Some(QuestEvent::Check { task: task.clone() }),
@@ -114,7 +102,6 @@ pub fn request_event(message: &ToServer) -> Option<QuestEvent> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum NetError {
     /// Not even a frame header, or more than a mod message carries.
     BadSize,
@@ -126,7 +113,6 @@ pub enum NetError {
     NotAMessage,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl fmt::Display for NetError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -140,7 +126,6 @@ impl fmt::Display for NetError {
 
 /// `bytes` as the frames of message number `transfer`. None when it would
 /// take more parts than a frame can count.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn frames(transfer: u32, bytes: &[u8]) -> Option<Vec<Vec<u8>>> {
     let count = part_count(bytes.len())?;
     let mut parts = bytes.chunks(MAX_BYTES);
@@ -160,7 +145,6 @@ pub fn frames(transfer: u32, bytes: &[u8]) -> Option<Vec<Vec<u8>>> {
 }
 
 /// How many frames a message of `len` bytes takes (an empty one takes one).
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn part_count(len: usize) -> Option<u16> {
     u16::try_from(len.div_ceil(MAX_BYTES).max(1)).ok()
 }
@@ -168,13 +152,11 @@ fn part_count(len: usize) -> Option<u16> {
 /// One side's outgoing messages to one peer: `send` queues, `tick` hands
 /// over what may leave this tick.
 #[derive(Clone, Debug, Default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Sender {
     next_transfer: u32,
     queue: VecDeque<Vec<u8>>,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Sender {
     /// Queues `message`. Err when it cannot be written or is too big.
     pub fn send<T: Serialize>(&mut self, message: &T) -> Result<(), String> {
@@ -204,16 +186,11 @@ impl Sender {
         self.queue.len()
     }
 
-    /// Forgets everything queued (the peer left).
-    pub fn clear(&mut self) {
-        self.queue.clear();
-    }
 }
 
 /// One side's incoming frames from one peer, put back together. Frames come
 /// from the network: nothing in them is trusted.
 #[derive(Clone, Debug)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Receiver {
     max_parts: u16,
     /// The message being received: its number, how many parts it has and
@@ -224,7 +201,6 @@ pub struct Receiver {
     bytes: Vec<u8>,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Receiver {
     pub fn new(max_parts: u16) -> Self {
         Self { max_parts, transfer: 0, count: 0, next: 0, bytes: Vec::new() }
@@ -437,9 +413,6 @@ mod tests {
         assert_eq!(second.len(), 5);
         assert_eq!(second[..2], first[FRAMES_PER_TICK - 2..]);
         assert!(sender.tick().is_empty());
-
-        sender.send(&ToServer::ClaimAll).unwrap();
-        sender.clear();
         assert_eq!(sender.waiting(), 0);
     }
 

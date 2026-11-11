@@ -11,7 +11,6 @@ use std::ops::Range;
 
 /// A quest in the book, with what its chapter and the pack default for it.
 #[derive(Clone, Debug, PartialEq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Node {
     /// The full id, `chapter/quest`.
     pub id: String,
@@ -28,7 +27,6 @@ pub struct Node {
 
 /// What the book shows a quest as.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum QuestState {
     /// Its dependencies are not met.
     Locked,
@@ -42,7 +40,6 @@ pub enum QuestState {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Status {
     pub visible: bool,
     pub state: QuestState,
@@ -51,7 +48,6 @@ pub struct Status {
 /// A pack ready to use. It expects one that hq_validate loaded: a dependency
 /// that names no quest is ignored here, not reported.
 #[derive(Clone, Debug)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Book {
     file: QuestFile,
     /// Every quest, chapter after chapter.
@@ -63,7 +59,6 @@ pub struct Book {
     order: Vec<usize>,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Book {
     pub fn new(file: QuestFile) -> Self {
         let settings = &file.settings;

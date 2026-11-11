@@ -9,13 +9,11 @@ use super::hq_progress::Effect;
 use super::hq_validate::{Loaded, Severity};
 
 /// The command's name, without the slash.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const NAME: &str = "quests";
 
 /// Every form of the command, as Horizon registers them, with the op level
 /// it needs (0: everyone) and what it does. Ids are full ids and contain
 /// `/`, so they are `text` arguments, which take the rest of the line.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const USAGES: [(&str, u8, &str); 19] = [
     ("quests", 0, "show this help"),
     ("quests progress", 0, "list your open quests and how far they are"),
@@ -39,7 +37,6 @@ pub const USAGES: [(&str, u8, &str); 19] = [
 ];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Command {
     Help,
     Progress,
@@ -66,7 +63,6 @@ pub enum TeamCommand {
     Kick { player: String },
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Command {
     /// The op level the command needs.
     pub fn level(&self) -> u8 {
@@ -87,7 +83,6 @@ impl Command {
 /// The command in `line` (as the server gets it, without the slash). None
 /// when the line is not `/quests`; Err with what to tell the player when it
 /// is, but is not a form of it.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn parse(line: &str) -> Option<Result<Command, String>> {
     let mut words = line.split_whitespace();
     if words.next() != Some(NAME) {
@@ -134,7 +129,6 @@ pub fn parse(line: &str) -> Option<Result<Command, String>> {
 }
 
 /// The command in `line` if a player of op level `permission` may run it.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn parse_for(line: &str, permission: u8) -> Option<Result<Command, String>> {
     Some(parse(line)?.and_then(|command| {
         if permission >= command.level() { Ok(command) } else { Err("You may not use that command.".to_owned()) }
@@ -142,7 +136,6 @@ pub fn parse_for(line: &str, permission: u8) -> Option<Result<Command, String>> 
 }
 
 /// `quests check <task:text>` → `quests check <task>`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn plain(usage: &str) -> String {
     usage
         .split_whitespace()
@@ -156,7 +149,6 @@ fn plain(usage: &str) -> String {
 
 /// The help, for a player of op level `permission`: one line per form they
 /// may use.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn help(permission: u8) -> Vec<String> {
     USAGES
         .iter()
@@ -167,7 +159,6 @@ pub fn help(permission: u8) -> Vec<String> {
 
 /// What `/quests validate` and `/quests reload` answer: a summary, then the
 /// problems, at most `limit` of them.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn report(loaded: &Loaded, limit: usize) -> Vec<String> {
     let chapters = loaded.file.chapters.len();
     let quests: usize = loaded.file.chapters.iter().map(|chapter| chapter.quests.len()).sum();
@@ -190,14 +181,12 @@ pub fn report(loaded: &Loaded, limit: usize) -> Vec<String> {
     lines
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn plural(count: usize) -> &'static str {
     if count == 1 { "" } else { "s" }
 }
 
 /// What to tell the player about an effect, in chat. None for those that
 /// need no line (a task done: the book shows it).
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn announce(book: &Book, effect: &Effect) -> Option<String> {
     match effect {
         Effect::TaskCompleted { .. } => None,

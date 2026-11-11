@@ -545,19 +545,12 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
                 let _ = sender.send(&ToClient::Party { name: s.session.party_of(player) });
             }
         }
-        ToServer::Check { task } => {
-            if let Some(s) = state().as_mut() {
-                s.session.push(player, QuestEvent::Check { task });
-            }
-        }
-        ToServer::Claim { reward, choice } => {
-            if let Some(s) = state().as_mut() {
-                s.session.push(player, QuestEvent::Claim { reward, choice });
-            }
-        }
-        ToServer::ClaimAll => {
-            if let Some(s) = state().as_mut() {
-                s.session.push(player, QuestEvent::ClaimAll);
+        ToServer::Check { .. } | ToServer::Claim { .. } | ToServer::ClaimAll => {
+            // A request the engine takes as it is, on the next tick.
+            if let Some(event) = net::request_event(&to_server)
+                && let Some(s) = state().as_mut()
+            {
+                s.session.push(player, event);
             }
         }
         ToServer::Submit { task } => {

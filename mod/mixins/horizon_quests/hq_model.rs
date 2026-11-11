@@ -11,10 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// The version of the quest files and progress files this code reads and
 /// writes.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub const FORMAT_VERSION: u32 = 1;
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn one() -> u32 {
     1
 }
@@ -22,7 +20,6 @@ fn one() -> u32 {
 /// Whether tasks count before a quest's dependencies are met.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Progression {
     /// Tasks only count once the dependencies are met.
     #[default]
@@ -35,7 +32,6 @@ pub enum Progression {
 /// A quest node's outline in the book.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Shape {
     #[default]
     Square,
@@ -48,7 +44,6 @@ pub enum Shape {
 /// What a quest's dependencies must be for it to open.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum DependencyMode {
     #[default]
     AllCompleted,
@@ -60,7 +55,6 @@ pub enum DependencyMode {
 /// When a quest shows in the book. A completed quest always shows.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Visibility {
     #[default]
     Always,
@@ -75,7 +69,6 @@ pub enum Visibility {
 /// Whether a reward is given as soon as its quest completes.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum AutoClaim {
     /// As `auto_claim_rewards` in quests.json says.
     #[default]
@@ -87,7 +80,6 @@ pub enum AutoClaim {
 /// `quests.json`: the pack's version and defaults.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Settings {
     pub version: u32,
     pub progression: Progression,
@@ -100,7 +92,6 @@ pub struct Settings {
     pub groups: Vec<Group>,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Default for Settings {
     fn default() -> Self {
         Self {
@@ -118,7 +109,6 @@ impl Default for Settings {
 /// A heading chapters gather under in the book's chapter list.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Group {
     pub id: String,
     pub title: String,
@@ -127,7 +117,6 @@ pub struct Group {
 /// One file of `chapters/`.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Chapter {
     pub id: String,
     pub title: String,
@@ -147,7 +136,6 @@ pub struct Chapter {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Quest {
     pub id: String,
     pub title: String,
@@ -185,7 +173,6 @@ pub struct Quest {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Task {
     #[serde(default)]
     pub id: String,
@@ -197,7 +184,6 @@ pub struct Task {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum TaskKind {
     /// Have `count` of the item. With `consume`, hand them in instead.
     Item {
@@ -239,7 +225,6 @@ pub enum TaskKind {
     Advancement { advancement: String },
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl TaskKind {
     /// The progress at which the task is done.
     pub fn goal(&self) -> u64 {
@@ -260,13 +245,11 @@ impl TaskKind {
 /// `#minecraft:logs` for any item of a tag.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum ItemMatch {
     Id(String),
     Tag(String),
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl TryFrom<String> for ItemMatch {
     type Error = String;
 
@@ -280,7 +263,6 @@ impl TryFrom<String> for ItemMatch {
     }
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl From<ItemMatch> for String {
     fn from(item: ItemMatch) -> String {
         match item {
@@ -291,7 +273,6 @@ impl From<ItemMatch> for String {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Reward {
     #[serde(default)]
     pub id: String,
@@ -310,7 +291,6 @@ pub struct Reward {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum RewardKind {
     /// `count` of an item (its id, written in full once loaded).
     Item {
@@ -336,7 +316,6 @@ pub enum RewardKind {
     Choice { table: String },
 }
 
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 impl RewardKind {
     /// The table a random or choice reward takes its entry from.
     pub fn table(&self) -> Option<&str> {
@@ -350,7 +329,6 @@ impl RewardKind {
 /// One file of `reward_tables/`: what random and choice rewards give.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub struct RewardTable {
     pub id: String,
     pub entries: Vec<TableEntry>,
@@ -358,7 +336,6 @@ pub struct RewardTable {
 
 /// One thing a reward table can give. Its kind is never another table.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub struct TableEntry {
     /// How often a random reward draws it, against the other entries.
     #[serde(default = "one")]
@@ -373,7 +350,6 @@ pub struct TableEntry {
 /// reward tables.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct QuestFile {
     pub settings: Settings,
     pub chapters: Vec<Chapter>,
@@ -385,7 +361,6 @@ pub struct QuestFile {
 /// back.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Progress {
     pub version: u32,
     /// Quest → when its first task progress came.
@@ -405,7 +380,6 @@ pub struct Progress {
     pub book_given: bool,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Default for Progress {
     fn default() -> Self {
         Self {
@@ -421,7 +395,6 @@ impl Default for Progress {
     }
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Progress {
     pub fn is_completed(&self, quest: &str) -> bool {
         self.completed.contains_key(quest)
@@ -455,14 +428,12 @@ impl Progress {
 
 /// Whether `id` can name a chapter, quest, task or reward: lowercase
 /// letters, digits, `_`, `-` and `.`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn valid_id(id: &str) -> bool {
     !id.is_empty() && id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "_-.".contains(c))
 }
 
 /// `apple` or `minecraft:apple` → `minecraft:apple`. None when `text` is not
 /// a registry id.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn resource_id(text: &str) -> Option<String> {
     let (namespace, path) = text.split_once(':').unwrap_or(("minecraft", text));
     let ok = |part: &str, slash: bool| {
@@ -475,19 +446,16 @@ pub fn resource_id(text: &str) -> Option<String> {
 }
 
 /// A quest's full id.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn quest_id(chapter: &str, quest: &str) -> String {
     format!("{chapter}/{quest}")
 }
 
 /// A task's or reward's full id, from its quest's full id.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn child_id(quest: &str, child: &str) -> String {
     format!("{quest}/{child}")
 }
 
 /// The full id of the quest a dependency names, written in `chapter`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn dependency_id(chapter: &str, dependency: &str) -> String {
     if dependency.contains('/') {
         dependency.to_owned()

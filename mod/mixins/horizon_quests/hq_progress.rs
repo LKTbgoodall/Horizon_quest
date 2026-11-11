@@ -15,7 +15,6 @@ use super::hq_model::{AutoClaim, ItemMatch, Progress, RewardKind, RewardTable, T
 
 /// Who an event comes from, and when.
 #[derive(Clone, Copy, Debug)]
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub struct Actor<'a> {
     /// The id this player's claims are kept under.
     pub player: &'a str,
@@ -25,7 +24,6 @@ pub struct Actor<'a> {
     pub roll: u64,
 }
 
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 impl<'a> Actor<'a> {
     pub fn new(player: &'a str, now: u64) -> Self {
         Self { player, now, roll: 0 }
@@ -37,7 +35,6 @@ impl<'a> Actor<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum QuestEvent {
     /// The player holds `count` of what item task `task` asks for.
     ItemCount { task: String, count: u64 },
@@ -67,7 +64,6 @@ pub enum QuestEvent {
 
 /// Why a request from the book was not carried out.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Refusal {
     UnknownTask,
     /// A checkmark asked of a task that is not one, or a hand-in of a task
@@ -90,7 +86,6 @@ pub enum Refusal {
     NoTable,
 }
 
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 impl Refusal {
     /// What to tell the player.
     pub fn text(self) -> &'static str {
@@ -113,7 +108,6 @@ impl Refusal {
 
 /// Something for the glue to do, or to tell the player. Ids are full ids.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub enum Effect {
     TaskCompleted { task: String },
     QuestCompleted { quest: String },
@@ -130,7 +124,6 @@ pub enum Effect {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Outcome {
     /// Whether the progress changed: save it and send it to the book.
     pub changed: bool,
@@ -140,7 +133,6 @@ pub struct Outcome {
 /// An item or craft task that can progress, and how many items it still
 /// lacks.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub struct Wanted {
     pub task: String,
     pub item: ItemMatch,
@@ -150,7 +142,6 @@ pub struct Wanted {
 }
 
 /// Every task that counts right now and is not done: (node, task index).
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn open_tasks(book: &Book, progress: &Progress) -> Vec<(usize, usize)> {
     let mut open = Vec::new();
     for n in 0..book.nodes().len() {
@@ -167,7 +158,6 @@ fn open_tasks(book: &Book, progress: &Progress) -> Vec<(usize, usize)> {
 }
 
 /// Every item task that can progress right now.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn wanted_items(book: &Book, progress: &Progress) -> Vec<Wanted> {
     let mut wanted = Vec::new();
     for (n, t) in open_tasks(book, progress) {
@@ -182,7 +172,6 @@ pub fn wanted_items(book: &Book, progress: &Progress) -> Vec<Wanted> {
 }
 
 /// Every craft task that can progress right now.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub fn wanted_crafts(book: &Book, progress: &Progress) -> Vec<Wanted> {
     let mut wanted = Vec::new();
     for (n, t) in open_tasks(book, progress) {
@@ -198,7 +187,6 @@ pub fn wanted_crafts(book: &Book, progress: &Progress) -> Vec<Wanted> {
 
 /// What the glue should watch for a team, beyond its items.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub struct Watch {
     /// A dimension or location task can progress: report `At`.
     pub place: bool,
@@ -208,7 +196,6 @@ pub struct Watch {
     pub repeat: bool,
 }
 
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub fn watch(book: &Book, progress: &Progress) -> Watch {
     let mut watch = Watch::default();
     for (n, t) in open_tasks(book, progress) {
@@ -301,7 +288,6 @@ pub fn probe_level(goal: u32, reached: &mut dyn FnMut(u32) -> bool) -> u32 {
 
 /// The player asks to hand items in for `task`: what to take from them (at
 /// most `missing`), then report with `Submitted`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn submit_request(book: &Book, progress: &Progress, task: &str) -> Result<Wanted, Refusal> {
     let (n, t) = open_task(book, progress, task)?;
     let kind = &book.quest(n).tasks[t].kind;
@@ -318,7 +304,6 @@ pub fn submit_request(book: &Book, progress: &Progress, task: &str) -> Result<Wa
 
 /// The next random bits after `state` (SplitMix64): the same generator for
 /// the session's events and for the draws inside one event.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub fn next_roll(state: &mut u64) -> u64 {
     *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
     let mut z = *state;
@@ -329,7 +314,6 @@ pub fn next_roll(state: &mut u64) -> u64 {
 
 /// The entry `roll` draws from `table`, by weight. None when the table can
 /// give nothing.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 pub fn draw(table: &RewardTable, roll: u64) -> Option<&TableEntry> {
     let total: u64 = table.entries.iter().map(|entry| u64::from(entry.weight)).sum();
     if total == 0 {
@@ -347,7 +331,6 @@ pub fn draw(table: &RewardTable, roll: u64) -> Option<&TableEntry> {
 }
 
 /// What `event`, from `who`, does to their team's `progress`.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn apply(book: &Book, progress: &mut Progress, who: &Actor<'_>, event: &QuestEvent) -> Outcome {
     let mut out = Outcome::default();
     let mut roll = who.roll;
@@ -477,7 +460,6 @@ pub fn apply(book: &Book, progress: &mut Progress, who: &Actor<'_>, event: &Ques
 /// An admin completes quest `quest` for a team, whatever its dependencies
 /// and tasks: `who` gets its automatic rewards, and what it opens can
 /// complete in turn. None when there is no such quest.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn force_complete(book: &Book, progress: &mut Progress, who: &Actor<'_>, quest: &str) -> Option<Outcome> {
     let n = book.find(quest)?;
     let mut out = Outcome::default();
@@ -497,7 +479,6 @@ pub fn force_complete(book: &Book, progress: &mut Progress, who: &Actor<'_>, que
 /// claims and how often it was repeated are forgotten. Quests completed
 /// after it stay completed. None when there is no such quest; else whether
 /// anything changed.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 pub fn reset_quest(book: &Book, progress: &mut Progress, quest: &str) -> Option<bool> {
     let n = book.find(quest)?;
     let mut changed = forget(book, progress, n);
@@ -507,7 +488,6 @@ pub fn reset_quest(book: &Book, progress: &mut Progress, quest: &str) -> Option<
 
 /// Forgets node `n`'s tasks, completion and claims. Whether there was
 /// anything to forget.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn forget(book: &Book, progress: &mut Progress, n: usize) -> bool {
     let quest = &book.nodes()[n].id;
     let mut changed = progress.started.remove(quest).is_some();
@@ -522,7 +502,6 @@ fn forget(book: &Book, progress: &mut Progress, n: usize) -> bool {
 }
 
 /// Whether a task of the pack asks for this advancement.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn names_advancement(book: &Book, advancement: &str) -> bool {
     (0..book.nodes().len()).any(|n| {
         book.quest(n)
@@ -533,7 +512,6 @@ fn names_advancement(book: &Book, advancement: &str) -> bool {
 }
 
 /// The task with this full id, if a request can still act on it.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn open_task(book: &Book, progress: &Progress, task: &str) -> Result<(usize, usize), Refusal> {
     let (n, t) = book.find_task(task).ok_or(Refusal::UnknownTask)?;
     if progress.is_completed(&book.nodes()[n].id) || progress.task(task) >= book.quest(n).tasks[t].kind.goal() {
@@ -550,7 +528,6 @@ fn open_task(book: &Book, progress: &Progress, task: &str) -> Result<(usize, usi
 
 /// Moves task `t` of node `n` to `value`, at most its goal. A task that
 /// reached its goal stays there.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn set_task(book: &Book, progress: &mut Progress, n: usize, t: usize, value: u64, now: u64, out: &mut Outcome) {
     let goal = book.quest(n).tasks[t].kind.goal();
     let id = book.task_id(n, t);
@@ -574,7 +551,6 @@ fn set_task(book: &Book, progress: &mut Progress, n: usize, t: usize, value: u64
 /// Records reward `r` of node `n` as claimed by `player`, and has it given.
 /// A random reward draws its entry now; a choice reward gives entry
 /// `choice`. Nothing is recorded when it is refused.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 #[allow(clippy::too_many_arguments, reason = "the engine's state, passed down")]
 fn claim(
     book: &Book,
@@ -610,7 +586,6 @@ fn claim(
 
 /// Completes every quest that is open with all its tasks done. In dependency
 /// order, so a quest that completes can complete those after it in one go.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn settle(book: &Book, progress: &mut Progress, player: &str, now: u64, roll: &mut u64, out: &mut Outcome) {
     for &n in book.order() {
         let node = &book.nodes()[n];
@@ -626,7 +601,6 @@ fn settle(book: &Book, progress: &mut Progress, player: &str, now: u64, roll: &m
 
 /// Ticks node `n`'s advancement tasks whose advancement the team was seen
 /// to complete, when they count.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn remembered(book: &Book, progress: &mut Progress, n: usize, now: u64, out: &mut Outcome) {
     for (t, task) in book.quest(n).tasks.iter().enumerate() {
         if let TaskKind::Advancement { advancement } = &task.kind
@@ -640,7 +614,6 @@ fn remembered(book: &Book, progress: &mut Progress, n: usize, now: u64, out: &mu
 
 /// Records node `n` as completed: its automatic rewards go to `player`, and
 /// the chapter is announced if that was its last quest.
-#[allow(dead_code, reason = "phase 2 glue calls it step by step")]
 fn complete(
     book: &Book,
     progress: &mut Progress,
@@ -681,7 +654,6 @@ fn complete(
 /// Starts over every repeatable quest that is completed, has each of its
 /// rewards claimed by someone and is past its cooldown. Once per event, and
 /// after `settle`: a quest that starts over does not complete again at once.
-#[allow(dead_code, reason = "phase 3 glue calls it step by step")]
 fn start_over(book: &Book, progress: &mut Progress, now: u64, out: &mut Outcome) {
     for n in 0..book.nodes().len() {
         let quest = book.quest(n);
