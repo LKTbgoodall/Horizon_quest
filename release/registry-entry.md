@@ -6,7 +6,7 @@ What to paste into the form at https://playhorizon.dev/mods/submit when 1.0.0 is
 
 | Field | Value |
 |---|---|
-| File | `build/install/horizon_quests.hnmod` from `tools/build-mod.ps1` (the native half; see "Open points") |
+| File | **`build/horizon_quests.hmod`** from `tools/build-mod.ps1`: content and code in one file ([ADR-014](../vault/05%20-%20Decisions/ADR-014%20Publish%20one%20hmod%20with%20content%20and%20code.md)) |
 | Id | `horizon_quests` |
 | Game version | `26.3` |
 | Name | Horizon Quests |
@@ -33,7 +33,7 @@ A quest book in the spirit of FTB Quests: chapters, quests, tasks, rewards and p
 - **Your own quests**: JSON files in the world's folder or in a data pack, checked on load. Guide: https://github.com/LKTbgoodall/Horizon_quest/blob/main/docs/making-quests.md
 - Comes with two example chapters, which a server can turn off.
 
-Solo and LAN. Every player needs the mod. Dedicated servers are planned.
+Solo and LAN. Every player needs the mod. Dedicated servers are planned. Needs a launcher that reads native `.hmod` files (a recent one).
 ```
 
 ## Screenshots to take in game (for the description and the README)
@@ -46,6 +46,7 @@ Solo and LAN. Every player needs the mod. Dedicated servers are planned.
 
 ## Open points before sending
 
-- **Which file**: the registry takes `.hnmod` files "until launchers and the game read native `.hmod`s", and a `.hnmod` holds code only. Our Quest Book texture and node frames are in the content half. Ask the Horizon maintainers (Discord) whether the registry can take our one `horizon_quests.hmod`, or a native `.hnmod` plus a content entry with the same id. Without the content, the book falls back to flat shapes and the Quest Book looks like a vanilla book: the mod works, but plainer.
-- **Hooks number**: `mod/compatibility.json` says hooks 400 on Horizon `fdc87ae`. Check the Horizon version the registry builds against at the time.
+- **Which file: settled** ([ADR-014](../vault/05%20-%20Decisions/ADR-014%20Publish%20one%20hmod%20with%20content%20and%20code.md)). Horizon `main` now says native registry entries may name a `.hmod` "optionally with content": the launcher installs it, snapshots the content under the build's `native-content/<id>/` and the game loads it. Ours already follows the file's rules (top level: `horizon-mod.toml`, `assets/`, `horizon-native.json`, `mixins/`; one id). If the form refuses it for a native mod, send `build/install/horizon_quests.hnmod` for that version (the mod works without its textures, plainer) and ask the maintainers.
+- **Re-pin first**: native `.hmod` support is newer than our pin `fdc87ae`, and the registry compiles native mods on the newest Nightly. Update the launcher to the newest Nightly, check the glue against it, update the pinned revisions and `hooks`, test in game.
+- **Run the registry's check**: `cargo install --git https://github.com/horizon-rust/horizon cargo-horizon-mod`, then `cargo horizon-mod check build/horizon_quests.hmod`.
 - **Review**: every line is read. The code is clean (no dead-code allowances, no warnings from the game build), but a final read of the glue files (`hq_server_glue.rs`, `hq_client_glue.rs`) is worth it.

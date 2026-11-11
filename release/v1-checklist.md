@@ -22,9 +22,12 @@ Tick in order. Claude prepares and checks; Bastien tests in game, decides and se
 - [x] `CHANGELOG.md`.
 - [ ] Screenshots in the README (Bastien takes them, see `registry-entry.md`).
 
-## 4. Questions for the Horizon maintainers (Bastien, on Discord)
-- [ ] Can the registry take one `.hmod` with content and code, or how to ship the content half with the native mod?
-- [ ] Which Horizon revision and hooks number the registry builds against now.
+## 4. Re-pin on a recent Horizon (Bastien, then Claude)
+- [x] How the content half is published: one `.hmod` with content and code, which Horizon `main` supports ([ADR-014](../vault/05%20-%20Decisions/ADR-014%20Publish%20one%20hmod%20with%20content%20and%20code.md)).
+- [ ] Bastien: update the launcher and select the newest Nightly (so it fetches that Horizon's source), then tell Claude.
+- [ ] Claude: check the glue against it (`tools/check-glue.ps1`), fix what changed, update `horizon_revision`, the horizon-mixins revision and `hooks` (`horizon-mixin.toml`, `compatibility.json`, build scripts).
+- [ ] Bastien: rebuild and play a little on the new Nightly (does the launcher install the one `.hmod`? do the textures show?).
+- [ ] Run the registry's check: `cargo horizon-mod check build/horizon_quests.hmod`.
 
 ## 5. Release
 - [ ] Version 1.0.0 in `Cargo.toml`, `horizon-mixin.toml`, `content/horizon-mod.toml`, `hq_meta::VERSION`; the changelog's "Unreleased" becomes "1.0.0".
