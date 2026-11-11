@@ -6,7 +6,8 @@ dark outline, a bevelled ring in the colour of the quest's state (lighter on
 the top-left half, darker on the bottom-right), a thin inner shadow and the
 node's dark face, where the book draws the quest's icon. Rows are the shapes
 (square, circle, diamond, hexagon, octagon), columns the states (locked,
-available, in progress, rewards waiting, done), as `hq_book::node_cell`
+available, in progress, rewards waiting (the done green: the book adds a
+"!" badge), done), as `hq_book::node_cell`
 picks them; the colours are
 `hq_book::state_look`'s. The corners follow `hq_book::shape_points`, so a
 frame lines up with the polygon the book draws when the texture is missing.
@@ -27,7 +28,7 @@ OUT = 64  # pixels a cell in the texture
 SAMPLES = 4
 SHAPES = ["square", "circle", "diamond", "hexagon", "octagon"]
 # hq_book::state_look, in NODE_STATES order.
-STATES = [0x50505A, 0xD8D8E0, 0xE8C040, 0x50B8FF, 0x40B050]
+STATES = [0x50505A, 0xD8D8E0, 0xE8C040, 0x40B050, 0x40B050]
 OUTLINE = 0x0E0E16
 SHADOW = 0x1A1A24
 FACE = 0x262632

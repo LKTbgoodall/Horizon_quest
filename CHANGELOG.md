@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.6
+- A quest whose rewards wait is drawn in the done green instead of blue, with a red "!" badge on its node's top-right corner, a little outside the frame (the sign sheet's alert, pixel art without it).
+
 ## 0.8.5
 - Node shapes: the diamond's ring is thinner in its texture (drawn half as large again, it looked twice as thick as the others) and its icon a little bigger; hexagons are drawn bigger (1.28 x a square) with a slightly thinner ring. Each shape has its own ring depths.
 

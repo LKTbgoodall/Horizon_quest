@@ -483,7 +483,8 @@ pub fn state_look(state: QuestState) -> (u32, &'static str) {
         QuestState::Locked => (0xFF50_505A, "Locked"),
         QuestState::Available => (0xFFD8_D8E0, "Available"),
         QuestState::InProgress => (0xFFE8_C040, "In progress"),
-        QuestState::RewardsWaiting => (0xFF50_B8FF, "Rewards waiting"),
+        // The done green: the quest is done, its "!" badge says what is left.
+        QuestState::RewardsWaiting => (0xFF40_B050, "Rewards waiting"),
         QuestState::Done => (0xFF40_B050, "Completed"),
     }
 }
@@ -834,6 +835,15 @@ impl BookView {
                     && contains(area, dst)
                 {
                     scene.draws.push(lock);
+                }
+            }
+            // Rewards to claim: a red "!" badge on the top-right corner of
+            // the same box, a little outside the frame.
+            if state == QuestState::RewardsWaiting {
+                if let badge @ Draw::Sprite { dst, .. } = alert_badge_draws(grow(b, 1.0 / shape_look(node.shape).0))
+                    && contains(area, dst)
+                {
+                    scene.draws.push(badge);
                 }
             }
             // The selected quest: white corners round it, as a viewfinder.
@@ -1594,6 +1604,21 @@ fn lock_draws(node: [f32; 4]) -> Draw {
     let size = h * 1.1;
     let dst = [node[0] + node[2] - size - inset + scale, node[1] + node[3] - size - inset + scale, size, size];
     mark_sprite(MarkCell::Lock, dst, pixels)
+}
+
+/// The red "!" badge on the top-right corner of a node whose rewards wait
+/// (the node's box at `node`), bigger as the node grows: the sign sheet's
+/// alert, or its pixel art without the sheet.
+fn alert_badge_draws(node: [f32; 4]) -> Draw {
+    let size = node[2] * 0.4;
+    let dst = [node[0] + node[2] - size * 0.7, node[1] - size * 0.3, size, size];
+    let scale = size / ALERT_PIXELS.len() as f32;
+    let pixels = pixel_art(&ALERT_PIXELS, [dst[0], dst[1]], scale, &|c| match c {
+        'r' => Some(0xFFE0_3434),
+        'w' => Some(0xFFFF_FFFF),
+        _ => None,
+    });
+    mark_sprite(MarkCell::Alert, dst, pixels)
 }
 
 /// A "?" for a reward to choose.
@@ -2491,8 +2516,11 @@ mod tests {
         }
         let claim = Action::Claim("a/start/xp".into());
         assert_eq!(tip(&view, &book, &progress, &claim).unwrap(), ["5 XP", "Click to claim"]);
-        // A reward waiting has its "!".
-        assert_eq!(signs(&view.scene(&screen(&book, &progress, NOWHERE)), MarkCell::Alert), 1);
+        // A reward waiting has its "!", and so has the quest's node, in the
+        // done green.
+        let waiting = view.scene(&screen(&book, &progress, NOWHERE));
+        assert_eq!(signs(&waiting, MarkCell::Alert), 2);
+        assert_eq!(state_look(QuestState::RewardsWaiting).0, state_look(QuestState::Done).0);
         assert_eq!(click(&mut view, &book, &progress, &claim), Reaction::Send(ToServer::Claim { reward: "a/start/xp".into(), choice: None }));
         assert_eq!(click(&mut view, &book, &progress, &Action::ClaimAll), Reaction::Send(ToServer::ClaimAll));
 
@@ -2505,6 +2533,8 @@ mod tests {
         // (The checkmark task's own button turns green.)
         let scene_now = view.scene(&screen(&book, &progress, NOWHERE));
         assert_eq!((signs(&scene_now, MarkCell::Check), signs(&scene_now, MarkCell::ButtonDone)), (1, 1));
+        // No more "!" anywhere, the node's badge gone too.
+        assert_eq!(signs(&scene_now, MarkCell::Alert), 0);
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
 
         // The next quest is open now, and takes a hand-in.
