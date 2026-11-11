@@ -1,7 +1,7 @@
 ---
 tags: [horizon, reference, api, hooks]
 source: horizon/docs/native-mods.md (NM, 5523 lines), native-hooks.json (434 hooks, 177 helpers), mods.md, native-hooks-neoforge.md, api/stability.md, api/server.md
-verified_on: 2026-11-10
+verified_on: 2026-11-11
 ---
 # Horizon hooks and API ("quest mod" view)
 
@@ -170,7 +170,7 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
   - `native_screen_key_released_pre` (118);
   - `native_screen_opening/init_post/closing` (365-367).
 - **Drawing**:
-  - `native_fill`, `native_text`, `native_text_width`, `native_sprite(&self, batch, name, src: [x,y,w,h] in the sprite's pixels, dst: GUI rect) -> bool` (API 19; GUI textures `assets/<ns>/textures/gui/<path>.png` of every non-minecraft namespace are packed into the HUD atlas as `<ns>:gui/<path>`; no tint, false when missing) ✅ used since v0.6.0 for the book's node frames;
+  - `native_fill`, `native_text`, `native_text_width`, `native_sprite(&self, batch, name, src: [x,y,w,h] in the sprite's pixels, dst: GUI rect) -> bool` (API 19; GUI textures `assets/<ns>/textures/gui/<path>.png` of every non-minecraft namespace are packed into the HUD atlas as `<ns>:gui/<path>`; no tint, false when missing; **a GUI texture over 1024 wide or 512 tall is left out of the atlas** without a warning (`horizon-client-render/src/hud.rs`, checked 2026-11-11 on `fdc87ae`); `block/` and `item/` textures and those with an `animation` mcmeta keep only their first square frame) ✅ used since v0.6.0 for the book's node frames;
   - `native_quad(batch, points, argb)` → **dependency lines**;
   - `native_item_stack(batch, stack, at, size)` (313) → **quest icons**;
   - `native_item_model` (111);

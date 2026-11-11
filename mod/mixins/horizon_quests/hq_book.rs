@@ -63,14 +63,15 @@ const CHEVRON_STEP: f32 = 8.5;
 const CHEVRON_SIZE: f32 = 7.0;
 const BEAD_SIZE: f32 = 2.8;
 const FLOW_TICKS: u32 = 14;
-/// The lines' sprite sheet (`tools/make-line-textures.py`): each line
-/// colour (`LINE_COLOURS` order) is a block of 8 x 5 cells, the chevrons in
-/// 32 directions, then its bead.
+/// The lines' sprite sheet (`tools/make-line-textures.py`, 512 x 288: the
+/// game leaves out GUI textures over 1024 x 512): 16 cells a row; each line
+/// colour (`LINE_COLOURS` order) has two rows of chevrons, one per
+/// direction; the beads share the last row, one per colour.
 pub const CHEVRON_SPRITE: &str = "horizon_quests:gui/chevrons";
 pub const CHEVRON_CELL: f32 = 32.0;
 const CHEVRON_DIRECTIONS: usize = 32;
-const CHEVRON_COLUMNS: usize = 8;
-const LINE_ROWS: usize = CHEVRON_DIRECTIONS / CHEVRON_COLUMNS + 1;
+const CHEVRON_COLUMNS: usize = 16;
+const LINE_ROWS: usize = CHEVRON_DIRECTIONS / CHEVRON_COLUMNS;
 const LINE_COLOURS: [u32; 4] = [LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS];
 const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0xA0_A0B0;
@@ -304,9 +305,9 @@ fn outline(scene: &mut Scene, rect: [f32; 4], colour: u32) {
     }
 }
 
-/// The first row of the block of the line sheet for `colour`.
-fn line_block(colour: u32) -> usize {
-    LINE_COLOURS.iter().position(|c| *c == colour).unwrap_or(0) * LINE_ROWS
+/// The place of `colour` in the line sheet.
+fn line_colour(colour: u32) -> usize {
+    LINE_COLOURS.iter().position(|c| *c == colour).unwrap_or(0)
 }
 
 /// The cell of the line sheet for a chevron of `colour` going in direction
@@ -314,14 +315,14 @@ fn line_block(colour: u32) -> usize {
 pub fn chevron_cell(colour: u32, dir: [f32; 2]) -> [f32; 4] {
     let turn = dir[1].atan2(dir[0]).rem_euclid(std::f32::consts::TAU) / std::f32::consts::TAU;
     let k = (turn * CHEVRON_DIRECTIONS as f32).round() as usize % CHEVRON_DIRECTIONS;
-    let (column, row) = (k % CHEVRON_COLUMNS, line_block(colour) + k / CHEVRON_COLUMNS);
+    let (column, row) = (k % CHEVRON_COLUMNS, line_colour(colour) * LINE_ROWS + k / CHEVRON_COLUMNS);
     [column as f32 * CHEVRON_CELL, row as f32 * CHEVRON_CELL, CHEVRON_CELL, CHEVRON_CELL]
 }
 
 /// The cell of the line sheet for a bead of `colour`.
 pub fn bead_cell(colour: u32) -> [f32; 4] {
-    let row = line_block(colour) + LINE_ROWS - 1;
-    [0.0, row as f32 * CHEVRON_CELL, CHEVRON_CELL, CHEVRON_CELL]
+    let row = LINE_COLOURS.len() * LINE_ROWS;
+    [line_colour(colour) as f32 * CHEVRON_CELL, row as f32 * CHEVRON_CELL, CHEVRON_CELL, CHEVRON_CELL]
 }
 
 /// What a line `len` long carries, `phase` (0 to 1) of a step on from rest:
@@ -2814,11 +2815,11 @@ mod tests {
         // The nearest of the drawn directions, in its colour's block; the
         // bead under the chevrons.
         assert_eq!(chevron_cell(LINE, [1.0, 0.0]), [0.0, 0.0, 32.0, 32.0]);
-        assert_eq!(chevron_cell(LINE, [0.0, 1.0]), [0.0, 32.0, 32.0, 32.0]);
-        assert_eq!(chevron_cell(LINE_OPENS, [-1.0, 0.0]), [0.0, 17.0 * 32.0, 32.0, 32.0]);
-        assert_eq!(chevron_cell(LINE_DONE, [0.7071, -0.7071]), [128.0, 8.0 * 32.0, 32.0, 32.0]);
-        assert_eq!(bead_cell(LINE), [0.0, 128.0, 32.0, 32.0]);
-        assert_eq!(bead_cell(LINE_OPENS), [0.0, 19.0 * 32.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE, [0.0, 1.0]), [256.0, 0.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE_OPENS, [-1.0, 0.0]), [0.0, 7.0 * 32.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE_DONE, [0.7071, -0.7071]), [12.0 * 32.0, 3.0 * 32.0, 32.0, 32.0]);
+        assert_eq!(bead_cell(LINE), [0.0, 256.0, 32.0, 32.0]);
+        assert_eq!(bead_cell(LINE_OPENS), [96.0, 256.0, 32.0, 32.0]);
     }
 
     #[test]

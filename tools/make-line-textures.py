@@ -10,10 +10,11 @@ and one bead per colour. A chevron is a thin stroke in the line's colour,
 lighter at its tip, with a dark edge all round; a bead is a round dot,
 lighter at its top left, with a dark edge. Sampled 4 x 4 times a pixel.
 
-Layout: cells of 32 x 32 pixels; each colour is a block of 8 columns x 5
-rows: the chevrons (direction k at column k % 8, row k / 8), then the bead
-alone at column 0 of the fifth row; the colours are stacked from top to
-bottom. `hq_book::chevron_cell` and `hq_book::bead_cell` pick a cell.
+Layout (512 x 288: the game leaves out GUI textures over 1024 x 512):
+cells of 32 x 32 pixels, 16 a row; each colour's chevrons take two rows
+(direction k at column k % 16, row 2 c + k / 16), the colours stacked from
+top to bottom; the beads share the last row, colour c at column c.
+`hq_book::chevron_cell` and `hq_book::bead_cell` pick a cell.
 
     python tools/make-line-textures.py
 
@@ -29,8 +30,8 @@ import zlib
 CELL = 32
 SAMPLES = 4
 DIRECTIONS = 32
-COLUMNS = 8
-ROWS = DIRECTIONS // COLUMNS + 1
+COLUMNS = 16
+ROWS = DIRECTIONS // COLUMNS
 # hq_book: LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS.
 COLOURS = [0x8C7C88, 0x40A050, 0x38C8E8, 0xE8C838]
 EDGE = (0x10, 0x10, 0x16)
@@ -110,7 +111,7 @@ def cell(colour_at):
 
 
 def sheet():
-    width, height = CELL * COLUMNS, CELL * ROWS * len(COLOURS)
+    width, height = CELL * COLUMNS, CELL * (ROWS * len(COLOURS) + 1)
     img = [[(0, 0, 0, 0)] * width for _ in range(height)]
 
     def put(x0, y0, rows):
@@ -120,7 +121,7 @@ def sheet():
     for c, colour in enumerate(COLOURS):
         for k in range(DIRECTIONS):
             put((k % COLUMNS) * CELL, (c * ROWS + k // COLUMNS) * CELL, cell(lambda x, y: chevron_at(k, colour, x, y)))
-        put(0, (c * ROWS + ROWS - 1) * CELL, cell(lambda x, y: bead_at(colour, x, y)))
+        put(c * CELL, ROWS * len(COLOURS) * CELL, cell(lambda x, y: bead_at(colour, x, y)))
     return img
 
 
