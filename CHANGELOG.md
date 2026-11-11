@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.10.0
+- Dependency lines redone without chevrons: a thin thread (2 canvas units) with a fine dark outline, dashed while its quests are not both done, solid green once they are. The lines of the quest in focus are solid, a little thicker, sit in a soft glow of their colour (cyan: what it needs, yellow: what it opens) and carry small comets (a bright head, a fading tail) running towards the quest each line opens. The chevron texture and `tools/make-line-textures.py` are gone.
+
 ## 0.9.5
 - The chevrons no longer stick out of their line: the line is 5 canvas units wide again (its width before 0.9.3) and each chevron is sized from it (1.2 times the width, its stroke spanning 0.8 of that), at every zoom; one every 9 units.
 

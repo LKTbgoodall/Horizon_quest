@@ -4,7 +4,7 @@ A quest book for [Horizon](https://playhorizon.dev), the Rust rewrite of Minecra
 
 ## What it does
 
-- **A graphical quest book**, opened with a key (K by default) or by right-clicking the **Quest Book** every player gets on their first join. Chapters in a sidebar, quests as framed nodes on a canvas you can drag and zoom, lines with chevrons from a quest to what it opens. The pointer on a quest shows what it needs (cyan) and what it opens (yellow).
+- **A graphical quest book**, opened with a key (K by default) or by right-clicking the **Quest Book** every player gets on their first join. Chapters in a sidebar, quests as framed nodes on a canvas you can drag and zoom, thin dependency lines (dashed until done, then green). The pointer on a quest lights up what it needs (cyan) and what it opens (yellow), with comets running towards the quest each line opens.
 - **A quest window** for each quest: its tasks and rewards as item icons (a check when done, a "!" when a reward waits), tooltips like Minecraft's, and its description. Click an icon to tick a checkmark, hand items in, claim a reward or pick one of several, or see the recipes that make an item.
 - **9 task types**: hold items, hand items in, craft or smelt, kill mobs, tick a checkmark, reach an experience level, enter a dimension, reach a place, earn an advancement.
 - **7 reward types**: items, experience points, levels, a console command, a toast, a random entry of a reward table, or one entry of a table chosen by the player. Rewards are claimed by each player, or once for the whole party.
