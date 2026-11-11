@@ -24,9 +24,8 @@ Tick in order. Claude prepares and checks; Bastien tests in game, decides and se
 
 ## 4. Re-pin on a recent Horizon (Bastien, then Claude)
 - [x] How the content half is published: one `.hmod` with content and code, which Horizon `main` supports ([ADR-014](../vault/05%20-%20Decisions/ADR-014%20Publish%20one%20hmod%20with%20content%20and%20code.md)).
-- [ ] Bastien: update the launcher and select the newest Nightly (so it fetches that Horizon's source), then tell Claude.
-- [ ] Claude: check the glue against it (`tools/check-glue.ps1`), fix what changed, update `horizon_revision`, the horizon-mixins revision and `hooks` (`horizon-mixin.toml`, `compatibility.json`, build scripts).
-- [ ] Bastien: rebuild and play a little on the new Nightly (does the launcher install the one `.hmod`? do the textures show?).
+- [x] Bastien updated the launcher (2026-11-11). `horizon-launcher versions`: the newest Nightly is `nightly-2026-11-08-fdc87ae`, **our pin**: nothing to re-pin, the registry's compile check runs on the same Horizon.
+- [ ] Native `.hmod` support (content shipped with the code) is on Horizon `main` but in no Nightly yet. When a newer Nightly appears: Claude checks the glue against it, updates the pins, and Bastien checks in game that the launcher installs the one `.hmod` with its textures.
 - [ ] Run the registry's check: `cargo horizon-mod check build/horizon_quests.hmod`.
 
 ## 5. Release

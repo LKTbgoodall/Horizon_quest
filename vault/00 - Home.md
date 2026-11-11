@@ -19,7 +19,7 @@ updated: 2026-11-11
 
 ## ➡️ Next step
 0. Claude, before any in-game test request: `powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1` must end with "The glue type-checks" ([[Build, test and tools]])
-1. **V1**: follow `release/v1-checklist.md`. Bastien: the in-game test of 0.6.0 to 0.7.3 and the server settings, then **update the launcher to the newest Nightly** so Claude can re-pin (section 4). The content half ships in the one `.hmod` ([[ADR-014 Publish one hmod with content and code]]). Then **1.0.0**: the public release on playhorizon.dev ([[Publishing and mod policy]]). Later: JEI's recipes when installed, a party tab outside the book
+1. **V1**: follow `release/v1-checklist.md`. Bastien: the in-game test of 0.6.0 to 0.7.3 and the server settings, then decide: wait for a Nightly with native `.hmod` support (our pin `fdc87ae` is still the newest Nightly) or publish 1.0.0 as a code-only `.hnmod` first. The content half ships in the one `.hmod` ([[ADR-014 Publish one hmod with content and code]]). Then **1.0.0**: the public release on playhorizon.dev ([[Publishing and mod policy]]). Later: JEI's recipes when installed, a party tab outside the book
 2. Small follow-ups Bastien put aside: short ids and a list for `/quests complete` / `reset`, the quest id in the book panel for operators
 
 ## 🗺️ Vault map
