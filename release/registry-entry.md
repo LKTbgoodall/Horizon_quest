@@ -36,6 +36,10 @@ With a minisign key on the project, every later version must be signed with it, 
 3. For each release: `minisign -S -s %USERPROFILE%\.minisign\horizon_quests.key -m build\horizon_quests.hmod` writes `build\horizon_quests.hmod.minisig`.
 4. In the form: **Public key** = the `RW...` line of `minisign.pub`; **Signature** = the `.minisig` file.
 
+**Done 2026-11-11**: Bastien made the key pair. Public key (also in `minisign.pub` at the repository's root):
+`RWQExIe8tJ38NT3i7clS2GTQf5m9CIiPMjvypgixSbPmkh2qC20pcs2G`. Anyone can check a release with
+`minisign -Vm horizon_quests.hmod -P RWQExIe8tJ38NT3i7clS2GTQf5m9CIiPMjvypgixSbPmkh2qC20pcs2G`.
+
 ## Summary (one line)
 
 A quest book in the spirit of FTB Quests: chapters, quests, tasks, rewards and parties, with a graphical book.
