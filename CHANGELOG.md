@@ -4,6 +4,10 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.7.5
+- Counts: finer digits drawn in half pixels, with a dark edge all round so they read on any item.
+- The checkmark button is smoother (half pixels too); once ticked its own check turns green instead of getting a second check on top.
+
 ## 0.7.4
 - A locked quest shows its icon greyed out and a small padlock on its bottom-right corner.
 - A checkmark task is a round grey button with a white check instead of a book.

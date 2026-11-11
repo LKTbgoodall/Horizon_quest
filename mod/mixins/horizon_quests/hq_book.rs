@@ -1195,12 +1195,13 @@ fn task_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Vec<
                 more.push(("Waiting for the tasks before it".to_owned(), DIM_INK));
             }
             Icon {
-                item: task_item(&task.kind),
+                item: if finished && task.kind == TaskKind::Checkmark { CHECK_TASK_DONE.to_owned() } else { task_item(&task.kind) },
                 count: if goal > 1 { goal.to_string() } else { String::new() },
                 action,
                 tip: item_tip(names, link.as_deref(), &task_label(task), more, click),
                 veil: (!counts && !finished).then_some(DIM_VEIL),
-                mark: finished.then_some(Mark::Check),
+                // A checkmark task shows it is done by its green check.
+                mark: (finished && task.kind != TaskKind::Checkmark).then_some(Mark::Check),
             }
         })
         .collect()
@@ -1266,26 +1267,51 @@ fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Ve
 /// character a pixel: `g`/`r` the sign, `w` white, `k` its dark edge).
 const CHECK_PIXELS: [&str; 7] = ["........gg", ".......gg.", "......gg..", "gg...gg...", ".gg.gg....", "..ggg.....", "..gg......"];
 const ALERT_PIXELS: [&str; 7] = [".rrrrr.", "rrrwrrr", "rrrwrrr", "rrrwrrr", "rrrrrrr", "rrrwrrr", ".rrrrr."];
-/// A checkmark task's icon: no item, a round grey button with a white
-/// check, drawn by `check_task_draws`.
+/// A checkmark task's icon: no item, a round grey button with a check,
+/// drawn by `check_task_draws` (white, or green once done).
 const CHECK_TASK_ICON: &str = "horizon_quests:check_task";
+const CHECK_TASK_DONE: &str = "horizon_quests:check_task_done";
 
-/// The round grey button with a white check of a checkmark task (16
-/// pixels, its top-left corner at `at`).
-fn check_task_draws(at: [f32; 2]) -> Vec<Draw> {
-    let mut rows: Vec<String> = (0..16)
+/// Half a GUI pixel: the step of the finer pixel art (the counts, the
+/// checkmark button), drawn at the screen's resolution as FTB-style books
+/// draw their small text.
+const FINE: f32 = 0.5;
+
+/// Distance from `p` to the segment `a`-`b`.
+fn segment_distance(p: [f32; 2], a: [f32; 2], b: [f32; 2]) -> f32 {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    let t = (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)).clamp(0.0, 1.0);
+    let (x, y) = (a[0] + t * dx - p[0], a[1] + t * dy - p[1]);
+    (x * x + y * y).sqrt()
+}
+
+/// The round grey button of a checkmark task, 16 pixels wide with its
+/// top-left corner at `at`, drawn on a grid of half pixels: a dark rim, a
+/// lighter top, a thick check with a soft shadow, white (green once done).
+fn check_task_draws(at: [f32; 2], done: bool) -> Vec<Draw> {
+    const N: usize = 32;
+    let (short, corner, long) = ([8.5, 16.5], [13.5, 21.5], [23.5, 9.5]);
+    let on_check = |x: f32, y: f32| segment_distance([x, y], short, corner).min(segment_distance([x, y], corner, long)) < 1.9;
+    let rows: Vec<String> = (0..N)
         .map(|y| {
-            (0..16)
+            (0..N)
                 .map(|x| {
-                    let (dx, dy) = (x as f32 - 7.5, y as f32 - 7.5);
+                    let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
+                    let (dx, dy) = (px - 16.0, py - 16.0);
                     let d = (dx * dx + dy * dy).sqrt();
-                    if d > 7.6 {
+                    if d > 15.5 {
                         '.'
-                    } else if d > 6.5 {
+                    } else if d > 13.8 {
                         'k'
-                    } else if dy < -2.0 {
+                    } else if on_check(px, py) {
+                        'w'
+                    } else if on_check(px - 1.0, py - 1.5) {
+                        'd'
+                    } else if d > 12.4 && dy < 0.0 {
                         'l'
-                    } else if dy > 3.0 {
+                    } else if dy < -3.0 {
+                        'h'
+                    } else if dy > 6.0 {
                         's'
                     } else {
                         'g'
@@ -1294,74 +1320,62 @@ fn check_task_draws(at: [f32; 2]) -> Vec<Draw> {
                 .collect()
         })
         .collect();
-    // The check, white, with a grey shadow under it.
-    for (r, line) in CHECK_PIXELS.iter().enumerate() {
-        for (c, ch) in line.chars().enumerate() {
-            if ch != 'g' {
-                continue;
-            }
-            let (x, y) = (c + 3, r + 4);
-            let mut set = |x: usize, y: usize, to: char| {
-                if let Some(row) = rows.get_mut(y) {
-                    let mut chars: Vec<char> = row.chars().collect();
-                    if chars.get(x).is_some_and(|&was| was != 'w' && was != '.') {
-                        chars[x] = to;
-                        *row = chars.into_iter().collect();
-                    }
-                }
-            };
-            set(x, y + 1, 'd');
-            set(x, y, 'w');
-        }
-    }
     let map: Vec<&str> = rows.iter().map(String::as_str).collect();
-    pixel_art(&map, at, 1.0, &|c| match c {
-        'k' => Some(0xFF2E_2E34),
-        'l' => Some(0xFFB4_B4BC),
-        'g' => Some(0xFF94_949C),
+    let check = if done { CHECK_DONE } else { CHECK_WHITE };
+    pixel_art(&map, at, FINE, &|c| match c {
+        'k' => Some(0xFF26_262C),
+        'l' => Some(0xFFC8_C8D0),
+        'h' => Some(0xFFA2_A2AA),
+        'g' => Some(0xFF8C_8C94),
         's' => Some(0xFF74_747C),
-        'd' => Some(0xFF54_545C),
-        'w' => Some(CHECK_WHITE),
+        'd' => Some(0xFF4E_4E56),
+        'w' => Some(check),
         _ => None,
     })
 }
 const CHECK_WHITE: u32 = 0xFFFA_FAFA;
+const CHECK_DONE: u32 = 0xFF5C_E83C;
 
-/// Digits 3 pixels wide and 5 tall, for the counts on icons.
-const DIGIT_PIXELS: [[&str; 5]; 10] = [
-    ["www", "w.w", "w.w", "w.w", "www"],
-    [".w.", "ww.", ".w.", ".w.", "www"],
-    ["www", "..w", "www", "w..", "www"],
-    ["www", "..w", ".ww", "..w", "www"],
-    ["w.w", "w.w", "www", "..w", "..w"],
-    ["www", "w..", "www", "..w", "www"],
-    ["www", "w..", "www", "w.w", "www"],
-    ["www", "..w", "..w", ".w.", ".w."],
-    ["www", "w.w", "www", "w.w", "www"],
-    ["www", "w.w", "www", "..w", "www"],
+/// Digits 5 half-pixels wide and 7 tall, for the counts on icons.
+const DIGIT_PIXELS: [[&str; 7]; 10] = [
+    [".www.", "w...w", "w..ww", "w.w.w", "ww..w", "w...w", ".www."],
+    ["..w..", ".ww..", "..w..", "..w..", "..w..", "..w..", ".www."],
+    [".www.", "w...w", "....w", "...w.", "..w..", ".w...", "wwwww"],
+    [".www.", "w...w", "....w", "..ww.", "....w", "w...w", ".www."],
+    ["...w.", "..ww.", ".w.w.", "w..w.", "wwwww", "...w.", "...w."],
+    ["wwwww", "w....", "wwww.", "....w", "....w", "w...w", ".www."],
+    ["..ww.", ".w...", "w....", "wwww.", "w...w", "w...w", ".www."],
+    ["wwwww", "....w", "...w.", "..w..", ".w...", ".w...", ".w..."],
+    [".www.", "w...w", "w...w", ".www.", "w...w", "w...w", ".www."],
+    [".www.", "w...w", "w...w", ".wwww", "....w", "...w.", ".ww.."],
 ];
 
-/// A count in small white digits with a dark shadow, its bottom-right
-/// corner on the bottom-right corner of the 16-pixel icon at `icon`, as
-/// FTB-style books draw them: they hardly cover the item. Anything but
-/// digits is left out.
+/// A count in small white digits with a dark edge all round, so it reads
+/// on any item, its bottom-right corner on the bottom-right corner of the
+/// 16-pixel icon at `icon`, as FTB-style books draw them: small, in the
+/// corner. Anything but digits is left out.
 fn count_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
     let digits: Vec<usize> = count.chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
     if digits.is_empty() {
         return Vec::new();
     }
-    let rows: Vec<String> = (0..5)
+    let rows: Vec<String> = (0..7)
         .map(|r| digits.iter().map(|&d| DIGIT_PIXELS[d][r]).collect::<Vec<_>>().join("."))
         .collect();
-    let map: Vec<&str> = rows.iter().map(String::as_str).collect();
-    let width = rows[0].len() as f32;
-    let at = [icon[0] + 16.0 - width, icon[1] + 11.0];
-    let mut draws = pixel_art(&map, [at[0] + 1.0, at[1] + 1.0], 1.0, &|c| (c == 'w').then_some(COUNT_SHADOW));
-    draws.extend(pixel_art(&map, at, 1.0, &|c| (c == 'w').then_some(COUNT_INK)));
-    draws
+    let rows: Vec<&str> = rows.iter().map(String::as_str).collect();
+    let map = outlined(&rows, 'w', 'k');
+    let map: Vec<&str> = map.iter().map(String::as_str).collect();
+    let (w, h) = (map[0].len() as f32 * FINE, map.len() as f32 * FINE);
+    // The edge may stick out half a pixel past the icon.
+    let at = [icon[0] + 16.5 - w, icon[1] + 16.5 - h];
+    pixel_art(&map, at, FINE, &|c| match c {
+        'w' => Some(COUNT_INK),
+        'k' => Some(COUNT_EDGE),
+        _ => None,
+    })
 }
 const COUNT_INK: u32 = 0xFFF6_F6F6;
-const COUNT_SHADOW: u32 = 0xFF3F_3F3F;
+const COUNT_EDGE: u32 = 0xFF20_2020;
 
 /// A padlock: `k` its dark edge and keyhole, `w` its metal, `s` the
 /// metal's shaded bottom.
@@ -1521,8 +1535,8 @@ fn draw_icons(scene: &mut Scene, s: &Screen<'_>, area: [f32; 4], heading: &str, 
             scene.fill(cell, ROW_HOVER);
             tip = Some(icon.tip.clone());
         }
-        if icon.item == CHECK_TASK_ICON {
-            scene.draws.extend(check_task_draws(at));
+        if icon.item == CHECK_TASK_ICON || icon.item == CHECK_TASK_DONE {
+            scene.draws.extend(check_task_draws(at, icon.item == CHECK_TASK_DONE));
         } else {
             scene.draws.push(Draw::Item { item: icon.item.clone(), at, size: 16.0 });
         }
@@ -2535,27 +2549,30 @@ mod tests {
         assert!(count_draws("", [0.0, 0.0]).is_empty());
         for count in ["3", "64", "1000"] {
             let draws = count_draws(count, [100.0, 50.0]);
-            assert!(!draws.is_empty());
+            assert!(draws.iter().any(|d| matches!(d, Draw::Fill { colour: COUNT_INK, .. })));
             for d in draws {
                 let Draw::Fill { rect, .. } = d else { panic!("digits are fills") };
-                // Inside the icon's bottom-right part, the shadow one pixel past it.
-                assert!(rect[1] >= 61.0 && rect[1] + rect[3] <= 67.0, "{count}: {rect:?}");
-                assert!(rect[0] + rect[2] <= 117.0, "{count}: {rect:?}");
+                // In the icon's bottom-right part, the edge at most half a pixel past it.
+                assert!(rect[1] >= 61.0 && rect[1] + rect[3] <= 66.5, "{count}: {rect:?}");
+                assert!(rect[0] + rect[2] <= 116.5, "{count}: {rect:?}");
             }
         }
-        // "64" is two digits and a gap: 7 pixels wide.
+        // "64": two digits, a gap and the edge, 13 half pixels wide.
         let left = count_draws("64", [0.0, 0.0]).iter().map(|d| match d { Draw::Fill { rect, .. } => rect[0], _ => 99.0 }).fold(99.0, f32::min);
-        assert_eq!(left, 9.0);
+        assert_eq!(left, 16.5 - 13.0 * FINE);
     }
 
     #[test]
     fn a_checkmark_task_is_a_round_button() {
-        let draws = check_task_draws([0.0, 0.0]);
-        let white = draws.iter().filter(|d| matches!(d, Draw::Fill { colour: CHECK_WHITE, .. })).count();
-        assert!(white >= 5, "a white check");
-        for d in &draws {
-            let Draw::Fill { rect, .. } = d else { panic!("the button is fills") };
-            assert!(contains([0.0, 0.0, 16.0, 16.0], *rect), "{rect:?}");
+        for done in [false, true] {
+            let draws = check_task_draws([0.0, 0.0], done);
+            let ink = if done { CHECK_DONE } else { CHECK_WHITE };
+            let check = draws.iter().filter(|d| matches!(d, Draw::Fill { colour, .. } if *colour == ink)).count();
+            assert!(check >= 10, "a check: {check} runs");
+            for d in &draws {
+                let Draw::Fill { rect, .. } = d else { panic!("the button is fills") };
+                assert!(contains([0.0, 0.0, 16.0, 16.0], *rect), "{rect:?}");
+            }
         }
     }
 
