@@ -59,6 +59,8 @@ It ends with "The glue type-checks against Horizon fdc87ae", or with the compile
    ```
    Without options it installs into the default instance, which on Linux is the game home `~/.local/share/horizon` itself (it holds `horizon-native-mods`), and builds the launcher's selected instance. For another instance add `--instance NAME` (looked for under `~/.config/horizon/instances/` and `~/.local/share/horizon/instances/`) or `--instance-dir DIR`. The launcher is found on the `PATH`, else through its applications-menu entry `~/.local/share/applications/horizon-launcher.desktop`; else set `HORIZON_LAUNCHER=/path/to/horizon-launcher`. `--no-build` and `--uninstall` work as on Windows. It needs `bsdtar` (always there on Arch), `zip` or `python3`.
 
+   `-Combined` installs the one `.hmod` in `horizon-native-mods/` instead of the two halves, as the registry installs it with a launcher that reads native `.hmod` files (`release/v1-checklist.md` says what each outcome means). Without it the halves come back.
+
    Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.

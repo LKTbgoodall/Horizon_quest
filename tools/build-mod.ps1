@@ -12,6 +12,10 @@
      native code only from horizon-native-mods/<id>.hnmod, so the code half goes there
      and the content half to horizon-mods/<id>.hmod, both cut from the same file; the
      mod is turned on.
+     With -Combined, the one .hmod goes to horizon-native-mods/<id>.hmod instead (and
+     the two halves are taken out): what a launcher with native .hmod support installs
+     from the registry (ADR-014). The launcher copies the content into the build's
+     native-content/<id>/; the game reads it there once it supports it.
   3. Unless -NoBuild: runs horizon-launcher native-build on the instance (all its native mods).
 
   Step 3 passes --trust-native-code: only the player runs this script, never an agent.
@@ -20,12 +24,14 @@
   powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1
   powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1 -NoBuild
   powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1 -Uninstall
+  powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1 -Combined
 #>
 param(
     [string]$Instance = "mon-horizon",
     [switch]$NoInstall,
     [switch]$NoBuild,
-    [switch]$Uninstall
+    [switch]$Uninstall,
+    [switch]$Combined
 )
 $ErrorActionPreference = "Stop"
 
@@ -66,6 +72,7 @@ function Set-ModLine([bool]$On) {
 if ($Uninstall) {
     Remove-Item (Join-Path $NativeMods "$ModId.hnmod") -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $ContentMods "$ModId.hmod") -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $NativeMods "$ModId.hmod") -ErrorAction SilentlyContinue
     Set-ModLine $false
     Write-Host "Horizon Quests removed from $Instance. Run native-build again to rebuild the game without it."
     exit 0
@@ -140,11 +147,18 @@ if ($NoInstall) { exit 0 }
 
 # 2. Install it in the instance: the code where the launcher builds it, the content where the game reads it.
 if (-not (Test-Path $NativeMods)) { throw "Instance not found: $NativeMods" }
-Copy-Item $NativePart (Join-Path $NativeMods "$ModId.hnmod") -Force
-New-Item -ItemType Directory -Force $ContentMods | Out-Null
-Copy-Item $ContentPart (Join-Path $ContentMods "$ModId.hmod") -Force
+if ($Combined) {
+    # The one file, as the registry would install it; no halves beside it.
+    Remove-Item (Join-Path $NativeMods "$ModId.hnmod"), (Join-Path $ContentMods "$ModId.hmod") -ErrorAction SilentlyContinue
+    Copy-Item $Hmod (Join-Path $NativeMods "$ModId.hmod") -Force
+} else {
+    Remove-Item (Join-Path $NativeMods "$ModId.hmod") -ErrorAction SilentlyContinue
+    Copy-Item $NativePart (Join-Path $NativeMods "$ModId.hnmod") -Force
+    New-Item -ItemType Directory -Force $ContentMods | Out-Null
+    Copy-Item $ContentPart (Join-Path $ContentMods "$ModId.hmod") -Force
+}
 Set-ModLine $true
-Write-Host "Installed in $Instance."
+Write-Host "Installed in $Instance$(if ($Combined) { ' (one combined .hmod)' })."
 if ($NoBuild) { exit 0 }
 
 # 3. Build the game with every native mod turned on in the instance.
