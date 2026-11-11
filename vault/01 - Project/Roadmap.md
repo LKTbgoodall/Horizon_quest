@@ -67,7 +67,7 @@ updated: 2026-11-10
 - [x] Datapack quests (`NativeReloadListener`): coded (v0.4.0), example data pack in `examples/quest-datapack/`. **Tested in game 2026-11-11**
 - [x] Book polish: coded (v0.5.0, hover fix v0.5.1), **tested in game 2026-11-11** (solo and LAN). Bastien's choices (2026-11-10): **tracked quest on the HUD, top-left corner**; **the party's name in the book** (members and the rest go in a party tab outside the book, later); **our own recipe view** for a task's item (later: use JEI's when it is installed); **team rewards** as an option (`"team": true`: one member claims for the whole party). No search for now. Client toasts done in v0.0.6
 - [ ] Assets (combined `.hmod`): coded (v0.6.0): node frame textures (`textures/gui/nodes.png`, 5 shapes x 5 states, polygons as fallback) and the registry icon `mod/icon.png`. To test in game
-- [ ] **First public release on playhorizon.dev** → [[Publishing and mod policy]]
+- [ ] **First public release on playhorizon.dev** → [[Publishing and mod policy]]. Preparation started 2026-11-11: `release/v1-checklist.md`, `release/registry-entry.md`, `docs/making-quests.md`, `CHANGELOG.md`
 
 ## Phase 4: V2
 - [ ] Dedicated server support (engine export) and its tests

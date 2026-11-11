@@ -15,6 +15,10 @@ Back: [[Horizon - Overview]]
 5. **Human review**: a maintainer reads **every line** of the `.hnmod`, and **every update** of a native mod is reviewed.
 6. Each published version requires a new `version`. « A published file never changes. »
 
+## Our release files (2026-11-11)
+- `release/v1-checklist.md`: what remains before 1.0.0.
+- `release/registry-entry.md`: the form's fields, summary and description, screenshots, open points (how to ship the content half: the registry takes `.hnmod`, code only).
+
 ## Contents of a `.hnmod`
 A deterministic zip containing `horizon-native.json` (`{schema:1, id, version, game, horizon, mixins, hooks}`), the `.rs`, `.toml` and `data/` files under `mixins/<id>/`, and the `LICENSE`.
 
