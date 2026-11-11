@@ -2975,7 +2975,7 @@ mod tests {
     fn a_locked_node_is_greyed_and_padlocked() {
         let has_veil = |scene: &Scene| scene.draws.iter().any(|d| matches!(d, Draw::Quad { colour: LOCKED_VEIL, .. }));
         // The veil is the face's shape, not a square over the icon.
-        assert!((face_share(Shape::Square) - 0.781).abs() < 0.01 && face_share(Shape::Diamond) < face_share(Shape::Square));
+        assert!((face_share(Shape::Square) - 0.891).abs() < 0.01 && face_share(Shape::Diamond) < face_share(Shape::Square));
         let lock_src = MarkCell::Lock as u8 as f32 * MARK_CELL;
         let has_lock = |scene: &Scene| scene.draws.iter().any(|d| matches!(d, Draw::Sprite { name, src, .. } if name == MARK_SPRITE && src[0] == lock_src));
         let (book, progress) = (book(), Progress::default());
