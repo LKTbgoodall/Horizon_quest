@@ -37,8 +37,9 @@ pub enum Shape {
     Square,
     Circle,
     Diamond,
+    /// "octagon", a shape of older versions, reads as a hexagon.
+    #[serde(alias = "octagon")]
     Hexagon,
-    Octagon,
 }
 
 /// What a quest's dependencies must be for it to open.
@@ -481,6 +482,12 @@ pub fn dependency_id(chapter: &str, dependency: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_old_octagon_reads_as_a_hexagon() {
+        assert_eq!(serde_json::from_str::<Shape>(r#""octagon""#).unwrap(), Shape::Hexagon);
+        assert_eq!(serde_json::to_string(&Shape::Hexagon).unwrap(), r#""hexagon""#);
+    }
 
     #[test]
     fn a_chapter_reads_with_defaults() {

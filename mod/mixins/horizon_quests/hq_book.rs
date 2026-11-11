@@ -235,7 +235,6 @@ pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]
         }
         Shape::Diamond => (4, 0.0),
         Shape::Hexagon => (6, 0.0),
-        Shape::Octagon => (8, std::f32::consts::PI / 8.0),
         Shape::Circle => (16, 0.0),
     };
     (0..sides)
@@ -259,11 +258,10 @@ fn darker(colour: u32) -> u32 {
 /// face leaves inside the ring, with a margin).
 fn shape_look(shape: Shape) -> (f32, f32) {
     match shape {
-        Shape::Square => (1.0, 0.6),
-        Shape::Circle => (1.15, 0.52),
-        Shape::Hexagon => (1.28, 0.48),
-        Shape::Octagon => (1.08, 0.55),
-        Shape::Diamond => (1.5, 0.38),
+        Shape::Square => (1.0, 0.54),
+        Shape::Circle => (1.15, 0.47),
+        Shape::Hexagon => (1.28, 0.43),
+        Shape::Diamond => (1.5, 0.34),
     }
 }
 
@@ -276,11 +274,10 @@ fn face_share(shape: Shape) -> f32 {
         Shape::Square | Shape::Circle => 1.0,
         Shape::Diamond => std::f32::consts::FRAC_1_SQRT_2,
         Shape::Hexagon => 0.866,
-        Shape::Octagon => 0.924,
     };
     let ring = match shape {
         Shape::Square => 3.5,
-        Shape::Circle | Shape::Octagon => 4.6,
+        Shape::Circle => 4.6,
         Shape::Hexagon => 4.15,
         Shape::Diamond => 3.3,
     };
@@ -304,14 +301,13 @@ pub fn node_cell(shape: Shape, state: QuestState) -> [f32; 4] {
         Shape::Circle => 1.0,
         Shape::Diamond => 2.0,
         Shape::Hexagon => 3.0,
-        Shape::Octagon => 4.0,
     };
     let column = match state {
         QuestState::Locked => 0.0,
         QuestState::Available => 1.0,
         QuestState::InProgress => 2.0,
-        QuestState::RewardsWaiting => 3.0,
-        QuestState::Done => 4.0,
+        // Rewards waiting look done; the book adds a "!" badge.
+        QuestState::RewardsWaiting | QuestState::Done => 3.0,
     };
     [column * NODE_CELL, row * NODE_CELL, NODE_CELL, NODE_CELL]
 }
@@ -2271,7 +2267,7 @@ mod tests {
     #[test]
     fn shapes_are_fans_of_quads_inside_their_radius() {
         for (shape, quads) in
-            [(Shape::Square, 1), (Shape::Diamond, 1), (Shape::Hexagon, 2), (Shape::Octagon, 3), (Shape::Circle, 7)]
+            [(Shape::Square, 1), (Shape::Diamond, 1), (Shape::Hexagon, 2), (Shape::Circle, 7)]
         {
             let points = shape_points(shape, [100.0, 50.0], 10.0);
             assert_eq!(polygon_quads(&points).len(), quads, "{shape:?}");
@@ -2582,7 +2578,8 @@ mod tests {
         // The open quest is "available", the other "locked", each in its shape's row.
         let shape = book.nodes()[0].shape;
         assert_eq!(*frames[0].0, node_cell(shape, QuestState::Available));
-        assert_eq!(node_cell(Shape::Octagon, QuestState::Done), [256.0, 256.0, 64.0, 64.0]);
+        assert_eq!(node_cell(Shape::Hexagon, QuestState::Done), [192.0, 192.0, 64.0, 64.0]);
+        assert_eq!(node_cell(Shape::Hexagon, QuestState::RewardsWaiting), node_cell(Shape::Hexagon, QuestState::Done));
         assert!(frames.iter().all(|(_, fallback)| fallback.iter().all(|d| matches!(d, Draw::Quad { .. })) && !fallback.is_empty()));
     }
 

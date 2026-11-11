@@ -50,7 +50,7 @@
         "Planks and sticks make a wooden pickaxe. It will not last, but it gets you to stone."
       ],
       "x": 6, "y": -1,
-      "shape": "octagon",
+      "shape": "hexagon",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:wooden_pickaxe" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 15 } ]
@@ -111,7 +111,7 @@
       ],
       "icon": "minecraft:wooden_sword",
       "x": 8, "y": 1,
-      "shape": "octagon",
+      "shape": "hexagon",
       "dependencies": ["bed"],
       "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 3 } ],
       "rewards": [
@@ -142,7 +142,7 @@
       ],
       "icon": "minecraft:iron_pickaxe",
       "x": 14, "y": 0,
-      "shape": "octagon",
+      "shape": "hexagon",
       "size": 1.5,
       "dependencies": ["iron", "first_night"],
       "visibility": "until_deps_complete",

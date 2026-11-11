@@ -57,7 +57,7 @@
         "The reward is yours to choose: pick one in the list below once the quest is completed."
       ],
       "x": 4, "y": 0,
-      "shape": "octagon",
+      "shape": "hexagon",
       "dependencies": ["armed", "stone_age"],
       "dependency_mode": "one_completed",
       "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ],

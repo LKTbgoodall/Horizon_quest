@@ -64,7 +64,7 @@ A real, complete example is the shipped pack: `mod/mixins/horizon_quests/data/qu
 
 | File / object | Fields (default) |
 |---|---|
-| `quests.json` | `version` (1), `progression` (`linear` \| `flexible`), `default_shape` (`square` \| `circle` \| `diamond` \| `hexagon` \| `octagon`), `default_size` (1.0), `auto_claim_rewards` (false), `detection_delay` (20 ticks), `groups` (`[{ id, title }]`) |
+| `quests.json` | `version` (1), `progression` (`linear` \| `flexible`), `default_shape` (`square` \| `circle` \| `diamond` \| `hexagon`; `octagon` reads as `hexagon` since 0.8.7)\| `octagon`), `default_size` (1.0), `auto_claim_rewards` (false), `detection_delay` (20 ticks), `groups` (`[{ id, title }]`) |
 | chapter | `id`*, `title`, `subtitle`, `icon` (item id), `group`, `order` (0), `progression`, `default_shape`, `default_size`, `hidden` (false), `quests` |
 | quest | `id`*, `title`, `subtitle`, `description` (list of paragraphs), `icon`, `x`, `y`, `shape`, `size`, `dependencies` (`quest` or `chapter/quest`), `dependency_mode` (`all_completed` \| `one_completed` \| `all_started` \| `one_started`), `min_required`, `visibility` (`always` \| `until_deps_visible` \| `until_deps_complete` \| `secret`), `optional` (false), `sequential_tasks` (false), `repeatable` (false), `repeat_cooldown` (0 seconds), `tasks`, `rewards` |
 | task | `id`*, `title`, `type`*: `item` (`item`*, `count` 1, `consume` false) · `checkmark` · `kill` (`entity`*, `count` 1) · `craft` (`item`*, `count` 1) · `xp_levels` (`levels`*) · `dimension` (`dimension`*) · `location` (`dimension`, `from`* `[x, y, z]`, `to`* `[x, y, z]`: a box of blocks, both corners included) · `advancement` (`advancement`*) |

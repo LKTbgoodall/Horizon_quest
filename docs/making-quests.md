@@ -52,7 +52,7 @@ Complete, working examples:
 |---|---|---|
 | `version` | 1 | The format version. A pack newer than the mod is refused. |
 | `progression` | `linear` | `linear`: a task counts only once its quest is open. `flexible`: tasks count at any time; the quest completes when its dependencies are met too. |
-| `default_shape` | `square` | The node shape: `square`, `circle`, `diamond`, `hexagon`, `octagon`. |
+| `default_shape` | `square` | The node shape: `square`, `circle`, `diamond`, `hexagon` (`octagon`, from older versions, reads as `hexagon`). |
 | `default_size` | 1.0 | The node size (1 is standard). |
 | `auto_claim_rewards` | false | Give rewards without a click. A reward can override it. |
 | `detection_delay` | 20 | Ticks between two looks at a player's inventory (the server's config can override it). |

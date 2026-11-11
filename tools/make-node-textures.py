@@ -1,13 +1,13 @@
-"""Draws the quest book's node frames: one sprite sheet of 5 shapes x 5 states.
+"""Draws the quest book's node frames: one sprite sheet of 4 shapes x 4 states.
 
 Original art for Horizon Quests (MIT). Each cell is 64 x 64 pixels,
 anti-aliased (drawn in 32-pixel units, sampled 4 x 4 times a pixel): a
 dark outline, a bevelled ring in the colour of the quest's state (lighter on
 the top-left half, darker on the bottom-right), a thin inner shadow and the
 node's dark face, where the book draws the quest's icon. Rows are the shapes
-(square, circle, diamond, hexagon, octagon), columns the states (locked,
-available, in progress, rewards waiting (the done green: the book adds a
-"!" badge), done), as `hq_book::node_cell`
+(square, circle, diamond, hexagon), columns the states (locked, available,
+in progress, done; rewards waiting use the done cell, the book adds a "!"
+badge), as `hq_book::node_cell`
 picks them; the colours are
 `hq_book::state_look`'s. The corners follow `hq_book::shape_points`, so a
 frame lines up with the polygon the book draws when the texture is missing.
@@ -26,9 +26,9 @@ import zlib
 CELL = 32  # the geometry is drawn in these units
 OUT = 64  # pixels a cell in the texture
 SAMPLES = 4
-SHAPES = ["square", "circle", "diamond", "hexagon", "octagon"]
-# hq_book::state_look, in NODE_STATES order.
-STATES = [0x50505A, 0xD8D8E0, 0xE8C040, 0x40B050, 0x40B050]
+SHAPES = ["square", "circle", "diamond", "hexagon"]
+# hq_book::state_look: locked, available, in progress, done.
+STATES = [0x50505A, 0xD8D8E0, 0xE8C040, 0x40B050]
 OUTLINE = 0x0E0E16
 SHADOW = 0x1A1A24
 FACE = 0x262632
@@ -46,7 +46,7 @@ def corners(shape, centre, radius):
     if shape == "square":
         r = radius
         return [(cx - r, cy + r), (cx + r, cy + r), (cx + r, cy - r), (cx - r, cy - r)]
-    sides, start = {"diamond": (4, 0.0), "hexagon": (6, 0.0), "octagon": (8, math.pi / 8)}[shape]
+    sides, start = {"diamond": (4, 0.0), "hexagon": (6, 0.0)}[shape]
     return [
         (cx + radius * math.cos(start + k * math.tau / sides), cy - radius * math.sin(start + k * math.tau / sides))
         for k in range(sides)
@@ -77,12 +77,11 @@ def depth(shape, x, y):
 # starts after. Shapes other than the square have a thicker ring, so they
 # read as boldly as the square's straight sides; the book draws the
 # hexagon and the diamond bigger (`hq_book::shape_look`), so their ring is
-# thinner in units, to look as thick on screen as the octagon's. The third
+# thinner in units, to look as thick on screen as the circle's. The third
 # value is `hq_book::face_share`'s.
 RINGS = {
     "square": (1.0, 2.5, 3.5, 4.5),
     "circle": (1.3, 3.4, 4.6, 5.6),
-    "octagon": (1.3, 3.4, 4.6, 5.6),
     "hexagon": (1.15, 3.05, 4.15, 5.05),
     "diamond": (0.95, 2.45, 3.3, 4.0),
 }
@@ -127,7 +126,7 @@ def cell(shape, state):
 
 
 def sheet():
-    size = OUT * len(SHAPES)
+    size = OUT * len(SHAPES)  # square: as many states as shapes
     img = [[None] * size for _ in range(size)]
     for row, shape in enumerate(SHAPES):
         for col in range(len(STATES)):
