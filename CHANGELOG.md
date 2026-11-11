@@ -4,6 +4,11 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.0
+- Item rewards can give a count range: `"count": 3, "max_count": 5` draws 3 to 5 at the claim; the book shows "3-5". The example "Leftovers" gives 2-4 emeralds.
+- Random and choice rewards show their entries' items in turn (every 0.8 s) instead of a chest; the random one has a "?" until it can be claimed. Their tooltips are a plain list ("- 4x Iron ingot"), with each entry's chance for a random reward ("[33.33%]").
+- Smooth signs from a texture (`textures/gui/marks.png`, made by `tools/make-mark-textures.py`): the check, "?", "!", padlock and checkmark button; a ticked checkmark button turns green with a white check. The pixel art stays as the fallback.
+
 ## 0.7.7
 - Bigger count digits (4.2 x 5.6 GUI pixels a cell instead of 3.3 x 4.4).
 

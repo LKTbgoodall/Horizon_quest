@@ -318,12 +318,15 @@ fn write_reward_ids_in_full(kind: &mut RewardKind) {
 fn kind_problems(kind: &RewardKind) -> Vec<(Severity, String)> {
     let mut found = Vec::new();
     match kind {
-        RewardKind::Item { item, count } => {
+        RewardKind::Item { item, count, max_count } => {
             if resource_id(item).is_none() {
                 found.push((Severity::Error, format!("`{item}` is not an item id")));
             }
             if *count == 0 {
                 found.push((Severity::Error, "`count` must be at least 1".to_owned()));
+            }
+            if max_count.is_some_and(|max| max < *count) {
+                found.push((Severity::Error, "`max_count` must be at least `count`".to_owned()));
             }
         }
         RewardKind::Xp { points: 0 } | RewardKind::XpLevels { levels: 0 } => {
@@ -875,7 +878,7 @@ mod tests {
         assert_eq!(kept, ["good"]);
         assert_eq!(
             loaded.file.reward_tables[0].entries[0].kind,
-            RewardKind::Item { item: "minecraft:apple".into(), count: 1 }
+            RewardKind::Item { item: "minecraft:apple".into(), count: 1, max_count: None }
         );
         assert_eq!(ids(&loaded), ["a"]);
 
@@ -981,7 +984,7 @@ mod tests {
         assert_eq!(chapter.icon.as_deref(), Some("minecraft:book"));
         assert_eq!(quest.icon.as_deref(), Some("create:gear"));
         assert_eq!(quest.tasks[0].kind, TaskKind::Kill { entity: "minecraft:zombie".into(), count: 1 });
-        assert_eq!(quest.rewards[0].kind, RewardKind::Item { item: "minecraft:apple".into(), count: 1 });
+        assert_eq!(quest.rewards[0].kind, RewardKind::Item { item: "minecraft:apple".into(), count: 1, max_count: None });
     }
 
     #[test]

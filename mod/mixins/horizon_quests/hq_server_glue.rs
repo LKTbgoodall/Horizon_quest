@@ -370,7 +370,7 @@ pub(super) fn server_tick(game: &mut Game<'_>, phase: ServerTickPhase) {
                 uuid,
                 name: s.session.player(uuid).map(|p| p.name.clone()).unwrap_or_default(),
                 line: Some(format!("Here is your {}: right-click it to open your quests.", meta::BOOK_NAME)),
-                reward: Some((None, RewardKind::Item { item: meta::BOOK_ITEM.to_owned(), count: 1 })),
+                reward: Some((None, RewardKind::Item { item: meta::BOOK_ITEM.to_owned(), count: 1, max_count: None })),
             });
         }
         save(s);
@@ -464,7 +464,7 @@ fn in_tag(game: &Game<'_>, tag: &str, item: &str) -> bool {
 /// go through vanilla's `/give`, which drops them at the player's feet.
 fn give(game: &mut Game<'_>, uuid: u128, name: &str, title: Option<&str>, reward: RewardKind) {
     let given = match reward {
-        RewardKind::Item { item, count } => {
+        RewardKind::Item { item, count, .. } => {
             let stack = ItemStack { item: Arc::from(item.as_str()), count, damage: 0, extra: None };
             match game.native_give_stack(uuid, stack) {
                 None => true,

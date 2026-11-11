@@ -292,6 +292,7 @@ pub(super) fn tick(game: &mut Game<'_>) {
         with(|s| s.view.recipe = Some(overlay));
     }
     with(|s| {
+        s.view.clock = s.view.clock.wrapping_add(1);
         if let Some(recipe) = &mut s.view.recipe {
             recipe.clock = recipe.clock.wrapping_add(1);
         }

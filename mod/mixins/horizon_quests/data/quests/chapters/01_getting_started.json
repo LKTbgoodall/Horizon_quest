@@ -122,7 +122,7 @@
       "optional": true,
       "dependencies": ["first_night"],
       "tasks": [ { "id": "flesh", "type": "item", "item": "minecraft:rotten_flesh", "count": 8, "consume": true } ],
-      "rewards": [ { "id": "emeralds", "type": "item", "item": "minecraft:emerald", "count": 2 } ]
+      "rewards": [ { "id": "emeralds", "type": "item", "item": "minecraft:emerald", "count": 2, "max_count": 4 } ]
     },
     {
       "id": "settled",

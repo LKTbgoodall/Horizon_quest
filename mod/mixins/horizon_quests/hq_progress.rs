@@ -312,6 +312,19 @@ pub fn next_roll(state: &mut u64) -> u64 {
     z ^ (z >> 31)
 }
 
+/// An item reward with a count range (`max_count`) gets its count drawn
+/// from `roll`, from `count` to `max_count`; anything else stays as it is.
+pub fn settle_count(kind: RewardKind, roll: &mut u64) -> RewardKind {
+    match kind {
+        RewardKind::Item { item, count, max_count: Some(max) } if max > count => {
+            let count = count + (next_roll(roll) % u64::from(max - count + 1)) as u32;
+            RewardKind::Item { item, count, max_count: None }
+        }
+        RewardKind::Item { item, count, .. } => RewardKind::Item { item, count, max_count: None },
+        kind => kind,
+    }
+}
+
 /// The entry `roll` draws from `table`, by weight. None when the table can
 /// give nothing.
 pub fn draw(table: &RewardTable, roll: u64) -> Option<&TableEntry> {
@@ -577,6 +590,7 @@ fn claim(
         }
         kind => (reward.title.clone(), kind.clone()),
     };
+    let kind = settle_count(kind, roll);
     let id = book.reward_id(n, r);
     progress.claimed.entry(id.clone()).or_default().insert(player.to_owned());
     out.changed = true;
@@ -746,6 +760,24 @@ mod tests {
     }
 
     #[test]
+    fn a_count_range_is_drawn_at_the_claim() {
+        let range = |count, max| RewardKind::Item { item: "minecraft:emerald".into(), count, max_count: max };
+        let mut seen = std::collections::BTreeSet::new();
+        let mut roll = 7;
+        for _ in 0..200 {
+            match settle_count(range(3, Some(5)), &mut roll) {
+                RewardKind::Item { count, max_count: None, .. } => seen.insert(count),
+                other => panic!("{other:?}"),
+            };
+        }
+        assert_eq!(seen.into_iter().collect::<Vec<_>>(), [3, 4, 5]);
+        // No range, or a range of one number: the count as it is.
+        assert_eq!(settle_count(range(2, None), &mut roll), range(2, None));
+        assert_eq!(settle_count(range(2, Some(2)), &mut roll), range(2, None));
+        assert_eq!(settle_count(RewardKind::Xp { points: 3 }, &mut roll), RewardKind::Xp { points: 3 });
+    }
+
+    #[test]
     fn an_item_task_follows_the_inventory_until_done() {
         let book = book("{}", &[CHAPTER]);
         let mut progress = Progress::default();
@@ -869,7 +901,7 @@ mod tests {
         let apples = Effect::Reward {
             reward: "a/wood/apple".into(),
             title: None,
-            kind: RewardKind::Item { item: "minecraft:apple".into(), count: 2 },
+            kind: RewardKind::Item { item: "minecraft:apple".into(), count: 2, max_count: None },
         };
         let xp = Effect::Reward { reward: "a/wood/xp".into(), title: None, kind: RewardKind::Xp { points: 20 } };
 
@@ -1236,8 +1268,8 @@ mod tests {
     fn a_random_reward_is_drawn_by_weight() {
         let book = later();
         let table = book.table("loot").unwrap();
-        let cookies = RewardKind::Item { item: "minecraft:cookie".into(), count: 4 };
-        let cake = RewardKind::Item { item: "minecraft:cake".into(), count: 1 };
+        let cookies = RewardKind::Item { item: "minecraft:cookie".into(), count: 4, max_count: None };
+        let cake = RewardKind::Item { item: "minecraft:cake".into(), count: 1, max_count: None };
         // Weights 3, 0 and 1: of four rolls, three are cookies and one the
         // cake; the entry of weight 0 never comes out.
         let drawn: Vec<RewardKind> = (0..8).map(|roll| draw(table, roll).unwrap().kind.clone()).collect();

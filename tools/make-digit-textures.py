@@ -1,7 +1,7 @@
 """Draws the small digits of the counts on the quest book's icons.
 
 Original art for Horizon Quests (MIT). One sprite sheet of the digits 0 to
-9, each in a cell of 24 x 32 pixels: a smooth white stroke with a dark edge
+9 and "-", each in a cell of 24 x 32 pixels: a smooth white stroke with a dark edge
 all round, anti-aliased (each pixel is sampled 5 x 5 times). The book shows a
 cell 3 x 4 GUI pixels large (`hq_book::count_draws`): 8 texture pixels a GUI
 pixel, enough for GUI scales up to 8. Each digit is built from strokes (lines
@@ -53,6 +53,7 @@ DIGITS = [
     [[(2.8, 2.9), (9.2, 2.9), (4.8, 13.1)]],
     [arc(6.0, 5.3, 2.6, 2.4, 0, 360), arc(6.0, 10.5, 3.2, 2.6, 0, 360)],
     flip(SIX),
+    [[(4.2, 9.0), (7.8, 9.0)]],  # "-", for a count range such as 3-5
 ]
 
 

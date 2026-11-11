@@ -353,7 +353,7 @@ mod tests {
         assert_eq!(say(Effect::Refused(Refusal::NotOpen)).as_deref(), Some("That quest is not open yet."));
 
         // What a table gave is named by its entry: its title, else its kind.
-        let cake = RewardKind::Item { item: "minecraft:cake".into(), count: 1 };
+        let cake = RewardKind::Item { item: "minecraft:cake".into(), count: 1, max_count: None };
         let drawn = |title: Option<&str>| Effect::Reward { reward: "a/one/r".into(), title: title.map(str::to_owned), kind: cake.clone() };
         assert_eq!(say(drawn(Some("A cake!"))).as_deref(), Some("Reward: A cake!"));
         assert_eq!(say(drawn(None)).as_deref(), Some("Reward: Cake"));

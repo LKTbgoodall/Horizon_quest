@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 use super::hq_canvas::{self as canvas, View};
 use super::hq_logic::{Book, QuestState, Status};
-use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, Shape, TableEntry, Task, TaskKind};
+use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind};
 use super::hq_net::ToServer;
 use std::collections::VecDeque;
 
@@ -394,7 +394,8 @@ pub fn task_label(task: &Task) -> String {
 /// What a reward of this kind gives, in a few words.
 pub fn kind_label(kind: &RewardKind) -> String {
     match kind {
-        RewardKind::Item { item, count } => counted(*count, &pretty(item)),
+        RewardKind::Item { item, count, max_count: Some(max) } if max > count => format!("{count}-{max}x {}", pretty(item)),
+        RewardKind::Item { item, count, .. } => counted(*count, &pretty(item)),
         RewardKind::Xp { points } => format!("{points} XP"),
         RewardKind::XpLevels { levels: 1 } => "1 level".to_owned(),
         RewardKind::XpLevels { levels } => format!("{levels} levels"),
@@ -524,6 +525,9 @@ pub struct BookView {
     /// Item id → its name in the player's language, from the game (the
     /// glue fills it); an item missing here is named from its id.
     pub item_names: HashMap<String, String>,
+    /// Window ticks since the book was made: random and choice rewards
+    /// show each of their entries in turn (`TABLE_TURN`).
+    pub clock: u32,
     /// Whether a chapter was fitted to the canvas yet.
     fitted: bool,
 }
@@ -648,7 +652,7 @@ impl BookView {
         let statuses = s.book.statuses(s.progress, s.player);
         let selected = self.shown_selection(s.book, &statuses);
         let regions = regions(s.rect);
-        let popup = selected.map(|n| popup_layout(s, &self.item_names, &statuses, n, regions.canvas).0);
+        let popup = selected.map(|n| popup_layout(s, &self.item_names, self.clock, &statuses, n, regions.canvas).0);
         let mut scene = Scene {
             regions,
             draws: Vec::new(),
@@ -718,7 +722,7 @@ impl BookView {
                 intersect(b, area).is_some_and(|part| canvas::inside(part, s.mouse))
             })
             .last();
-        let over_popup = selected.is_some_and(|n| canvas::inside(popup_layout(s, &self.item_names, statuses, n, area).0, s.mouse));
+        let over_popup = selected.is_some_and(|n| canvas::inside(popup_layout(s, &self.item_names, self.clock, statuses, n, area).0, s.mouse));
         let hovered = hovered.filter(|_| !over_popup);
         let focus = hovered.or(selected);
 
@@ -790,9 +794,10 @@ impl BookView {
             }
             // And a small padlock on its bottom-right corner.
             if state == QuestState::Locked {
-                let lock = lock_draws(b);
-                if lock.iter().all(|d| matches!(d, Draw::Fill { rect, .. } if contains(area, *rect))) {
-                    scene.draws.extend(lock);
+                if let lock @ Draw::Sprite { dst, .. } = lock_draws(b)
+                    && contains(area, dst)
+                {
+                    scene.draws.push(lock);
                 }
             }
             // The selected quest: white corners round it, as a viewfinder.
@@ -889,7 +894,7 @@ impl BookView {
         scene.text(title, [title_x, y + 5.0], INK);
 
         // Tasks on the left, rewards on the right.
-        let content = popup_layout(s, &self.item_names, statuses, n, scene.regions.canvas).1;
+        let content = popup_layout(s, &self.item_names, self.clock, statuses, n, scene.regions.canvas).1;
         let top = y + 1.0 + bar + 1.0;
         let half = (w - 2.0) / 2.0;
         let columns_h = content.columns_h;
@@ -996,11 +1001,11 @@ fn popup_width(area: [f32; 4]) -> f32 {
 
 /// Quest `n`'s window: its place over the canvas `area`, as tall as what it
 /// holds (at most `POPUP_SIZE`, and the canvas), and its content.
-fn popup_layout(s: &Screen<'_>, names: &HashMap<String, String>, statuses: &[Status], n: usize, area: [f32; 4]) -> ([f32; 4], PopupContent) {
+fn popup_layout(s: &Screen<'_>, names: &HashMap<String, String>, clock: u32, statuses: &[Status], n: usize, area: [f32; 4]) -> ([f32; 4], PopupContent) {
     let [x, y, w, h] = area;
     let pw = popup_width(area);
     let half = (pw - 2.0) / 2.0;
-    let (tasks, rewards) = (task_icons(s, names, n), reward_icons(s, names, n));
+    let (tasks, rewards) = (task_icons(s, names, n), reward_icons(s, names, clock, n));
     let per_row = ((half - 2.0 * PAD) / ICON_CELL).floor().max(1.0) as usize;
     let rows = tasks.len().max(rewards.len()).min(ICONS_MAX).div_ceil(per_row).max(1);
     let max_h = POPUP_SIZE[1].min(h - 2.0 * PAD).max(0.0);
@@ -1076,8 +1081,8 @@ enum Mark {
     Check,
     /// A reward waits to be claimed.
     Alert,
-    /// A reward to choose among several (not claimable yet).
-    Choice,
+    /// A random reward (not claimable yet): what it gives is not known.
+    Question,
 }
 
 /// The item that stands for a task.
@@ -1099,7 +1104,8 @@ fn task_item(kind: &TaskKind) -> String {
 fn reward_item(kind: &RewardKind) -> (String, String) {
     let count = |n: u32| if n > 1 { n.to_string() } else { String::new() };
     match kind {
-        RewardKind::Item { item, count: n } => (item.clone(), count(*n)),
+        RewardKind::Item { item, count: n, max_count: Some(max) } if max > n => (item.clone(), format!("{n}-{max}")),
+        RewardKind::Item { item, count: n, .. } => (item.clone(), count(*n)),
         RewardKind::Xp { points } => ("minecraft:experience_bottle".to_owned(), points.to_string()),
         RewardKind::XpLevels { levels } => ("minecraft:experience_bottle".to_owned(), levels.to_string()),
         RewardKind::Command { .. } => ("minecraft:command_block".to_owned(), String::new()),
@@ -1207,9 +1213,52 @@ fn task_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Vec<
         .collect()
 }
 
+/// Window ticks each entry of a random or choice reward is shown (0.8 s).
+const TABLE_TURN: u32 = 16;
+
+/// A random or choice reward's icon: its entries' items in turn, one every
+/// `TABLE_TURN` window ticks, with the shown entry's count.
+fn table_icon(table: Option<&RewardTable>, clock: u32) -> (String, String) {
+    match table.filter(|table| !table.entries.is_empty()) {
+        Some(table) => reward_item(&table.entries[(clock / TABLE_TURN) as usize % table.entries.len()].kind),
+        None => ("minecraft:chest".to_owned(), String::new()),
+    }
+}
+
+/// An entry's chance in a random reward, as a percentage: "33.33%", "50%".
+fn chance(weight: u32, total: u32) -> String {
+    let percent = format!("{:.2}", f64::from(weight) * 100.0 / f64::from(total.max(1)));
+    format!("{}%", percent.trim_end_matches('0').trim_end_matches('.'))
+}
+
+/// The lines of a random or choice reward's tooltip: "- 4x Iron ingot",
+/// with each entry's chance for a random reward.
+fn table_lines(table: &RewardTable, chances: bool) -> Vec<(String, u32)> {
+    let total: u32 = table.entries.iter().map(|entry| entry.weight).sum();
+    let mut lines: Vec<(String, u32)> = table
+        .entries
+        .iter()
+        .take(TABLE_ROWS)
+        .map(|entry| {
+            let line = if chances {
+                format!("- {} [{}]", entry_label(entry), chance(entry.weight, total))
+            } else {
+                format!("- {}", entry_label(entry))
+            };
+            (line, TABLE_INK)
+        })
+        .collect();
+    if table.entries.len() > TABLE_ROWS {
+        lines.push((format!("and {} more", table.entries.len() - TABLE_ROWS), DIM_INK));
+    }
+    lines
+}
+const TABLE_INK: u32 = 0xD0D0D8;
+
 /// The quest's rewards as icons: a click claims one, or picks an entry of a
-/// choice reward; a random reward's tooltip lists what it can give.
-fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Vec<Icon> {
+/// choice reward; a random or choice reward shows its entries' items in
+/// turn and lists them in its tooltip.
+fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, clock: u32, n: usize) -> Vec<Icon> {
     let book = s.book;
     let node = &book.nodes()[n];
     let quest = book.quest(n);
@@ -1226,30 +1275,28 @@ fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Ve
         let table = reward.kind.table().and_then(|table| book.table(table));
         if let (RewardKind::Choice { .. }, Some(table), false) = (&reward.kind, table, claimed) {
             // A choice: one icon; a click opens the window to pick from.
-            let mut more = vec![("Choose one of:".to_owned(), DIM_INK)];
-            more.extend(table.entries.iter().take(TABLE_ROWS).map(|entry| (format!(" {}", entry_label(entry)), DIM_INK)));
+            let mut more = table_lines(table, false);
             more.extend(team.clone());
             let click = if completed { "Click to choose" } else { "Click to see the choices" };
             let tip = item_tip(names, None, &reward_label(reward), more, click);
-            let mark = if completed { Mark::Alert } else { Mark::Choice };
+            let (item, count) = table_icon(Some(table), clock);
             icons.push(Icon {
-                item: "minecraft:chest".to_owned(),
-                count: String::new(),
+                item,
+                count,
                 action: Action::OpenChoice(id.clone()),
                 tip,
                 veil: None,
-                mark: Some(mark),
+                mark: completed.then_some(Mark::Alert),
             });
             continue;
         }
-        let (item, count) = reward_item(&reward.kind);
+        let (item, count) = if reward.kind.table().is_some() { table_icon(table, clock) } else { reward_item(&reward.kind) };
         let link = link_of(&reward.kind);
         let claimable = completed && !claimed;
         let action = if claimable { Action::Claim(id.clone()) } else { recipe_of(link.clone()) };
         let mut more = Vec::new();
         if let (RewardKind::Random { .. }, Some(table)) = (&reward.kind, table) {
-            more.push(("One of:".to_owned(), DIM_INK));
-            more.extend(table.entries.iter().take(TABLE_ROWS).map(|entry| (format!(" {}", entry_label(entry)), DIM_INK)));
+            more.extend(table_lines(table, true));
         }
         more.extend(team);
         if claimed {
@@ -1257,7 +1304,15 @@ fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Ve
         }
         let click = if claimable { "Click to claim" } else if link.is_some() { "Click to view recipe(s)" } else { "" };
         let tip = item_tip(names, link.as_deref(), &reward_label(reward), more, click);
-        let mark = if claimed { Some(Mark::Check) } else { claimable.then_some(Mark::Alert) };
+        // A random reward not claimable yet: a "?", what it gives is not known.
+        let random = matches!(reward.kind, RewardKind::Random { .. });
+        let mark = if claimed {
+            Some(Mark::Check)
+        } else if claimable {
+            Some(Mark::Alert)
+        } else {
+            random.then_some(Mark::Question)
+        };
         icons.push(Icon { item, count, action, tip, veil: None, mark });
     }
     icons
@@ -1321,23 +1376,29 @@ fn check_task_draws(at: [f32; 2], done: bool) -> Vec<Draw> {
         })
         .collect();
     let map: Vec<&str> = rows.iter().map(String::as_str).collect();
-    let check = if done { CHECK_DONE } else { CHECK_WHITE };
-    pixel_art(&map, at, FINE, &|c| match c {
-        'k' => Some(0xFF26_262C),
-        'l' => Some(0xFFC8_C8D0),
-        'h' => Some(0xFFA2_A2AA),
-        'g' => Some(0xFF8C_8C94),
-        's' => Some(0xFF74_747C),
-        'd' => Some(0xFF4E_4E56),
-        'w' => Some(check),
+    // Grey, or green once done; the check stays white.
+    let [rim, light, high, body, shade, shadow] = if done {
+        [0xFF0E_3A0C, 0xFF9C_F488, 0xFF6C_DC58, 0xFF48_C03C, 0xFF2E_9E2A, 0xFF1E_6A1A]
+    } else {
+        [0xFF26_262C, 0xFFC8_C8D0, 0xFFA2_A2AA, 0xFF8C_8C94, 0xFF74_747C, 0xFF4E_4E56]
+    };
+    let pixels = pixel_art(&map, at, FINE, &|c| match c {
+        'k' => Some(rim),
+        'l' => Some(light),
+        'h' => Some(high),
+        'g' => Some(body),
+        's' => Some(shade),
+        'd' => Some(shadow),
+        'w' => Some(CHECK_WHITE),
         _ => None,
-    })
+    });
+    let cell = if done { MarkCell::ButtonDone } else { MarkCell::Button };
+    vec![mark_sprite(cell, [at[0], at[1], 16.0, 16.0], pixels)]
 }
 const CHECK_WHITE: u32 = 0xFFFA_FAFA;
-const CHECK_DONE: u32 = 0xFF5C_E83C;
 
-/// Digits 5 half-pixels wide and 7 tall, for the counts on icons.
-const DIGIT_PIXELS: [[&str; 7]; 10] = [
+/// Digits 5 half-pixels wide and 7 tall, then "-", for the counts on icons.
+const DIGIT_PIXELS: [[&str; 7]; DIGIT_CELLS] = [
     [".www.", "w...w", "w..ww", "w.w.w", "ww..w", "w...w", ".www."],
     ["..w..", ".ww..", "..w..", "..w..", "..w..", "..w..", ".www."],
     [".www.", "w...w", "....w", "...w.", "..w..", ".w...", "wwwww"],
@@ -1348,12 +1409,22 @@ const DIGIT_PIXELS: [[&str; 7]; 10] = [
     ["wwwww", "....w", "...w.", "..w..", ".w...", ".w...", ".w..."],
     [".www.", "w...w", "w...w", ".www.", "w...w", "w...w", ".www."],
     [".www.", "w...w", "w...w", ".wwww", "....w", "...w.", ".ww.."],
+    [".....", ".....", ".....", ".www.", ".....", ".....", "....."],
 ];
 
-/// The smooth digits of the counts: `digits.png`, the digits 0 to 9 in
-/// cells of `DIGIT_CELL` pixels (made by `tools/make-digit-textures.py`).
+/// The smooth digits of the counts: `digits.png`, the digits 0 to 9 then
+/// "-" (a count range: "3-5") in cells of `DIGIT_CELL` pixels (made by `tools/make-digit-textures.py`).
 pub const DIGIT_SPRITE: &str = "horizon_quests:gui/digits";
 pub const DIGIT_CELL: [f32; 2] = [24.0, 32.0];
+pub const DIGIT_CELLS: usize = 11;
+
+/// A count's characters as cells of the digit sheet: 0 to 9, and 10 for "-".
+fn count_cells(count: &str) -> Vec<usize> {
+    count
+        .chars()
+        .filter_map(|c| if c == '-' { Some(10) } else { c.to_digit(10).map(|d| d as usize) })
+        .collect()
+}
 /// A digit's cell on screen, in GUI pixels, and the step from one digit to
 /// the next (the cells overlap where they are clear).
 const DIGIT_SIZE: [f32; 2] = [4.2, 5.6];
@@ -1362,10 +1433,10 @@ const DIGIT_STEP: f32 = 3.2;
 /// A count in small smooth white digits with a dark edge (the digit
 /// sprite), in the bottom-right corner of the 16-pixel icon at `icon`, as
 /// FTB-style books draw them: small, in the corner, readable on any item.
-/// Without the sprite, the same in half-pixel art. Anything but digits is
-/// left out.
+/// Without the sprite, the same in half-pixel art. Anything but digits and
+/// "-" is left out.
 fn count_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
-    let digits: Vec<usize> = count.chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
+    let digits = count_cells(count);
     let n = digits.len() as f32;
     // The last cell's right edge: its digit ends about at the icon's edge.
     let right = icon[0] + 17.0;
@@ -1389,7 +1460,7 @@ fn count_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
 /// `count_draws` without the digit sprite: digits in half-pixel art with a
 /// dark edge all round.
 fn count_pixel_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
-    let digits: Vec<usize> = count.chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
+    let digits = count_cells(count);
     if digits.is_empty() {
         return Vec::new();
     }
@@ -1410,6 +1481,29 @@ fn count_pixel_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
 }
 const COUNT_INK: u32 = 0xFFF6_F6F6;
 const COUNT_EDGE: u32 = 0xFF20_2020;
+
+/// The smooth signs: `marks.png`, cells of `MARK_CELL` pixels (made by
+/// `tools/make-mark-textures.py`), in `MarkCell` order. Each is drawn as a
+/// sprite with the pixel art below as its fallback.
+pub const MARK_SPRITE: &str = "horizon_quests:gui/marks";
+pub const MARK_CELL: f32 = 64.0;
+pub const MARK_CELLS: usize = 6;
+
+/// A cell of the sign sheet.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MarkCell {
+    Check,
+    Question,
+    Alert,
+    Lock,
+    Button,
+    ButtonDone,
+}
+
+/// Cell `cell` of the sign sheet stretched into `dst`, `fallback` without it.
+fn mark_sprite(cell: MarkCell, dst: [f32; 4], fallback: Vec<Draw>) -> Draw {
+    Draw::Sprite { name: MARK_SPRITE.to_owned(), src: [cell as u8 as f32 * MARK_CELL, 0.0, MARK_CELL, MARK_CELL], dst, fallback }
+}
 
 /// A padlock: `k` its dark edge and keyhole, `w` its metal, `s` the
 /// metal's shaded bottom.
@@ -1433,17 +1527,21 @@ const LOCK_EDGE: u32 = 0xFF1C_1C22;
 
 /// The padlock on a locked node's bottom-right corner (the node's box at
 /// `node`), bigger as the node grows.
-fn lock_draws(node: [f32; 4]) -> Vec<Draw> {
+fn lock_draws(node: [f32; 4]) -> Draw {
     let scale = (node[2] / 28.0).round().clamp(1.0, 4.0);
     let (w, h) = (LOCK_PIXELS[0].len() as f32 * scale, LOCK_PIXELS.len() as f32 * scale);
     let inset = (node[2] * 0.06).round();
     let at = [node[0] + node[2] - w - inset, node[1] + node[3] - h - inset];
-    pixel_art(&LOCK_PIXELS, at, scale, &|c| match c {
+    let pixels = pixel_art(&LOCK_PIXELS, at, scale, &|c| match c {
         'k' => Some(LOCK_EDGE),
         'w' => Some(LOCK_METAL),
         's' => Some(LOCK_SHADE),
         _ => None,
-    })
+    });
+    // The smooth padlock: a square a little bigger than the pixel one.
+    let size = h * 1.1;
+    let dst = [node[0] + node[2] - size - inset + scale, node[1] + node[3] - size - inset + scale, size, size];
+    mark_sprite(MarkCell::Lock, dst, pixels)
 }
 
 /// A "?" for a reward to choose.
@@ -1502,6 +1600,16 @@ fn pixel_art(map: &[&str], at: [f32; 2], scale: f32, colour: &dyn Fn(char) -> Op
 /// A mark's pixels at an icon's top-right corner (the icon at `icon`, 16
 /// pixels wide).
 fn mark_draws(mark: Mark, icon: [f32; 2]) -> Vec<Draw> {
+    let (cell, dst) = match mark {
+        Mark::Check => (MarkCell::Check, [icon[0] + 8.0, icon[1] - 4.0, 11.0, 11.0]),
+        Mark::Question => (MarkCell::Question, [icon[0] + 9.0, icon[1] - 3.5, 10.0, 10.0]),
+        Mark::Alert => (MarkCell::Alert, [icon[0] + 9.5, icon[1] - 3.0, 9.0, 9.0]),
+    };
+    vec![mark_sprite(cell, dst, mark_pixel_draws(mark, icon))]
+}
+
+/// `mark_draws` without the sign sheet: the same signs in pixel art.
+fn mark_pixel_draws(mark: Mark, icon: [f32; 2]) -> Vec<Draw> {
     match mark {
         Mark::Check => {
             // A thick green check with a dark edge all round.
@@ -1513,7 +1621,7 @@ fn mark_draws(mark: Mark, icon: [f32; 2]) -> Vec<Draw> {
                 _ => None,
             })
         }
-        Mark::Choice => {
+        Mark::Question => {
             let map = outlined(&QUESTION_PIXELS, 'y', 'k');
             let rows: Vec<&str> = map.iter().map(String::as_str).collect();
             pixel_art(&rows, [icon[0] + 10.0, icon[1] - 3.0], 1.0, &|c| match c {
@@ -2238,6 +2346,12 @@ mod tests {
         assert_eq!(corners(&view.scene(&screen(&book, &progress, NOWHERE))), 8);
     }
 
+    /// How many signs of the sheet's `cell` a scene draws.
+    fn signs(scene: &Scene, cell: MarkCell) -> usize {
+        let src = cell as u8 as f32 * MARK_CELL;
+        scene.draws.iter().filter(|d| matches!(d, Draw::Sprite { name, src: s, .. } if name == MARK_SPRITE && s[0] == src)).count()
+    }
+
     fn scene_state(book: &Book, progress: &Progress, n: usize) -> QuestState {
         book.statuses(progress, "steve")[n].state
     }
@@ -2296,7 +2410,7 @@ mod tests {
             .collect();
         // A checkmark task (a drawn button, no item), and 5 XP with its count.
         assert_eq!(icons, ["minecraft:experience_bottle"]);
-        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: CHECK_WHITE, .. })));
+        assert_eq!(signs(&scene, MarkCell::Button), 1);
         assert!(scene.draws.iter().any(|d| matches!(d, Draw::Sprite { name, .. } if name == DIGIT_SPRITE)));
         // The title bar has the quest's icon.
         assert!(scene.draws.iter().any(|d| matches!(d, Draw::Item { size, .. } if *size == 12.0)));
@@ -2326,7 +2440,7 @@ mod tests {
         let claim = Action::Claim("a/start/xp".into());
         assert_eq!(tip(&view, &book, &progress, &claim).unwrap(), ["5 XP", "Click to claim"]);
         // A reward waiting has its "!".
-        assert!(view.scene(&screen(&book, &progress, NOWHERE)).draws.iter().any(|d| matches!(d, Draw::Fill { colour, .. } if *colour == 0xFFE0_3434)));
+        assert_eq!(signs(&view.scene(&screen(&book, &progress, NOWHERE)), MarkCell::Alert), 1);
         assert_eq!(click(&mut view, &book, &progress, &claim), Reaction::Send(ToServer::Claim { reward: "a/start/xp".into(), choice: None }));
         assert_eq!(click(&mut view, &book, &progress, &Action::ClaimAll), Reaction::Send(ToServer::ClaimAll));
 
@@ -2336,8 +2450,9 @@ mod tests {
         assert_eq!(zone(&scene, &claim), None);
         assert_eq!(tip(&view, &book, &progress, &Action::Stay).unwrap(), ["5 XP", "Claimed"]);
         // Claimed: a check on it, and on the done task.
-        let checks = view.scene(&screen(&book, &progress, NOWHERE)).draws.iter().filter(|d| matches!(d, Draw::Fill { colour, .. } if *colour == 0xFF5C_E83C)).count();
-        assert!(checks >= 2, "{checks}");
+        // (The checkmark task's own button turns green.)
+        let scene_now = view.scene(&screen(&book, &progress, NOWHERE));
+        assert_eq!((signs(&scene_now, MarkCell::Check), signs(&scene_now, MarkCell::ButtonDone)), (1, 1));
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
 
         // The next quest is open now, and takes a hand-in.
@@ -2581,14 +2696,15 @@ mod tests {
     #[test]
     fn counts_are_small_digits_in_the_corner() {
         assert!(count_draws("", [0.0, 0.0]).is_empty());
-        for count in ["3", "64", "1000"] {
+        assert_eq!(count_cells("3-5"), [3, 10, 5]);
+        for count in ["3", "64", "1000", "3-5"] {
             let draws = count_draws(count, [100.0, 50.0]);
             assert_eq!(draws.len(), count.len(), "one sprite a digit");
             for (i, d) in draws.iter().enumerate() {
                 let Draw::Sprite { name, src, dst, fallback } = d else { panic!("digits are sprites") };
                 assert_eq!(name, DIGIT_SPRITE);
-                let digit = count.as_bytes()[i] - b'0';
-                assert_eq!(src[0], f32::from(digit) * DIGIT_CELL[0]);
+                let digit = count_cells(count)[i];
+                assert_eq!(src[0], digit as f32 * DIGIT_CELL[0]);
                 // In the icon's bottom-right part, never much past it.
                 assert!(dst[1] >= 61.0 && dst[1] + dst[3] <= 67.0, "{count}: {dst:?}");
                 assert!(dst[0] + dst[2] <= 117.5, "{count}: {dst:?}");
@@ -2607,12 +2723,17 @@ mod tests {
 
     #[test]
     fn a_checkmark_task_is_a_round_button() {
-        for done in [false, true] {
+        for (done, cell) in [(false, MarkCell::Button), (true, MarkCell::ButtonDone)] {
             let draws = check_task_draws([0.0, 0.0], done);
-            let ink = if done { CHECK_DONE } else { CHECK_WHITE };
-            let check = draws.iter().filter(|d| matches!(d, Draw::Fill { colour, .. } if *colour == ink)).count();
+            let [Draw::Sprite { name, src, dst, fallback }] = &draws[..] else { panic!("one sprite: {draws:?}") };
+            assert_eq!((name.as_str(), src[0], *dst), (MARK_SPRITE, cell as u8 as f32 * MARK_CELL, [0.0, 0.0, 16.0, 16.0]));
+            // Without the sheet: the button in half pixels, its check white
+            // and, once done, its body green.
+            let check = fallback.iter().filter(|d| matches!(d, Draw::Fill { colour: CHECK_WHITE, .. })).count();
             assert!(check >= 10, "a check: {check} runs");
-            for d in &draws {
+            let green = fallback.iter().any(|d| matches!(d, Draw::Fill { colour: 0xFF48_C03C, .. }));
+            assert_eq!(green, done);
+            for d in fallback {
                 let Draw::Fill { rect, .. } = d else { panic!("the button is fills") };
                 assert!(contains([0.0, 0.0, 16.0, 16.0], *rect), "{rect:?}");
             }
@@ -2620,18 +2741,57 @@ mod tests {
     }
 
     #[test]
+    fn signs_are_sprites_with_pixel_art_behind() {
+        for mark in [Mark::Check, Mark::Question, Mark::Alert] {
+            let draws = mark_draws(mark, [100.0, 50.0]);
+            let [Draw::Sprite { name, dst, fallback, .. }] = &draws[..] else { panic!("one sprite: {draws:?}") };
+            assert_eq!(name, MARK_SPRITE);
+            // On the icon's top-right corner, a little outside.
+            assert!(dst[0] >= 108.0 && dst[0] + dst[2] <= 120.0 && dst[1] >= 46.0 && dst[1] <= 48.0, "{mark:?}: {dst:?}");
+            assert!(!fallback.is_empty());
+        }
+    }
+
+    #[test]
+    fn random_and_choice_rewards_show_their_entries_in_turn() {
+        let table: RewardTable = serde_json::from_str(
+            r#"{ "id": "t", "entries": [
+                { "weight": 2, "type": "item", "item": "minecraft:iron_ingot", "count": 4 },
+                { "type": "item", "item": "minecraft:diamond" },
+                { "type": "item", "item": "minecraft:emerald", "count": 3, "max_count": 5 } ] }"#,
+        )
+        .unwrap();
+        assert_eq!(table_icon(Some(&table), 0), ("minecraft:iron_ingot".to_owned(), "4".to_owned()));
+        assert_eq!(table_icon(Some(&table), TABLE_TURN - 1).0, "minecraft:iron_ingot");
+        assert_eq!(table_icon(Some(&table), TABLE_TURN), ("minecraft:diamond".to_owned(), String::new()));
+        assert_eq!(table_icon(Some(&table), 2 * TABLE_TURN), ("minecraft:emerald".to_owned(), "3-5".to_owned()));
+        assert_eq!(table_icon(Some(&table), 3 * TABLE_TURN).0, "minecraft:iron_ingot");
+        assert_eq!(table_icon(None, 0).0, "minecraft:chest");
+        let lines: Vec<String> = table_lines(&table, true).into_iter().map(|(line, _)| line).collect();
+        assert_eq!(lines, ["- 4x Iron ingot [50%]", "- Diamond [25%]", "- 3-5x Emerald [25%]"]);
+        let lines: Vec<String> = table_lines(&table, false).into_iter().map(|(line, _)| line).collect();
+        assert_eq!(lines, ["- 4x Iron ingot", "- Diamond", "- 3-5x Emerald"]);
+        assert_eq!(chance(1, 3), "33.33%");
+        assert_eq!(chance(1, 8), "12.5%");
+    }
+
+    #[test]
     fn a_locked_node_is_greyed_and_padlocked() {
-        let has = |scene: &Scene, colour: u32| scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: c, .. } if *c == colour));
+        let has_veil = |scene: &Scene| scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: LOCKED_VEIL, .. }));
+        let lock_src = MarkCell::Lock as u8 as f32 * MARK_CELL;
+        let has_lock = |scene: &Scene| scene.draws.iter().any(|d| matches!(d, Draw::Sprite { name, src, .. } if name == MARK_SPRITE && src[0] == lock_src));
         let (book, progress) = (book(), Progress::default());
         let view = opened(&book, &progress);
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         let locked = book.statuses(&progress, "steve").iter().filter(|s| s.state == QuestState::Locked).count();
-        assert!(locked > 0 && has(&scene, LOCKED_VEIL) && has(&scene, LOCK_METAL), "{locked} quests locked at first");
-        // The padlock grows with the node and stays inside it.
+        assert!(locked > 0 && has_veil(&scene) && has_lock(&scene), "{locked} quests locked at first");
+        // The padlock grows with the node and stays inside it, smooth or in pixels.
         for size in [16.0, 40.0, 120.0] {
             let node = [10.0, 20.0, size, size];
-            for d in lock_draws(node) {
-                let Draw::Fill { rect, .. } = d else { panic!("a lock is fills") };
+            let Draw::Sprite { dst, fallback, .. } = lock_draws(node) else { panic!("a lock is a sprite") };
+            assert!(contains(node, dst), "{dst:?} inside {node:?}");
+            for d in fallback {
+                let Draw::Fill { rect, .. } = d else { panic!("a pixel lock is fills") };
                 assert!(contains(node, rect), "{rect:?} inside {node:?}");
             }
         }
@@ -2906,7 +3066,7 @@ mod tests {
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         assert_eq!(zone(&scene, &Action::Claim("g/bake/pick".into())), None);
         let random = tip(&view, &book, &progress, &claim).unwrap();
-        assert_eq!(random[..4], ["Random: Loot", "One of:", " 4x Cookie", " A cake!"], "{random:?}");
+        assert_eq!(random[..3], ["Random: Loot", "- 4x Cookie [75%]", "- A cake! [25%]"], "{random:?}");
         assert_eq!(random.last().map(String::as_str), Some("Click to claim"));
         assert_eq!(click(&mut view, &book, &progress, &claim), Reaction::Send(ToServer::Claim { reward: "g/bake/loot".into(), choice: None }));
         // Done: the choice window takes a click on an entry, and closes.

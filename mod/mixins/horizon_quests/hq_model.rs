@@ -292,11 +292,14 @@ pub struct Reward {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RewardKind {
-    /// `count` of an item (its id, written in full once loaded).
+    /// `count` of an item (its id, written in full once loaded); with
+    /// `max_count`, a number from `count` to `max_count` drawn at the claim.
     Item {
         item: String,
         #[serde(default = "one")]
         count: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        max_count: Option<u32>,
     },
     /// Experience points.
     Xp { points: u32 },
@@ -500,7 +503,7 @@ mod tests {
             wood.tasks[0].kind,
             TaskKind::Item { item: ItemMatch::Tag("minecraft:logs".into()), count: 8, consume: false }
         );
-        assert_eq!(wood.rewards[0].kind, RewardKind::Item { item: "minecraft:apple".into(), count: 2 });
+        assert_eq!(wood.rewards[0].kind, RewardKind::Item { item: "minecraft:apple".into(), count: 2, max_count: None });
         assert_eq!(wood.rewards[0].auto_claim, AutoClaim::Default);
         let table = &chapter.quests[1];
         assert_eq!((table.x, table.y), (2.0, -1.5));
@@ -633,7 +636,7 @@ mod tests {
         .unwrap();
         assert_eq!((table.entries[0].weight, table.entries[1].weight), (1, 3));
         assert_eq!(table.entries[1].title.as_deref(), Some("Shiny"));
-        assert_eq!(table.entries[1].kind, RewardKind::Item { item: "minecraft:diamond".into(), count: 1 });
+        assert_eq!(table.entries[1].kind, RewardKind::Item { item: "minecraft:diamond".into(), count: 1, max_count: None });
     }
 
     #[test]

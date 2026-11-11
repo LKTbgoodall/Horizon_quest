@@ -140,7 +140,7 @@ Every reward has an `id` (unique in its quest), a `type`, and optionally:
 
 | `type` | Fields | Gives |
 |---|---|---|
-| `item` | `item`, `count` (1) | the items (what does not fit drops at the player's feet) |
+| `item` | `item`, `count` (1), `max_count` | the items (what does not fit drops at the player's feet). With `max_count`, the number is drawn at the claim, from `count` to `max_count`: `"count": 3, "max_count": 5` gives 3, 4 or 5, and the book shows "3-5". |
 | `xp` | `points` | experience points |
 | `xp_levels` | `levels` | experience levels |
 | `command` | `command` | runs one line as the server console; `{player}` is the player's name, `{uuid}` their UUID |
@@ -163,13 +163,13 @@ A file in `reward_tables/`:
 }
 ```
 
-Each entry is a reward without an `id`: any type but `random` and `choice`, with a `weight` (1) and an optional `title`.
+Each entry is a reward without an `id`: any type but `random` and `choice`, with a `weight` (1) and an optional `title`. In the quest window, a random or choice reward shows its entries' items in turn (one every 0.8 s); its tooltip lists them, with each entry's chance for a random reward (its weight against the total: "[75%]").
 
 ## Checking a pack
 
 `/quests validate` (or the server log when the world opens) lists every problem with its place, for example `error: chapters/01_start.json > first_wood: unknown dependency "x"`.
 
-- **Errors** leave the chapter out: invalid JSON, an unknown task or reward type, a missing, malformed or duplicate id, an unknown dependency, a dependency cycle, a `count` or `levels` of 0, a malformed item or entity id, an unknown reward table, a repeatable quest with nothing used up, an empty or multi-line command. An error in `quests.json` refuses the whole pack.
+- **Errors** leave the chapter out: invalid JSON, an unknown task or reward type, a missing, malformed or duplicate id, an unknown dependency, a dependency cycle, a `count` or `levels` of 0, a `max_count` below `count`, a malformed item or entity id, an unknown reward table, a repeatable quest with nothing used up, an empty or multi-line command. An error in `quests.json` refuses the whole pack.
 - **Warnings** keep the chapter: no title, an unknown group, two quests at the same place, a dependency listed twice, a reward that gives nothing, `repeat_cooldown` without `repeatable`, a choice reward set to claim itself.
 - The validator does not know yet whether an item or a mob exists in the game: a misspelled `minecraft:oak_logg` passes, and shows as a missing icon in the book.
 
