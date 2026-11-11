@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.3
+- The example chapters use every node shape, to compare them; "Settled in" is an octagon instead of a diamond.
+
 ## 0.8.2
 - A locked node's veil covers the frame's whole face in its shape, instead of a square over the icon.
 

@@ -13,6 +13,7 @@
         "This quest can be done again: a few minutes after you claim its reward, it starts over. The reward is drawn at random each time."
       ],
       "x": 0, "y": 0,
+      "shape": "circle",
       "dependencies": ["getting_started/crafting_table"],
       "repeatable": true,
       "repeat_cooldown": 300,
@@ -27,6 +28,7 @@
         "The tasks of this quest go in order: the skeletons only count once the sword is made."
       ],
       "x": 2, "y": -1,
+      "shape": "hexagon",
       "dependencies": ["getting_started/stone"],
       "sequential_tasks": true,
       "tasks": [
@@ -42,6 +44,7 @@
         "Earn the advancement \"Stone Age\" by mining stone with your new pickaxe. If you already have it, this completes by itself."
       ],
       "x": 2, "y": 1,
+      "shape": "diamond",
       "dependencies": ["getting_started/wooden_pickaxe"],
       "tasks": [ { "id": "advancement", "type": "advancement", "advancement": "minecraft:story/mine_stone" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 25 } ]
@@ -54,6 +57,7 @@
         "The reward is yours to choose: pick one in the list below once the quest is completed."
       ],
       "x": 4, "y": 0,
+      "shape": "octagon",
       "dependencies": ["armed", "stone_age"],
       "dependency_mode": "one_completed",
       "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ],
@@ -67,6 +71,7 @@
         "Every world has a point where X and Z are both zero. Go and stand there (F3 shows where you are)."
       ],
       "x": 6, "y": -1,
+      "shape": "square",
       "optional": true,
       "dependencies": ["seasoned"],
       "tasks": [
@@ -83,6 +88,7 @@
       ],
       "icon": "minecraft:obsidian",
       "x": 6, "y": 1,
+      "shape": "circle",
       "optional": true,
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],

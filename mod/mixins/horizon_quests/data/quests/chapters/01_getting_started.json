@@ -15,6 +15,7 @@
       ],
       "icon": "minecraft:writable_book",
       "x": 0, "y": 0,
+      "shape": "circle",
       "tasks": [ { "id": "ready", "type": "checkmark", "title": "I have read this" } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
     },
@@ -25,6 +26,7 @@
         "Everything starts with a tree. Gather a few logs; any kind of wood will do."
       ],
       "x": 2, "y": 0,
+      "shape": "square",
       "dependencies": ["welcome"],
       "tasks": [ { "id": "logs", "type": "item", "item": "#minecraft:logs", "count": 8 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 10 } ]
@@ -36,6 +38,7 @@
         "Turn a log into planks, and four planks into a crafting table. Most recipes need one."
       ],
       "x": 4, "y": 0,
+      "shape": "hexagon",
       "dependencies": ["first_wood"],
       "tasks": [ { "id": "table", "type": "item", "item": "minecraft:crafting_table" } ],
       "rewards": [ { "id": "apples", "type": "item", "item": "minecraft:apple", "count": 4 } ]
@@ -47,6 +50,7 @@
         "Planks and sticks make a wooden pickaxe. It will not last, but it gets you to stone."
       ],
       "x": 6, "y": -1,
+      "shape": "octagon",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:wooden_pickaxe" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 15 } ]
@@ -58,6 +62,7 @@
         "Dig down a little and bring back some cobblestone. Stone tools are faster and sturdier than wooden ones."
       ],
       "x": 8, "y": -1,
+      "shape": "diamond",
       "dependencies": ["wooden_pickaxe"],
       "tasks": [ { "id": "cobblestone", "type": "item", "item": "minecraft:cobblestone", "count": 16 } ],
       "rewards": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 8 } ]
@@ -69,6 +74,7 @@
         "Eight cobblestone in a ring make a furnace. Use it to cook food and to smelt ore."
       ],
       "x": 10, "y": -1,
+      "shape": "square",
       "dependencies": ["stone"],
       "tasks": [ { "id": "furnace", "type": "item", "item": "minecraft:furnace" } ],
       "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 8 } ]
@@ -80,6 +86,7 @@
         "Look for iron ore in caves and cliffs, then smelt it. Three ingots are enough for a pickaxe."
       ],
       "x": 12, "y": -1,
+      "shape": "circle",
       "dependencies": ["furnace"],
       "tasks": [ { "id": "ingots", "type": "item", "item": "minecraft:iron_ingot", "count": 3 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -91,6 +98,7 @@
         "Three wool and three planks make a bed. Sleeping skips the night and sets where you come back to."
       ],
       "x": 6, "y": 1,
+      "shape": "hexagon",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "bed", "type": "item", "item": "#minecraft:beds" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
@@ -103,6 +111,7 @@
       ],
       "icon": "minecraft:wooden_sword",
       "x": 8, "y": 1,
+      "shape": "octagon",
       "dependencies": ["bed"],
       "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 3 } ],
       "rewards": [
@@ -119,6 +128,7 @@
         "This quest takes the items: click the rotten flesh under Tasks while you carry them."
       ],
       "x": 10, "y": 1,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["first_night"],
       "tasks": [ { "id": "flesh", "type": "item", "item": "minecraft:rotten_flesh", "count": 8, "consume": true } ],
@@ -132,7 +142,7 @@
       ],
       "icon": "minecraft:iron_pickaxe",
       "x": 14, "y": 0,
-      "shape": "diamond",
+      "shape": "octagon",
       "size": 1.5,
       "dependencies": ["iron", "first_night"],
       "visibility": "until_deps_complete",
