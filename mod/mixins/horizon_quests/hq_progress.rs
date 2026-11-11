@@ -510,6 +510,7 @@ fn forget(book: &Book, progress: &mut Progress, n: usize) -> bool {
     }
     for r in 0..book.quest(n).rewards.len() {
         changed |= progress.claimed.remove(&book.reward_id(n, r)).is_some();
+        changed |= progress.picked.remove(&book.reward_id(n, r)).is_some();
     }
     changed
 }
@@ -576,23 +577,27 @@ fn claim(
     out: &mut Outcome,
 ) -> Result<(), Refusal> {
     let reward = &book.quest(n).rewards[r];
-    let (title, kind) = match &reward.kind {
+    let (title, kind, picked) = match &reward.kind {
         RewardKind::Random { table } => {
             let table = book.table(table).ok_or(Refusal::NoTable)?;
             let entry = draw(table, next_roll(roll)).ok_or(Refusal::NoTable)?;
-            (entry.title.clone(), entry.kind.clone())
+            let index = table.entries.iter().position(|e| std::ptr::eq(e, entry)).unwrap_or(0);
+            (entry.title.clone(), entry.kind.clone(), Some(index as u32))
         }
         RewardKind::Choice { table } => {
             let table = book.table(table).ok_or(Refusal::NoTable)?;
             let choice = choice.ok_or(Refusal::NeedsChoice)?;
             let entry = table.entries.get(choice as usize).ok_or(Refusal::BadChoice)?;
-            (entry.title.clone(), entry.kind.clone())
+            (entry.title.clone(), entry.kind.clone(), Some(choice))
         }
-        kind => (reward.title.clone(), kind.clone()),
+        kind => (reward.title.clone(), kind.clone(), None),
     };
     let kind = settle_count(kind, roll);
     let id = book.reward_id(n, r);
     progress.claimed.entry(id.clone()).or_default().insert(player.to_owned());
+    if let Some(index) = picked {
+        progress.picked.entry(id.clone()).or_default().insert(player.to_owned(), index);
+    }
     out.changed = true;
     out.effects.push(Effect::Reward { reward: id, title, kind });
     Ok(())
@@ -1293,6 +1298,8 @@ mod tests {
             [Effect::Reward { reward: "b/bake/loot".into(), title: Some("A cake!".into()), kind: cake }]
         );
         assert!(progress.has_claimed("b/bake/loot", "steve"));
+        // The entry that came out is remembered for the book: the cake, the last one.
+        assert_eq!(progress.picked_for("b/bake/loot", "steve", false), Some(2));
     }
 
     #[test]
@@ -1318,6 +1325,9 @@ mod tests {
             out.effects,
             [Effect::Reward { reward: "b/level/pick".into(), title: None, kind: RewardKind::XpLevels { levels: 2 } }]
         );
+        assert_eq!(progress.picked_for("b/level/pick", "steve", false), Some(1));
+        assert_eq!(progress.picked_for("b/level/pick", "alex", false), None);
+        assert_eq!(progress.picked_for("b/level/pick", "alex", true), Some(1));
         assert_eq!(run(&book, &mut progress, claim(Some(0))), refused(Refusal::AlreadyClaimed));
         assert_eq!(run(&book, &mut progress, QuestEvent::ClaimAll), refused(Refusal::NothingToClaim));
 

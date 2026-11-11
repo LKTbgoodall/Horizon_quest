@@ -1273,6 +1273,21 @@ fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, clock: u32, n: 
         let claimed = s.progress.claimed_for(&id, s.player, reward.team);
         let team = reward.team.then(|| ("Team reward: one claim for the party".to_owned(), DIM_INK));
         let table = reward.kind.table().and_then(|table| book.table(table));
+        // A random or choice reward claimed: only what it gave.
+        let given = table.filter(|_| claimed).and_then(|table| {
+            let index = s.progress.picked_for(&id, s.player, reward.team)?;
+            table.entries.get(index as usize)
+        });
+        if let Some(entry) = given {
+            let (item, count) = reward_item(&entry.kind);
+            let link = link_of(&entry.kind);
+            let mut more = team.into_iter().collect::<Vec<_>>();
+            more.push(("Claimed".to_owned(), LINE_DONE & 0xFF_FFFF));
+            let click = if link.is_some() { "Click to view recipe(s)" } else { "" };
+            let tip = item_tip(names, link.as_deref(), &entry_label(entry), more, click);
+            icons.push(Icon { item, count, action: recipe_of(link), tip, veil: None, mark: Some(Mark::Check) });
+            continue;
+        }
         if let (RewardKind::Choice { .. }, Some(table), false) = (&reward.kind, table, claimed) {
             // A choice: one icon; a click opens the window to pick from.
             let mut more = table_lines(table, false);
@@ -1528,9 +1543,10 @@ const LOCK_EDGE: u32 = 0xFF1C_1C22;
 /// The padlock on a locked node's bottom-right corner (the node's box at
 /// `node`), bigger as the node grows.
 fn lock_draws(node: [f32; 4]) -> Draw {
-    let scale = (node[2] / 28.0).round().clamp(1.0, 4.0);
+    // A third of the node, however far the canvas is zoomed out.
+    let scale = node[2] * 0.034;
     let (w, h) = (LOCK_PIXELS[0].len() as f32 * scale, LOCK_PIXELS.len() as f32 * scale);
-    let inset = (node[2] * 0.06).round();
+    let inset = node[2] * 0.06;
     let at = [node[0] + node[2] - w - inset, node[1] + node[3] - h - inset];
     let pixels = pixel_art(&LOCK_PIXELS, at, scale, &|c| match c {
         'k' => Some(LOCK_EDGE),
@@ -3075,6 +3091,20 @@ mod tests {
         assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"Click the one you want."));
         assert_eq!(click(&mut view, &book, &progress, &pick(1)), Reaction::Send(ToServer::Claim { reward: "g/bake/pick".into(), choice: Some(1) }));
         assert_eq!(view.choosing, None);
+        // Claimed: each shows only what it gave, with a check.
+        let claimed = progress_after(
+            &book,
+            &[
+                QuestEvent::Crafted { task: "g/bake/bread".into(), count: 3 },
+                QuestEvent::Check { task: "g/bake/ok".into() },
+                QuestEvent::Claim { reward: "g/bake/pick".into(), choice: Some(1) },
+            ],
+        );
+        let icons = reward_icons(&screen(&book, &claimed, NOWHERE), &HashMap::new(), 0, 0);
+        let pick = icons.iter().find(|icon| icon.tip.iter().any(|(line, _)| line == "Claimed")).unwrap();
+        assert_eq!((pick.item.as_str(), pick.count.as_str(), pick.mark), ("minecraft:experience_bottle", "2", Some(Mark::Check)));
+        let lines: Vec<&str> = pick.tip.iter().map(|(line, _)| line.as_str()).collect();
+        assert_eq!(lines, ["2 levels", "Claimed"]);
         // Levels count as a number alone.
         assert_eq!(reward_item(&RewardKind::XpLevels { levels: 2 }).1, "2");
 

@@ -374,6 +374,9 @@ pub struct Progress {
     pub tasks: BTreeMap<String, u64>,
     /// Reward → the players who claimed it.
     pub claimed: BTreeMap<String, BTreeSet<String>>,
+    /// Random or choice reward → player → the table entry they got (its
+    /// index), so the book shows what was given once it is claimed.
+    pub picked: BTreeMap<String, BTreeMap<String, u32>>,
     /// Repeatable quest → how many times it was completed and started over.
     pub repeats: BTreeMap<String, u32>,
     /// The advancements the pack's tasks name that a member was seen to
@@ -391,6 +394,7 @@ impl Default for Progress {
             completed: BTreeMap::new(),
             tasks: BTreeMap::new(),
             claimed: BTreeMap::new(),
+            picked: BTreeMap::new(),
             repeats: BTreeMap::new(),
             advancements: BTreeSet::new(),
             book_given: false,
@@ -420,6 +424,13 @@ impl Progress {
 
     pub fn has_claimed(&self, reward: &str, player: &str) -> bool {
         self.claimed.get(reward).is_some_and(|players| players.contains(player))
+    }
+
+    /// The table entry a random or choice reward gave `player` (anyone of
+    /// the team for a team reward), when known.
+    pub fn picked_for(&self, reward: &str, player: &str, team: bool) -> Option<u32> {
+        let picks = self.picked.get(reward)?;
+        if team { picks.values().next().copied() } else { picks.get(player).copied() }
     }
 
     /// Whether reward `reward` is claimed as far as `player` goes: by them,

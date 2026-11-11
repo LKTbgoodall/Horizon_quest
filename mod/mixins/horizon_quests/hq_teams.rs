@@ -287,6 +287,12 @@ pub fn merge_progress(into: &mut Progress, from: &Progress) {
     for (reward, players) in &from.claimed {
         into.claimed.entry(reward.clone()).or_default().extend(players.iter().cloned());
     }
+    for (reward, picks) in &from.picked {
+        let known = into.picked.entry(reward.clone()).or_default();
+        for (player, &entry) in picks {
+            known.entry(player.clone()).or_insert(entry);
+        }
+    }
     for (quest, &times) in &from.repeats {
         let known = into.repeats.entry(quest.clone()).or_insert(0);
         *known = (*known).max(times);
@@ -301,6 +307,11 @@ pub fn keep_claims(personal: &mut Progress, party: &Progress, player: &str) {
     for (reward, players) in &party.claimed {
         if players.contains(player) {
             personal.claimed.entry(reward.clone()).or_default().insert(player.to_owned());
+        }
+    }
+    for (reward, picks) in &party.picked {
+        if let Some(&entry) = picks.get(player) {
+            personal.picked.entry(reward.clone()).or_default().insert(player.to_owned(), entry);
         }
     }
     personal.book_given |= party.book_given;
