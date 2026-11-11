@@ -19,7 +19,7 @@ updated: 2026-11-11
 
 ## ➡️ Next step
 0. Claude, before any in-game test request: `powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1` must end with "The glue type-checks" ([[Build, test and tools]])
-1. **V1**: follow `release/v1-checklist.md`. Bastien: the in-game test of 0.6.0 to 0.7.3 and the server settings, 1.0.0 **waits for the Nightly** that ships native `.hmod` support (Bastien's choice; our pin `fdc87ae` is still the newest Nightly): when it is out (`horizon-launcher versions`), Claude re-checks the glue and updates the pins. The content half ships in the one `.hmod` ([[ADR-014 Publish one hmod with content and code]]). Then **1.0.0**: the public release on playhorizon.dev ([[Publishing and mod policy]]). Later: JEI's recipes when installed, a party tab outside the book
+1. **V1**: follow `release/v1-checklist.md`. Bastien: the in-game test of 0.6.0 to 0.7.3 and the server settings, 1.0.0 **waits for the Nightly** that ships native `.hmod` content support (Bastien confirmed after the `-Combined` test, which built the code but installed no textures; our pin `fdc87ae` is still the newest Nightly): when it is out (`horizon-launcher versions`), Claude re-checks the glue, updates the pins, and Bastien rebuilds with `-Combined` to see the textures. The content half ships in the one `.hmod` ([[ADR-014 Publish one hmod with content and code]]). Then **1.0.0**: the public release on playhorizon.dev ([[Publishing and mod policy]]). Later: JEI's recipes when installed, a party tab outside the book
 2. Small follow-ups Bastien put aside: short ids and a list for `/quests complete` / `reset`, the quest id in the book panel for operators
 
 ## 🗺️ Vault map
