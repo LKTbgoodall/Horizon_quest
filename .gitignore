@@ -16,3 +16,25 @@ Thumbs.db
 
 # Packaged mod (tools/build-mod.ps1)
 build/
+
+# Secrets: never on GitHub. The minisign secret key lives in
+# %USERPROFILE%\.minisign\, outside the repository; these catch a copy.
+# (minisign.pub, the public key, is meant to be shared.)
+*.key
+*.minisig
+.minisign/
+*.pem
+*.p12
+*.pfx
+.env
+.env.*
+secrets.*
+*.secret
+passwords.*
+tokens.*
+
+# Local tools and editors
+.claude/settings.local.json
+.vscode/
+.idea/
+*.log
