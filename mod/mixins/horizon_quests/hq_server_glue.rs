@@ -823,7 +823,7 @@ fn submit(game: &mut Game<'_>, me: u128, task: &str, outside: bool) -> Vec<Strin
     if let Some(s) = state().as_mut() {
         s.session.push(me, QuestEvent::Submitted { task: task.to_owned(), count: taken });
     }
-    vec![format!("Handed in {taken}.")]
+    vec![commands::handed_in(taken, wanted.missing, &String::from(wanted.item))]
 }
 
 /// Takes what `wanted` lacks from the player whose state is in place; how

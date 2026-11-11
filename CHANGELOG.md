@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.10.5
+- A hand-in now answers "Handed in 8 Rotten flesh: task done." or "Handed in 3 Rotten flesh, 5 more to go." instead of a bare "Handed in 8.", which read as if nothing had happened. `hq_commands::handed_in`.
+
 ## 0.10.4
 - Chapter list: a chapter with rewards to claim gets the red "!" sign at the end of its row (its name no longer turns cyan for that). Names are grey while nothing in the chapter is started, blue once a quest is in progress or done, green once the chapter is complete (optional quests not counted). `hq_book::chapter_ink`.
 

@@ -2,7 +2,7 @@
 // the lines the server answers with (help, the pack's problems, what a
 // player just earned). The glue registers `USAGES`, hands each line to
 // `parse`, and carries the command out. Pure: no game types.
-use super::hq_book::titled;
+use super::hq_book::{pretty, titled};
 use super::hq_logic::Book;
 use super::hq_model::RewardKind;
 use super::hq_progress::Effect;
@@ -217,11 +217,29 @@ pub fn announce(book: &Book, effect: &Effect) -> Option<String> {
     }
 }
 
+/// What a hand-in answers: how many of what went in, and whether that was
+/// all the task needed (`missing` before it) or how many are still to come.
+pub fn handed_in(taken: u64, missing: u64, item: &str) -> String {
+    let name = pretty(item.trim_start_matches('#'));
+    if taken >= missing {
+        format!("Handed in {taken} {name}: task done.")
+    } else {
+        format!("Handed in {taken} {name}, {} more to go.", missing - taken)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::hq_progress::Refusal;
     use super::super::hq_validate::load;
     use super::*;
+
+    #[test]
+    fn a_hand_in_says_what_went_in_and_what_is_left() {
+        assert_eq!(handed_in(8, 8, "minecraft:rotten_flesh"), "Handed in 8 Rotten flesh: task done.");
+        assert_eq!(handed_in(3, 8, "minecraft:rotten_flesh"), "Handed in 3 Rotten flesh, 5 more to go.");
+        assert_eq!(handed_in(4, 4, "#minecraft:logs"), "Handed in 4 Logs: task done.");
+    }
 
     #[test]
     fn every_form_parses() {
