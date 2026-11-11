@@ -3,8 +3,14 @@
 Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%20numbers.md): the middle number for a new feature, the last for a small addition or a fix, and 1.0.0 for the first public release. Versions tested in game have a git tag.
 
 ## Unreleased: towards 1.0.0
-- The code no longer carries the early "the glue will call it" dead-code allowances: the game builds the mod with no warning, and the four items that were really unused are gone or used.
-- Documentation for players and pack makers: the README, [docs/making-quests.md](docs/making-quests.md), this changelog.
+
+## 0.7.3
+- The check sits on the icon's top-right corner.
+- Escape closes the window on top (recipes, choice, then the quest window) before the book.
+- The choice window and the recipe view open over the quest window, not in the middle of the whole book.
+- Fix: after a world whose server never answered, the next world now greets its server and reads the tracked quest again.
+- The code no longer carries the early "the glue will call it" dead-code allowances, nor the old side panel's layout: the game builds the mod with no warning.
+- Documentation for players and pack makers: the README, [docs/making-quests.md](docs/making-quests.md), this changelog, `release/`.
 
 ## 0.7.2
 - A thicker check on what is done; experience levels counted as a plain number.

@@ -7,7 +7,7 @@
 //
 // Colours are `0xAARRGGBB` for fills and quads, `0xRRGGBB` for text. There
 // is no 2D clip. The canvas is drawn first and the bands round it (chapter
-// list, panel, header, footer) are opaque and drawn after, so a node's box
+// list, header, footer) are opaque and drawn after, so a node's box
 // or a line that sticks out of the canvas ends up covered. Text and item
 // icons are only drawn where they fit whole: icons may not be drawn in the
 // same pass as the fills.
@@ -52,11 +52,11 @@ const GOLD_INK: u32 = 0xFF_C040;
 const TEXT: f32 = 10.0;
 const ROW: f32 = 14.0;
 const PAD: f32 = 4.0;
-/// The panel's title bar.
+/// The recipe view's title bar.
 const TITLE_BAR: f32 = 14.0;
 /// The room left round a chapter fitted to the canvas.
 const MARGIN: f32 = 16.0;
-/// The most entries of a reward table the quest panel lists.
+/// The most entries of a reward table a tooltip or the choice window lists.
 const TABLE_ROWS: usize = 12;
 /// The icon shown for a quest that names none and whose first task has none.
 const DEFAULT_ICON: &str = "minecraft:book";
@@ -80,7 +80,7 @@ pub enum Draw {
 pub enum Action {
     Chapter(usize),
     Quest(usize),
-    /// Close the quest panel.
+    /// Close the quest window.
     Deselect,
     Check(String),
     Submit(String),
@@ -122,23 +122,20 @@ pub struct Regions {
     pub header: [f32; 4],
     pub sidebar: [f32; 4],
     pub canvas: [f32; 4],
-    /// The quest panel, when a quest is selected.
-    pub panel: Option<[f32; 4]>,
     pub footer: [f32; 4],
 }
 
-/// The parts of a book filling `rect`, with or without the quest panel.
-pub fn regions(rect: [f32; 4], panel: bool) -> Regions {
+/// The parts of a book filling `rect`. The quest window goes over the
+/// canvas (`Scene::popup`).
+pub fn regions(rect: [f32; 4]) -> Regions {
     let [x, y, w, h] = rect;
     let body_y = y + canvas::HEADER;
     let body_h = (h - canvas::HEADER - canvas::FOOTER).max(0.0);
     let sidebar_w = (w * 0.25).clamp(90.0, 150.0).min(w.max(0.0));
-    let panel_w = if panel { (w * 0.34).clamp(110.0, 200.0).min((w - sidebar_w).max(0.0)) } else { 0.0 };
     Regions {
         header: [x, y, w, canvas::HEADER],
         sidebar: [x, body_y, sidebar_w, body_h],
-        canvas: [x + sidebar_w, body_y, (w - sidebar_w - panel_w).max(0.0), body_h],
-        panel: panel.then_some([x + w - panel_w, body_y, panel_w, body_h]),
+        canvas: [x + sidebar_w, body_y, (w - sidebar_w).max(0.0), body_h],
         footer: [x, y + h - canvas::FOOTER, w, canvas::FOOTER],
     }
 }
@@ -150,9 +147,9 @@ pub struct Scene {
     pub draws: Vec<Draw>,
     /// Later zones are on top.
     pub zones: Vec<([f32; 4], Action)>,
-    /// How far the chapter list and the quest panel can scroll.
+    /// How far the chapter list and the quest window's text can scroll.
     pub sidebar_max_scroll: f32,
-    pub panel_max_scroll: f32,
+    pub popup_max_scroll: f32,
     /// The quest window, when a quest is selected.
     pub popup: Option<[f32; 4]>,
 }
@@ -507,10 +504,10 @@ pub struct BookView {
     /// The chapter shown, and how its canvas is looked at.
     pub chapter: usize,
     pub view: View,
-    /// The quest whose panel is open.
+    /// The quest whose window is open.
     pub selected: Option<usize>,
     pub sidebar_scroll: f32,
-    pub panel_scroll: f32,
+    pub popup_scroll: f32,
     /// The last thing the server said (a refusal), for the footer.
     pub notice: String,
     /// The player's party, for the header.
@@ -555,22 +552,30 @@ impl BookView {
         let statuses = s.book.statuses(s.progress, s.player);
         self.chapter = c;
         self.selected = None;
-        self.panel_scroll = 0.0;
-        self.view = fit(s.book, c, &statuses, regions(s.rect, false).canvas);
+        self.popup_scroll = 0.0;
+        self.view = fit(s.book, c, &statuses, regions(s.rect).canvas);
         self.fitted = true;
     }
 
-    /// The selected quest, if its panel shows: it must be visible and in
+    /// The selected quest, if its window shows: it must be visible and in
     /// the chapter shown.
     fn shown_selection(&self, book: &Book, statuses: &[Status]) -> Option<usize> {
         self.selected.filter(|&n| n < statuses.len() && statuses[n].visible && book.nodes()[n].chapter == self.chapter)
+    }
+
+    /// Closes the quest window: whether one was open (Escape closes it before
+    /// the book).
+    pub fn close_quest(&mut self) -> bool {
+        let open = self.selected.is_some();
+        self.select(None);
+        open
     }
 
     /// Opens quest `n`'s window, or closes it.
     fn select(&mut self, selected: Option<usize>) {
         if self.selected != selected {
             self.selected = selected;
-            self.panel_scroll = 0.0;
+            self.popup_scroll = 0.0;
         }
     }
 
@@ -622,7 +627,8 @@ impl BookView {
     }
 
     /// The wheel turned `steps` notches (positive: away from the player):
-    /// it zooms the canvas, and scrolls the chapter list and the panel.
+    /// it zooms the canvas, and scrolls the chapter list and the quest
+    /// window's text.
     pub fn scroll(&mut self, s: &Screen<'_>, steps: f64) {
         let scene = self.scene(s);
         let regions = scene.regions;
@@ -631,7 +637,7 @@ impl BookView {
         } else if canvas::inside(regions.sidebar, s.mouse) {
             self.sidebar_scroll = moved(self.sidebar_scroll, ROW, scene.sidebar_max_scroll);
         } else if scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse)) {
-            self.panel_scroll = moved(self.panel_scroll, 3.0 * TEXT, scene.panel_max_scroll);
+            self.popup_scroll = moved(self.popup_scroll, 3.0 * TEXT, scene.popup_max_scroll);
         } else if canvas::inside(regions.canvas, s.mouse) {
             self.view.zoom_at(canvas::centre(regions.canvas), s.mouse, steps);
         }
@@ -641,14 +647,14 @@ impl BookView {
     pub fn scene(&self, s: &Screen<'_>) -> Scene {
         let statuses = s.book.statuses(s.progress, s.player);
         let selected = self.shown_selection(s.book, &statuses);
-        let regions = regions(s.rect, false);
+        let regions = regions(s.rect);
         let popup = selected.map(|n| popup_layout(s, &self.item_names, &statuses, n, regions.canvas).0);
         let mut scene = Scene {
             regions,
             draws: Vec::new(),
             zones: Vec::new(),
             sidebar_max_scroll: 0.0,
-            panel_max_scroll: 0.0,
+            popup_max_scroll: 0.0,
             popup,
         };
         scene.fill(s.rect, SHADE);
@@ -887,9 +893,9 @@ impl BookView {
 
         // What it is, under them: it scrolls with the wheel when it is long.
         let body = [x + 1.0, top + columns_h + 1.0, w - 2.0, (h - bar - columns_h - 4.0).max(0.0)];
-        scene.panel_max_scroll = (content.lines.len() as f32 * TEXT + 2.0 * PAD - body[3]).max(0.0);
+        scene.popup_max_scroll = (content.lines.len() as f32 * TEXT + 2.0 * PAD - body[3]).max(0.0);
         for (i, (text, colour)) in content.lines.into_iter().enumerate() {
-            let line_y = body[1] + PAD + i as f32 * TEXT - self.panel_scroll;
+            let line_y = body[1] + PAD + i as f32 * TEXT - self.popup_scroll;
             if contains(body, [body[0], line_y, body[2], TEXT]) {
                 scene.text(text, [x + PAD, line_y + 1.0], colour);
             }
@@ -1310,7 +1316,7 @@ fn mark_draws(mark: Mark, icon: [f32; 2]) -> Vec<Draw> {
             // A thick green check with a dark edge all round.
             let map = outlined(&CHECK_PIXELS, 'g', 'k');
             let rows: Vec<&str> = map.iter().map(String::as_str).collect();
-            pixel_art(&rows, [icon[0] + 6.0, icon[1] - 3.0], 1.0, &|c| match c {
+            pixel_art(&rows, [icon[0] + 8.0, icon[1] - 4.0], 1.0, &|c| match c {
                 'g' => Some(0xFF5C_E83C),
                 'k' => Some(0xFF0C_2208),
                 _ => None,
@@ -1406,12 +1412,10 @@ fn draw_choice(scene: &mut Scene, s: &Screen<'_>, names: &HashMap<String, String
     let found = &book.quest(n).rewards[r];
     let table = found.kind.table().and_then(|table| book.table(table))?;
     let completed = s.progress.is_completed(&book.nodes()[n].id);
-    let [x, y, w, h] = s.rect;
     scene.zones.push((s.rect, Action::CloseChoice));
     let entries = table.entries.len().min(TABLE_ROWS);
-    let bw = CHOICE_WIDTH.min(w);
-    let bh = (POPUP_BAR + 2.0 * PAD + TEXT + entries as f32 * ICON_CELL + PAD).min(h);
-    let b = [x + (w - bw) / 2.0, y + (h - bh) / 2.0, bw, bh];
+    let b = over_book(s, scene, [CHOICE_WIDTH, POPUP_BAR + 2.0 * PAD + TEXT + entries as f32 * ICON_CELL + PAD]);
+    let [_, _, bw, bh] = b;
     scene.fill(b, POPUP_BACK);
     scene.fill([b[0], b[1], bw, 1.0], POPUP_EDGE);
     scene.fill([b[0], b[1] + bh - 1.0, bw, 1.0], POPUP_EDGE);
@@ -1455,6 +1459,16 @@ fn draw_choice(scene: &mut Scene, s: &Screen<'_>, names: &HashMap<String, String
         scene.zones.push((row, action));
     }
     tip
+}
+
+/// Where a window over the book goes (the choice window, the recipe view):
+/// centred on the quest window when one is open, else on the canvas, and
+/// kept on screen.
+fn over_book(s: &Screen<'_>, scene: &Scene, size: [f32; 2]) -> [f32; 4] {
+    let [cx, cy] = canvas::centre(scene.popup.unwrap_or(scene.regions.canvas));
+    let [x, y, w, h] = s.rect;
+    let (bw, bh) = (size[0].min(w), size[1].min(h));
+    [(cx - bw / 2.0).clamp(x, x + w - bw), (cy - bh / 2.0).clamp(y, y + h - bh), bw, bh]
 }
 
 /// The choice window's width.
@@ -1503,10 +1517,9 @@ const CELL_BACK: u32 = 0xFF2E_2E3C;
 
 /// The recipe view, centred over the book. A click outside closes it.
 fn draw_recipe(scene: &mut Scene, s: &Screen<'_>, recipe: &RecipeOverlay) {
-    let [x, y, w, h] = s.rect;
     scene.zones.push((s.rect, Action::CloseRecipe));
-    let [bw, bh] = [RECIPE_BOX[0].min(w), RECIPE_BOX[1].min(h)];
-    let b = [x + (w - bw) / 2.0, y + (h - bh) / 2.0, bw, bh];
+    let b = over_book(s, scene, RECIPE_BOX);
+    let bw = b[2];
     scene.fill(b, PANEL);
     scene.zones.push((b, Action::Stay));
     scene.fill([b[0], b[1], bw, TITLE_BAR], BAND);
@@ -1865,24 +1878,17 @@ mod tests {
 
     #[test]
     fn regions_split_the_window() {
-        let closed = regions(RECT, false);
-        assert_eq!(closed.panel, None);
+        let closed = regions(RECT);
         assert_eq!(closed.header, [0.0, 0.0, 480.0, canvas::HEADER]);
         assert_eq!(closed.footer, [0.0, 270.0 - canvas::FOOTER, 480.0, canvas::FOOTER]);
         assert_eq!(closed.sidebar[2] + closed.canvas[2], 480.0);
         assert_eq!(closed.canvas[1], canvas::HEADER);
         assert_eq!(closed.canvas[3], 270.0 - canvas::HEADER - canvas::FOOTER);
 
-        let open = regions(RECT, true);
-        let panel = open.panel.unwrap();
-        assert_eq!(open.sidebar, closed.sidebar);
-        assert!((open.sidebar[2] + open.canvas[2] + panel[2] - 480.0).abs() < 0.01);
-        assert!((panel[0] + panel[2] - 480.0).abs() < 0.01);
-
         // A window too small for anything: nothing goes negative.
         for rect in [[0.0, 0.0, 40.0, 20.0], [0.0, 0.0, 0.0, 0.0]] {
-            let tiny = regions(rect, true);
-            for part in [tiny.header, tiny.sidebar, tiny.canvas, tiny.panel.unwrap(), tiny.footer] {
+            let tiny = regions(rect);
+            for part in [tiny.header, tiny.sidebar, tiny.canvas, tiny.footer] {
                 assert!(part[2] >= 0.0 && part[3] >= 0.0, "{part:?}");
             }
         }
@@ -2061,7 +2067,6 @@ mod tests {
         let canvas = scene.regions.canvas;
         assert!(contains(canvas, popup));
         assert!((canvas::centre(popup)[0] - canvas::centre(canvas)[0]).abs() < 0.01);
-        assert_eq!(scene.regions.panel, None);
         let shown = texts(&scene);
         for text in ["Start here", "Tasks", "Rewards", "Available", "A beginning", "x"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
@@ -2249,6 +2254,28 @@ mod tests {
     }
 
     #[test]
+    fn windows_over_the_book_sit_on_the_quest_window_and_escape_closes_it_first() {
+        let book = gamma();
+        let progress = Progress::default();
+        let mut view = opened(&book, &progress);
+        click(&mut view, &book, &progress, &Action::Quest(0));
+        click(&mut view, &book, &progress, &Action::OpenChoice("g/bake/pick".into()));
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let popup = scene.popup.unwrap();
+        // The choice window (the zone right after its full-screen "close")
+        // is centred on the quest window, not on the whole book.
+        let at = scene.zones.iter().position(|(r, a)| *a == Action::CloseChoice && *r == RECT).unwrap();
+        let window = scene.zones[at + 1].0;
+        assert!((canvas::centre(window)[0] - canvas::centre(popup)[0]).abs() < 0.5, "{window:?} on {popup:?}");
+        assert!((canvas::centre(window)[1] - canvas::centre(popup)[1]).abs() < 0.5, "{window:?} on {popup:?}");
+        // Escape: the quest window goes, then nothing more to close (the book's turn).
+        view.choosing = None;
+        assert!(view.close_quest());
+        assert_eq!(view.selected, None);
+        assert!(!view.close_quest());
+    }
+
+    #[test]
     fn the_party_shows_in_the_header() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
@@ -2361,14 +2388,14 @@ mod tests {
     }
 
     #[test]
-    fn turning_to_another_chapter_closes_the_panel() {
+    fn turning_to_another_chapter_closes_the_quest_window() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         click(&mut view, &book, &progress, &Action::Quest(0));
         assert_eq!(click(&mut view, &book, &progress, &Action::Chapter(1)), Reaction::Nothing);
         assert_eq!((view.chapter, view.selected), (1, None));
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        assert_eq!(scene.regions.panel, None);
+        assert_eq!(scene.popup, None);
         assert!(zone(&scene, &Action::Quest(3)).is_some());
         assert_eq!(zone(&scene, &Action::Quest(0)), None);
         // A lone quest sits in the middle of the canvas, not zoomed in.
@@ -2417,14 +2444,14 @@ mod tests {
         let at = zone(&view.scene(&short(NOWHERE)), &Action::Quest(0)).unwrap();
         view.click(&short(at));
         let scene = view.scene(&short(NOWHERE));
-        assert!(scene.panel_max_scroll > 0.0);
+        assert!(scene.popup_max_scroll > 0.0);
         let over_popup = canvas::centre(scene.popup.unwrap());
         let zoom = view.view.zoom;
         view.scroll(&short(over_popup), -100.0);
-        assert_eq!(view.panel_scroll, scene.panel_max_scroll);
+        assert_eq!(view.popup_scroll, scene.popup_max_scroll);
         assert_eq!(view.view.zoom, zoom);
         view.scroll(&short(over_popup), 100.0);
-        assert_eq!(view.panel_scroll, 0.0);
+        assert_eq!(view.popup_scroll, 0.0);
     }
 
     #[test]
@@ -2478,11 +2505,11 @@ mod tests {
     fn a_hidden_quest_cannot_stay_selected() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
-        // `far` (node 2) is hidden: no panel for it, even if something selected it.
+        // `far` (node 2) is hidden: no window for it, even if something selected it.
         view.selected = Some(2);
-        assert_eq!(view.scene(&screen(&book, &progress, NOWHERE)).regions.panel, None);
+        assert_eq!(view.scene(&screen(&book, &progress, NOWHERE)).popup, None);
         view.selected = Some(99);
-        assert_eq!(view.scene(&screen(&book, &progress, NOWHERE)).regions.panel, None);
+        assert_eq!(view.scene(&screen(&book, &progress, NOWHERE)).popup, None);
         view.open(&screen(&book, &progress, NOWHERE));
         assert_eq!(view.selected, None);
     }
@@ -2514,7 +2541,7 @@ mod tests {
         let mut view = opened(&book, &progress);
         let shown = view.scene(&screen(&book, &progress, NOWHERE));
         assert!(texts(&shown).contains(&NO_QUESTS));
-        let centre = canvas::centre(regions(RECT, false).canvas);
+        let centre = canvas::centre(regions(RECT).canvas);
         assert_eq!(view.click(&screen(&book, &progress, centre)), Reaction::Nothing);
         view.drag(&screen(&book, &progress, centre), [5.0, 5.0]);
         view.scroll(&screen(&book, &progress, centre), 1.0);

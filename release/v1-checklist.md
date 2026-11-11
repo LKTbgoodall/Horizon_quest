@@ -4,7 +4,7 @@ Tick in order. Claude prepares and checks; Bastien tests in game, decides and se
 
 ## 1. Everything works in game (Bastien)
 - [ ] `git pull`, `tools\build-mod.ps1`: the build succeeds.
-- [ ] The look of 0.6.0 to 0.7.2 in game: node frames, chevron lines and their colours, selection corners, the quest window (icons, checks, "!", counts, tooltips, pin), the choice window. Screenshots of anything odd.
+- [ ] The look of 0.6.0 to 0.7.3 in game: node frames, chevron lines and their colours, selection corners, the quest window (icons, checks, "!", counts, tooltips, pin), the choice window. Screenshots of anything odd.
 - [ ] The server settings never tried: `completion_messages = false`, `parties = false`, `party_size = 2`, `detection_delay = 200` (the README checklist says how).
 - [ ] A full playthrough of both example chapters in a new world, solo.
 - [ ] A short LAN session: a party, a shared task, a team reward if a pack has one.
@@ -13,8 +13,8 @@ Tick in order. Claude prepares and checks; Bastien tests in game, decides and se
 ## 2. Code ready for review (Claude)
 - [x] No dead-code allowances; the game builds the mod with no warning (`tools/check-glue.ps1`).
 - [x] Unit and end-to-end tests pass with `-D warnings`.
-- [ ] A last read of the two glue files for clarity (comments, names, nothing left from the spikes).
-- [ ] `mod/README.md` trimmed: its version history moved to `CHANGELOG.md`, its checklist kept as the in-game test.
+- [x] A last read of the glue for clarity: the old side panel's layout removed from `hq_book`, a client-state reset bug fixed (0.7.3).
+- [x] `mod/README.md` trimmed: its version history is `CHANGELOG.md`, its checklist kept as the in-game test.
 
 ## 3. Documentation (Claude, Bastien reads)
 - [x] Root `README.md`: what the mod does, commands, building.

@@ -90,10 +90,11 @@ impl ClientState {
         }
     }
 
-    /// Whether anything is kept from a world besides toasts: a pack or a
-    /// request.
+    /// Whether anything is kept from a world besides toasts: a pack, a
+    /// request, or what was done once on joining it (the settings read, the
+    /// first Hello), which the next world must do again.
     fn in_use(&self) -> bool {
-        self.book.is_some() || self.waited.is_some() || self.sender.waiting() > 0
+        self.book.is_some() || self.waited.is_some() || self.sender.waiting() > 0 || self.greeted || self.settings_read
     }
 }
 
@@ -460,13 +461,17 @@ pub(super) fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i3
     }
 }
 
-/// A key over the book: Escape closes the recipe view or the choice window
-/// first, then the book as usual.
+/// A key over the book: Escape closes the window on top (the recipe view,
+/// the choice window, then the quest window), and the book once none is
+/// open.
 pub(super) fn screen_key(game: &Game<'_>, key: &str, canceled: &mut bool) {
     if !ours(game) || key != "key.keyboard.escape" {
         return;
     }
-    if with(|s| s.view.recipe.take().is_some() || s.view.choosing.take().is_some()) {
+    // One window at a time, the one on top first: the recipe view or the
+    // choice window, then the quest window. With none open, Escape closes
+    // the book as usual.
+    if with(|s| s.view.recipe.take().is_some() || s.view.choosing.take().is_some() || s.view.close_quest()) {
         *canceled = true;
     }
 }
