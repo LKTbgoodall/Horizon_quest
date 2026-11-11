@@ -4,6 +4,11 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.7.4
+- A locked quest shows its icon greyed out and a small padlock on its bottom-right corner.
+- A checkmark task is a round grey button with a white check instead of a book.
+- Counts on icons are small digits tucked in the bottom-right corner, as in FTB-style books, so they no longer cover the item.
+
 ## 0.7.3
 - The check sits on the icon's top-right corner.
 - Escape closes the window on top (recipes, choice, then the quest window) before the book.

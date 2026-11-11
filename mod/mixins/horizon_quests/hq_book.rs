@@ -783,6 +783,17 @@ impl BookView {
             let at = [centre[0] - icon / 2.0, centre[1] - icon / 2.0];
             if contains(area, [at[0], at[1], icon, icon]) {
                 scene.draws.push(Draw::Item { item: quest_icon(quest).to_owned(), at, size: icon });
+                // A locked quest: its icon greyed out under a veil.
+                if state == QuestState::Locked {
+                    scene.fill([at[0], at[1], icon, icon], LOCKED_VEIL);
+                }
+            }
+            // And a small padlock on its bottom-right corner.
+            if state == QuestState::Locked {
+                let lock = lock_draws(b);
+                if lock.iter().all(|d| matches!(d, Draw::Fill { rect, .. } if contains(area, *rect))) {
+                    scene.draws.extend(lock);
+                }
             }
             // The selected quest: white corners round it, as a viewfinder.
             if selected == Some(n) {
@@ -1073,7 +1084,7 @@ enum Mark {
 fn task_item(kind: &TaskKind) -> String {
     match kind {
         TaskKind::Item { item, .. } | TaskKind::Craft { item, .. } => String::from(item.clone()),
-        TaskKind::Checkmark => "minecraft:writable_book".to_owned(),
+        TaskKind::Checkmark => CHECK_TASK_ICON.to_owned(),
         TaskKind::Kill { entity, .. } => format!("{entity}_spawn_egg"),
         TaskKind::XpLevels { .. } => "minecraft:experience_bottle".to_owned(),
         TaskKind::Dimension { dimension } if dimension.contains("nether") => "minecraft:netherrack".to_owned(),
@@ -1255,6 +1266,138 @@ fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Ve
 /// character a pixel: `g`/`r` the sign, `w` white, `k` its dark edge).
 const CHECK_PIXELS: [&str; 7] = ["........gg", ".......gg.", "......gg..", "gg...gg...", ".gg.gg....", "..ggg.....", "..gg......"];
 const ALERT_PIXELS: [&str; 7] = [".rrrrr.", "rrrwrrr", "rrrwrrr", "rrrwrrr", "rrrrrrr", "rrrwrrr", ".rrrrr."];
+/// A checkmark task's icon: no item, a round grey button with a white
+/// check, drawn by `check_task_draws`.
+const CHECK_TASK_ICON: &str = "horizon_quests:check_task";
+
+/// The round grey button with a white check of a checkmark task (16
+/// pixels, its top-left corner at `at`).
+fn check_task_draws(at: [f32; 2]) -> Vec<Draw> {
+    let mut rows: Vec<String> = (0..16)
+        .map(|y| {
+            (0..16)
+                .map(|x| {
+                    let (dx, dy) = (x as f32 - 7.5, y as f32 - 7.5);
+                    let d = (dx * dx + dy * dy).sqrt();
+                    if d > 7.6 {
+                        '.'
+                    } else if d > 6.5 {
+                        'k'
+                    } else if dy < -2.0 {
+                        'l'
+                    } else if dy > 3.0 {
+                        's'
+                    } else {
+                        'g'
+                    }
+                })
+                .collect()
+        })
+        .collect();
+    // The check, white, with a grey shadow under it.
+    for (r, line) in CHECK_PIXELS.iter().enumerate() {
+        for (c, ch) in line.chars().enumerate() {
+            if ch != 'g' {
+                continue;
+            }
+            let (x, y) = (c + 3, r + 4);
+            let mut set = |x: usize, y: usize, to: char| {
+                if let Some(row) = rows.get_mut(y) {
+                    let mut chars: Vec<char> = row.chars().collect();
+                    if chars.get(x).is_some_and(|&was| was != 'w' && was != '.') {
+                        chars[x] = to;
+                        *row = chars.into_iter().collect();
+                    }
+                }
+            };
+            set(x, y + 1, 'd');
+            set(x, y, 'w');
+        }
+    }
+    let map: Vec<&str> = rows.iter().map(String::as_str).collect();
+    pixel_art(&map, at, 1.0, &|c| match c {
+        'k' => Some(0xFF2E_2E34),
+        'l' => Some(0xFFB4_B4BC),
+        'g' => Some(0xFF94_949C),
+        's' => Some(0xFF74_747C),
+        'd' => Some(0xFF54_545C),
+        'w' => Some(CHECK_WHITE),
+        _ => None,
+    })
+}
+const CHECK_WHITE: u32 = 0xFFFA_FAFA;
+
+/// Digits 3 pixels wide and 5 tall, for the counts on icons.
+const DIGIT_PIXELS: [[&str; 5]; 10] = [
+    ["www", "w.w", "w.w", "w.w", "www"],
+    [".w.", "ww.", ".w.", ".w.", "www"],
+    ["www", "..w", "www", "w..", "www"],
+    ["www", "..w", ".ww", "..w", "www"],
+    ["w.w", "w.w", "www", "..w", "..w"],
+    ["www", "w..", "www", "..w", "www"],
+    ["www", "w..", "www", "w.w", "www"],
+    ["www", "..w", "..w", ".w.", ".w."],
+    ["www", "w.w", "www", "w.w", "www"],
+    ["www", "w.w", "www", "..w", "www"],
+];
+
+/// A count in small white digits with a dark shadow, its bottom-right
+/// corner on the bottom-right corner of the 16-pixel icon at `icon`, as
+/// FTB-style books draw them: they hardly cover the item. Anything but
+/// digits is left out.
+fn count_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
+    let digits: Vec<usize> = count.chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
+    if digits.is_empty() {
+        return Vec::new();
+    }
+    let rows: Vec<String> = (0..5)
+        .map(|r| digits.iter().map(|&d| DIGIT_PIXELS[d][r]).collect::<Vec<_>>().join("."))
+        .collect();
+    let map: Vec<&str> = rows.iter().map(String::as_str).collect();
+    let width = rows[0].len() as f32;
+    let at = [icon[0] + 16.0 - width, icon[1] + 11.0];
+    let mut draws = pixel_art(&map, [at[0] + 1.0, at[1] + 1.0], 1.0, &|c| (c == 'w').then_some(COUNT_SHADOW));
+    draws.extend(pixel_art(&map, at, 1.0, &|c| (c == 'w').then_some(COUNT_INK)));
+    draws
+}
+const COUNT_INK: u32 = 0xFFF6_F6F6;
+const COUNT_SHADOW: u32 = 0xFF3F_3F3F;
+
+/// A padlock: `k` its dark edge and keyhole, `w` its metal, `s` the
+/// metal's shaded bottom.
+const LOCK_PIXELS: [&str; 10] = [
+    "..kkkkk..",
+    ".kwwwwwk.",
+    ".kwkkkwk.",
+    ".kwk.kwk.",
+    "kkkkkkkkk",
+    "kwwwwwwwk",
+    "kwwwkwwwk",
+    "kwwwkwwwk",
+    "ksssssssk",
+    "kkkkkkkkk",
+];
+/// Over a locked quest's icon on the canvas: a grey veil.
+const LOCKED_VEIL: u32 = 0xB038_383E;
+const LOCK_METAL: u32 = 0xFFD4_D4DA;
+const LOCK_SHADE: u32 = 0xFF9C_9CA6;
+const LOCK_EDGE: u32 = 0xFF1C_1C22;
+
+/// The padlock on a locked node's bottom-right corner (the node's box at
+/// `node`), bigger as the node grows.
+fn lock_draws(node: [f32; 4]) -> Vec<Draw> {
+    let scale = (node[2] / 28.0).round().clamp(1.0, 4.0);
+    let (w, h) = (LOCK_PIXELS[0].len() as f32 * scale, LOCK_PIXELS.len() as f32 * scale);
+    let inset = (node[2] * 0.06).round();
+    let at = [node[0] + node[2] - w - inset, node[1] + node[3] - h - inset];
+    pixel_art(&LOCK_PIXELS, at, scale, &|c| match c {
+        'k' => Some(LOCK_EDGE),
+        'w' => Some(LOCK_METAL),
+        's' => Some(LOCK_SHADE),
+        _ => None,
+    })
+}
+
 /// A "?" for a reward to choose.
 const QUESTION_PIXELS: [&str; 7] = [".yyy.", "yy.yy", "...yy", "..yy.", "..yy.", ".....", "..yy."];
 
@@ -1378,15 +1521,16 @@ fn draw_icons(scene: &mut Scene, s: &Screen<'_>, area: [f32; 4], heading: &str, 
             scene.fill(cell, ROW_HOVER);
             tip = Some(icon.tip.clone());
         }
-        scene.draws.push(Draw::Item { item: icon.item.clone(), at, size: 16.0 });
+        if icon.item == CHECK_TASK_ICON {
+            scene.draws.extend(check_task_draws(at));
+        } else {
+            scene.draws.push(Draw::Item { item: icon.item.clone(), at, size: 16.0 });
+        }
         if let Some(veil) = icon.veil {
             scene.fill([at[0], at[1], 16.0, 16.0], veil);
         }
-        // The count as in an inventory: over the icon's bottom-right corner.
-        if !icon.count.is_empty() {
-            let width = (s.measure)(&icon.count);
-            scene.text(icon.count.clone(), [at[0] + 17.0 - width, at[1] + 9.0], INK);
-        }
+        // The count in small digits, in the icon's bottom-right corner.
+        scene.draws.extend(count_draws(&icon.count, at));
         if let Some(mark) = icon.mark {
             scene.draws.extend(mark_draws(mark, at));
         }
@@ -1449,10 +1593,7 @@ fn draw_choice(scene: &mut Scene, s: &Screen<'_>, names: &HashMap<String, String
         }
         let at = [row[0] + PAD, row[1] + 2.0];
         scene.draws.push(Draw::Item { item, at, size: 16.0 });
-        if !count.is_empty() {
-            let width = (s.measure)(&count);
-            scene.text(count, [at[0] + 17.0 - width, at[1] + 9.0], INK);
-        }
+        scene.draws.extend(count_draws(&count, at));
         let label = fit_text(&entry_label(entry), bw - 2.0 * PAD - 24.0, s.measure);
         scene.text(label, [at[0] + 22.0, row[1] + 6.0], if completed { INK } else { DIM_INK });
         let action = if completed { Action::Choose(reward.to_owned(), e as u32) } else { Action::Stay };
@@ -2105,9 +2246,10 @@ mod tests {
                 _ => None,
             })
             .collect();
-        // A checkmark task, and 5 XP with its count.
-        assert_eq!(icons, ["minecraft:writable_book", "minecraft:experience_bottle"]);
-        assert!(texts(&scene).contains(&"5"));
+        // A checkmark task (a drawn button, no item), and 5 XP with its count.
+        assert_eq!(icons, ["minecraft:experience_bottle"]);
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: CHECK_WHITE, .. })));
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: COUNT_INK, .. })));
         // The title bar has the quest's icon.
         assert!(scene.draws.iter().any(|d| matches!(d, Draw::Item { size, .. } if *size == 12.0)));
     }
@@ -2159,7 +2301,8 @@ mod tests {
             ["Oak planks", "Minecraft", "Hand in 4x Oak planks", "Progress: 0/4", "Click to hand in"]
         );
         // The count is what the task asks, as in an inventory.
-        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"4"));
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: COUNT_INK, .. })));
         // With the game's names, the item is named as in the game.
         view.item_names.insert("minecraft:oak_planks".into(), "Oak Planks".into());
         assert_eq!(tip(&view, &book, &progress, &submit).unwrap()[0], "Oak Planks");
@@ -2385,6 +2528,53 @@ mod tests {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
         assert_eq!(zone(&scene, &Action::Submit("a/next/planks".into())), None);
+    }
+
+    #[test]
+    fn counts_are_small_digits_in_the_corner() {
+        assert!(count_draws("", [0.0, 0.0]).is_empty());
+        for count in ["3", "64", "1000"] {
+            let draws = count_draws(count, [100.0, 50.0]);
+            assert!(!draws.is_empty());
+            for d in draws {
+                let Draw::Fill { rect, .. } = d else { panic!("digits are fills") };
+                // Inside the icon's bottom-right part, the shadow one pixel past it.
+                assert!(rect[1] >= 61.0 && rect[1] + rect[3] <= 67.0, "{count}: {rect:?}");
+                assert!(rect[0] + rect[2] <= 117.0, "{count}: {rect:?}");
+            }
+        }
+        // "64" is two digits and a gap: 7 pixels wide.
+        let left = count_draws("64", [0.0, 0.0]).iter().map(|d| match d { Draw::Fill { rect, .. } => rect[0], _ => 99.0 }).fold(99.0, f32::min);
+        assert_eq!(left, 9.0);
+    }
+
+    #[test]
+    fn a_checkmark_task_is_a_round_button() {
+        let draws = check_task_draws([0.0, 0.0]);
+        let white = draws.iter().filter(|d| matches!(d, Draw::Fill { colour: CHECK_WHITE, .. })).count();
+        assert!(white >= 5, "a white check");
+        for d in &draws {
+            let Draw::Fill { rect, .. } = d else { panic!("the button is fills") };
+            assert!(contains([0.0, 0.0, 16.0, 16.0], *rect), "{rect:?}");
+        }
+    }
+
+    #[test]
+    fn a_locked_node_is_greyed_and_padlocked() {
+        let has = |scene: &Scene, colour: u32| scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: c, .. } if *c == colour));
+        let (book, progress) = (book(), Progress::default());
+        let view = opened(&book, &progress);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let locked = book.statuses(&progress, "steve").iter().filter(|s| s.state == QuestState::Locked).count();
+        assert!(locked > 0 && has(&scene, LOCKED_VEIL) && has(&scene, LOCK_METAL), "{locked} quests locked at first");
+        // The padlock grows with the node and stays inside it.
+        for size in [16.0, 40.0, 120.0] {
+            let node = [10.0, 20.0, size, size];
+            for d in lock_draws(node) {
+                let Draw::Fill { rect, .. } = d else { panic!("a lock is fills") };
+                assert!(contains(node, rect), "{rect:?} inside {node:?}");
+            }
+        }
     }
 
     #[test]
