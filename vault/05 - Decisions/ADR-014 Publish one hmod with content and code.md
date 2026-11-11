@@ -30,7 +30,7 @@ Before sending it:
 - If the submit form or the check still refuses a combined file for a `native-mod`, fall back to option 2 for that version and ask the maintainers.
 
 ## Update 2026-11-11
-`horizon-launcher versions` after Bastien's launcher update: the newest Nightly is `nightly-2026-11-08-fdc87ae`, our pin. So no re-pin is needed for now, and the registry compiles on the same Horizon as we test. But the native `.hmod` support read on `main` is not in a Nightly yet: until one ships it, a combined `.hmod` cannot be installed by players' launchers. Choice left to Bastien: wait for that Nightly to publish 1.0.0 with its textures, or publish 1.0.0 as the code-only `.hnmod` now (the mod works, plainer) and the combined `.hmod` as the next version.
+`horizon-launcher versions` after Bastien's launcher update: the newest Nightly is `nightly-2026-11-08-fdc87ae`, our pin. So no re-pin is needed for now, and the registry compiles on the same Horizon as we test. But the native `.hmod` support read on `main` is not in a Nightly yet: until one ships it, a combined `.hmod` cannot be installed by players' launchers. Choice left to Bastien: wait for that Nightly to publish 1.0.0 with its textures, or publish 1.0.0 as the code-only `.hnmod` now (the mod works, plainer) and the combined `.hmod` as the next version. **Bastien chose to wait** for the Nightly that ships native `.hmod` support: 1.0.0 goes out with its textures.
 
 ## Consequences
 - Players need a launcher recent enough to read native `.hmod` files; the registry entry says so.
