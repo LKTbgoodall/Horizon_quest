@@ -1350,11 +1350,45 @@ const DIGIT_PIXELS: [[&str; 7]; 10] = [
     [".www.", "w...w", "w...w", ".wwww", "....w", "...w.", ".ww.."],
 ];
 
-/// A count in small white digits with a dark edge all round, so it reads
-/// on any item, its bottom-right corner on the bottom-right corner of the
-/// 16-pixel icon at `icon`, as FTB-style books draw them: small, in the
-/// corner. Anything but digits is left out.
+/// The smooth digits of the counts: `digits.png`, the digits 0 to 9 in
+/// cells of `DIGIT_CELL` pixels (made by `tools/make-digit-textures.py`).
+pub const DIGIT_SPRITE: &str = "horizon_quests:gui/digits";
+pub const DIGIT_CELL: [f32; 2] = [24.0, 32.0];
+/// A digit's cell on screen, in GUI pixels, and the step from one digit to
+/// the next (the cells overlap where they are clear).
+const DIGIT_SIZE: [f32; 2] = [3.3, 4.4];
+const DIGIT_STEP: f32 = 2.5;
+
+/// A count in small smooth white digits with a dark edge (the digit
+/// sprite), in the bottom-right corner of the 16-pixel icon at `icon`, as
+/// FTB-style books draw them: small, in the corner, readable on any item.
+/// Without the sprite, the same in half-pixel art. Anything but digits is
+/// left out.
 fn count_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
+    let digits: Vec<usize> = count.chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
+    let n = digits.len() as f32;
+    // The last cell's right edge: its digit ends about at the icon's edge.
+    let right = icon[0] + 17.3;
+    let top = icon[1] + 16.6 - DIGIT_SIZE[1];
+    let left = right - DIGIT_SIZE[0] - (n - 1.0) * DIGIT_STEP;
+    let mut fallback = Some(count_pixel_draws(count, icon));
+    digits
+        .iter()
+        .enumerate()
+        .map(|(i, &d)| Draw::Sprite {
+            name: DIGIT_SPRITE.to_owned(),
+            src: [d as f32 * DIGIT_CELL[0], 0.0, DIGIT_CELL[0], DIGIT_CELL[1]],
+            dst: [left + i as f32 * DIGIT_STEP, top, DIGIT_SIZE[0], DIGIT_SIZE[1]],
+            // The whole count once, under the first digit: the sprite is
+            // there for all of them or for none.
+            fallback: fallback.take().unwrap_or_default(),
+        })
+        .collect()
+}
+
+/// `count_draws` without the digit sprite: digits in half-pixel art with a
+/// dark edge all round.
+fn count_pixel_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
     let digits: Vec<usize> = count.chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
     if digits.is_empty() {
         return Vec::new();
@@ -2263,7 +2297,7 @@ mod tests {
         // A checkmark task (a drawn button, no item), and 5 XP with its count.
         assert_eq!(icons, ["minecraft:experience_bottle"]);
         assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: CHECK_WHITE, .. })));
-        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: COUNT_INK, .. })));
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Sprite { name, .. } if name == DIGIT_SPRITE)));
         // The title bar has the quest's icon.
         assert!(scene.draws.iter().any(|d| matches!(d, Draw::Item { size, .. } if *size == 12.0)));
     }
@@ -2316,7 +2350,7 @@ mod tests {
         );
         // The count is what the task asks, as in an inventory.
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: COUNT_INK, .. })));
+        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Sprite { name, .. } if name == DIGIT_SPRITE)));
         // With the game's names, the item is named as in the game.
         view.item_names.insert("minecraft:oak_planks".into(), "Oak Planks".into());
         assert_eq!(tip(&view, &book, &progress, &submit).unwrap()[0], "Oak Planks");
@@ -2549,16 +2583,25 @@ mod tests {
         assert!(count_draws("", [0.0, 0.0]).is_empty());
         for count in ["3", "64", "1000"] {
             let draws = count_draws(count, [100.0, 50.0]);
-            assert!(draws.iter().any(|d| matches!(d, Draw::Fill { colour: COUNT_INK, .. })));
-            for d in draws {
-                let Draw::Fill { rect, .. } = d else { panic!("digits are fills") };
-                // In the icon's bottom-right part, the edge at most half a pixel past it.
-                assert!(rect[1] >= 61.0 && rect[1] + rect[3] <= 66.5, "{count}: {rect:?}");
-                assert!(rect[0] + rect[2] <= 116.5, "{count}: {rect:?}");
+            assert_eq!(draws.len(), count.len(), "one sprite a digit");
+            for (i, d) in draws.iter().enumerate() {
+                let Draw::Sprite { name, src, dst, fallback } = d else { panic!("digits are sprites") };
+                assert_eq!(name, DIGIT_SPRITE);
+                let digit = count.as_bytes()[i] - b'0';
+                assert_eq!(src[0], f32::from(digit) * DIGIT_CELL[0]);
+                // In the icon's bottom-right part, never much past it.
+                assert!(dst[1] >= 61.0 && dst[1] + dst[3] <= 67.0, "{count}: {dst:?}");
+                assert!(dst[0] + dst[2] <= 117.5, "{count}: {dst:?}");
+                // The pixel-art count is the first digit's fallback, once.
+                assert_eq!(fallback.is_empty(), i > 0);
             }
         }
-        // "64": two digits, a gap and the edge, 13 half pixels wide.
-        let left = count_draws("64", [0.0, 0.0]).iter().map(|d| match d { Draw::Fill { rect, .. } => rect[0], _ => 99.0 }).fold(99.0, f32::min);
+        // The pixel-art count: in the corner too, the edge at most half a pixel past.
+        for d in count_pixel_draws("64", [100.0, 50.0]) {
+            let Draw::Fill { rect, .. } = d else { panic!("digits are fills") };
+            assert!(rect[1] >= 61.0 && rect[1] + rect[3] <= 66.5 && rect[0] + rect[2] <= 116.5, "{rect:?}");
+        }
+        let left = count_pixel_draws("64", [0.0, 0.0]).iter().map(|d| match d { Draw::Fill { rect, .. } => rect[0], _ => 99.0 }).fold(99.0, f32::min);
         assert_eq!(left, 16.5 - 13.0 * FINE);
     }
 

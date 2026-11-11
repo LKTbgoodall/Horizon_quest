@@ -2,7 +2,7 @@
 //! into one `horizon_quests.hmod`: same mod, same version, and the Quest
 //! Book's model and texture where the game looks for them.
 
-use horizon_mod_horizon_quests::hq_book::NODE_SPRITE;
+use horizon_mod_horizon_quests::hq_book::{DIGIT_CELL, DIGIT_SPRITE, NODE_SPRITE};
 use horizon_mod_horizon_quests::hq_meta::{BOOK_ITEM, ID, NAME, VERSION};
 use std::path::Path;
 
@@ -50,6 +50,17 @@ fn the_node_frames_are_where_the_book_draws_them_from() {
     assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
     // IHDR: 5 shapes x 5 states of 32 x 32 pixels, 8-bit RGBA.
     assert_eq!(&png[16..24], &[0, 0, 0, 160, 0, 0, 0, 160]);
+    assert_eq!(&png[24..26], &[8, 6]);
+}
+
+#[test]
+fn the_count_digits_are_where_the_book_draws_them_from() {
+    let (namespace, path) = DIGIT_SPRITE.split_once(':').unwrap();
+    let png = std::fs::read(content().join("assets").join(namespace).join("textures").join(format!("{path}.png"))).unwrap();
+    assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+    // IHDR: the digits 0 to 9 side by side, 8-bit RGBA.
+    let (w, h) = ((DIGIT_CELL[0] * 10.0) as u32, DIGIT_CELL[1] as u32);
+    assert_eq!(&png[16..24], &[w.to_be_bytes(), h.to_be_bytes()].concat()[..]);
     assert_eq!(&png[24..26], &[8, 6]);
 }
 
