@@ -795,7 +795,8 @@ fn pick_task(me: u128, verb: Verb, typed: &str) -> Result<String, Vec<String>> {
 }
 
 /// A hand-in: takes what the task still lacks from player `me`'s plain
-/// stacks. `outside` says how they are reached: false when their state is in
+/// stacks. Silent when it works (the book and the toasts show the progress);
+/// otherwise the line saying why not. `outside` says how they are reached: false when their state is in
 /// place (`/quests submit` runs in their turn; the host, for a request of
 /// their book), true for a guest of the hub whose book asked, outside any
 /// player's turn.
@@ -823,7 +824,7 @@ fn submit(game: &mut Game<'_>, me: u128, task: &str, outside: bool) -> Vec<Strin
     if let Some(s) = state().as_mut() {
         s.session.push(me, QuestEvent::Submitted { task: task.to_owned(), count: taken });
     }
-    vec![commands::handed_in(taken, wanted.missing, &String::from(wanted.item))]
+    Vec::new()
 }
 
 /// Takes what `wanted` lacks from the player whose state is in place; how
