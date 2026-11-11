@@ -58,6 +58,9 @@ const LINE_OPENS: u32 = 0xFFE8_C838;
 /// canvas units (a node is `canvas::NODE`).
 const LINE_WIDTH: f32 = 5.0;
 const CHEVRON_STEP: f32 = 9.0;
+/// Ticks for the chevrons of the lines in focus to slide one step: they
+/// flow from the quest needed to the quest it opens.
+const FLOW_TICKS: u32 = 12;
 const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0xA0_A0B0;
 const GOLD_INK: u32 = 0xFF_C040;
@@ -619,6 +622,9 @@ pub struct BookView {
     /// Window ticks since the book was made: random and choice rewards
     /// show each of their entries in turn (`TABLE_TURN`).
     pub clock: u32,
+    /// How far into the next tick this frame is (0 to 1), from the game:
+    /// the lines in focus move smoothly between ticks.
+    pub partial_tick: f32,
     /// Whether a chapter was fitted to the canvas yet.
     fitted: bool,
 }
@@ -856,6 +862,8 @@ impl BookView {
         // both ends are done. Those to another chapter's quests are not drawn.
         let width = (LINE_WIDTH * self.view.zoom).max(3.0);
         let spacing = (CHEVRON_STEP * self.view.zoom).max(8.0);
+        // Only the lines in focus move, so the canvas never swarms.
+        let flow = ((self.clock % FLOW_TICKS) as f32 + self.partial_tick.clamp(0.0, 1.0)) / FLOW_TICKS as f32 * spacing;
         let mut lines = Vec::new();
         for &n in &shown {
             for &d in &book.nodes()[n].dependencies {
@@ -883,7 +891,8 @@ impl BookView {
             {
                 scene.draws.push(Draw::Quad { corners, colour });
                 let mark = darker(colour);
-                for corners in canvas::chevrons(from, to, width, spacing) {
+                let phase = if [LINE_NEEDS, LINE_OPENS].contains(&colour) { flow } else { 0.0 };
+                for corners in canvas::chevrons(from, to, width, spacing, phase) {
                     scene.draws.push(Draw::Quad { corners, colour: mark });
                 }
             }
@@ -2740,6 +2749,24 @@ mod tests {
         let planks = QuestEvent::Submitted { task: "a/next/planks".into(), count: 4 };
         assert!(green(&progress_after(&book, &[start, planks])));
         assert_eq!(darker(0xFF64_C8FF), 0xFF3C_7899);
+
+        // The chevrons of the lines in focus slide with time; the others stay.
+        let marks = |view: &BookView, mouse: [f32; 2], colour: u32| -> Vec<[[f32; 2]; 4]> {
+            let mark = darker(colour);
+            view.scene(&screen(&book, &progress, mouse))
+                .draws
+                .iter()
+                .filter_map(|d| match d {
+                    Draw::Quad { corners, colour } if *colour == mark => Some(*corners),
+                    _ => None,
+                })
+                .collect()
+        };
+        let mut later = view.clone();
+        later.clock += 3;
+        later.partial_tick = 0.5;
+        assert_ne!(marks(&view, first, LINE_OPENS), marks(&later, first, LINE_OPENS));
+        assert_eq!(marks(&view, NOWHERE, LINE), marks(&later, NOWHERE, LINE));
     }
 
     #[test]

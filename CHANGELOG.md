@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.9.2
+- The lines of the quest in focus (cyan: what it needs, yellow: what it opens) are animated: their chevrons slide from the quest needed towards the quest it opens, one step every 0.6 s, smoothly between ticks. Other lines stay still.
+
 ## 0.9.1
 - A dependency line is green only once both of its quests are completed, not as soon as the dependency is (optional quests included).
 

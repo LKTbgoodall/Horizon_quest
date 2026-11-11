@@ -406,6 +406,7 @@ pub(super) fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScree
             };
             s.view.open(&scr);
             s.view.hover(&scr);
+            s.view.partial_tick = screen.partial_tick;
             let scene = s.view.scene(&scr);
             (scene.draws, None)
         } else {

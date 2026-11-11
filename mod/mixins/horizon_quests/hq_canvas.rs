@@ -110,9 +110,10 @@ pub fn line_quad(a: [f32; 2], b: [f32; 2], width: f32) -> Option<[[f32; 2]; 4]> 
 const CHEVRONS_MAX: usize = 64;
 
 /// The chevrons along a line from `a` to `b` that is `width` pixels thick,
-/// pointing towards `b`, one every `spacing` pixels: each chevron is two
-/// quads, its arms meeting at its tip.
-pub fn chevrons(a: [f32; 2], b: [f32; 2], width: f32, spacing: f32) -> Vec<[[f32; 2]; 4]> {
+/// pointing towards `b`, one every `spacing` pixels, all moved `phase`
+/// pixels towards `b` (an animation: from 0 to `spacing`, they slide one
+/// step): each chevron is two quads, its arms meeting at its tip.
+pub fn chevrons(a: [f32; 2], b: [f32; 2], width: f32, spacing: f32, phase: f32) -> Vec<[[f32; 2]; 4]> {
     let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
     let len = (dx * dx + dy * dy).sqrt();
     if !len.is_finite() || len < 0.001 || !(spacing > 0.0) || !(width > 0.0) {
@@ -122,7 +123,7 @@ pub fn chevrons(a: [f32; 2], b: [f32; 2], width: f32, spacing: f32) -> Vec<[[f32
     let (nx, ny) = (-uy, ux);
     let (half_length, half_width, thickness) = (width * 0.3, width * 0.32, (width * 0.24).max(1.0));
     let mut quads = Vec::new();
-    let mut t = spacing / 2.0;
+    let mut t = (spacing / 2.0 + phase.max(0.0)) % spacing;
     while t < len && quads.len() < 2 * CHEVRONS_MAX {
         let (px, py) = (a[0] + ux * t, a[1] + uy * t);
         let tip = [px + ux * half_length, py + uy * half_length];
@@ -223,7 +224,7 @@ mod tests {
     #[test]
     fn chevrons_point_along_the_line_at_even_steps() {
         // A line 40 long to the right, a chevron every 10: at 5, 15, 25, 35.
-        let quads = chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 10.0);
+        let quads = chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 10.0, 0.0);
         assert_eq!(quads.len(), 8);
         // Each chevron's two arms meet at its tip, ahead of its middle, and spread behind it.
         let tip = |q: &[[f32; 2]; 4]| [(q[1][0] + q[2][0]) / 2.0, (q[1][1] + q[2][1]) / 2.0];
@@ -232,13 +233,17 @@ mod tests {
         assert!(close(back(&quads[0]), [2.0, 3.2]) && close(back(&quads[1]), [2.0, -3.2]));
         assert!(close(tip(&quads[6]), [38.0, 0.0]));
         // Reversed, they point the other way.
-        let back_again = chevrons([40.0, 0.0], [0.0, 0.0], 10.0, 10.0);
+        let back_again = chevrons([40.0, 0.0], [0.0, 0.0], 10.0, 10.0, 0.0);
         assert!(close(tip(&back_again[0]), [32.0, 0.0]));
         // Nothing for a point, a bad spacing, or a line too short for one.
-        assert!(chevrons([1.0, 1.0], [1.0, 1.0], 10.0, 10.0).is_empty());
-        assert!(chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 0.0).is_empty());
-        assert!(chevrons([0.0, 0.0], [4.0, 0.0], 10.0, 10.0).is_empty());
+        assert!(chevrons([1.0, 1.0], [1.0, 1.0], 10.0, 10.0, 0.0).is_empty());
+        assert!(chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 0.0, 0.0).is_empty());
+        assert!(chevrons([0.0, 0.0], [4.0, 0.0], 10.0, 10.0, 0.0).is_empty());
+        // Moved by a phase, they slide towards the end; a whole step brings them back.
+        let moved = chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 10.0, 3.0);
+        assert!(close(tip(&moved[0]), [11.0, 0.0]));
+        assert_eq!(chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 10.0, 10.0), quads);
         // A very long line carries a bounded number.
-        assert_eq!(chevrons([0.0, 0.0], [1.0e6, 0.0], 10.0, 1.0).len(), 128);
+        assert_eq!(chevrons([0.0, 0.0], [1.0e6, 0.0], 10.0, 1.0, 0.0).len(), 128);
     }
 }
