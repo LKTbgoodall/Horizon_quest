@@ -253,7 +253,6 @@ fn darker(colour: u32) -> u32 {
     u32::from_be_bytes([a, dim(r), dim(g), dim(b)])
 }
 
-/// A shape filled with `colour`, as quads.
 /// How a shape is drawn against a square of the same `size`: how much
 /// bigger (a circle or a diamond inside the square's box looks smaller than
 /// the square) and the share of the drawn box its icon takes (what room the
@@ -262,16 +261,15 @@ fn shape_look(shape: Shape) -> (f32, f32) {
     match shape {
         Shape::Square => (1.0, 0.6),
         Shape::Circle => (1.15, 0.52),
-        Shape::Hexagon => (1.15, 0.46),
+        Shape::Hexagon => (1.28, 0.48),
         Shape::Octagon => (1.08, 0.55),
-        Shape::Diamond => (1.5, 0.32),
+        Shape::Diamond => (1.5, 0.38),
     }
 }
 
 /// The share of a node's radius that is the frame's face, inside its ring
-/// (`tools/make-node-textures.py`: the face starts 3.5 units in from the
-/// edge of a 32-unit cell for the square, 4.6 for the other shapes, whose
-/// ring is thicker, measured square to each side).
+/// (`tools/make-node-textures.py`, `RINGS`: where the face starts, in units
+/// of a 32-unit cell from the edge, measured square to each side).
 fn face_share(shape: Shape) -> f32 {
     // The ratio of each shape's apothem to the radius `shape_points` takes.
     let apothem = match shape {
@@ -280,10 +278,16 @@ fn face_share(shape: Shape) -> f32 {
         Shape::Hexagon => 0.866,
         Shape::Octagon => 0.924,
     };
-    let ring = if shape == Shape::Square { 3.5 } else { 4.6 };
+    let ring = match shape {
+        Shape::Square => 3.5,
+        Shape::Circle | Shape::Octagon => 4.6,
+        Shape::Hexagon => 4.15,
+        Shape::Diamond => 3.3,
+    };
     1.0 - (ring / 16.0) / apothem
 }
 
+/// A shape filled with `colour`, as quads.
 fn polygon_draws(shape: Shape, centre: [f32; 2], radius: f32, colour: u32) -> Vec<Draw> {
     polygon_quads(&shape_points(shape, centre, radius)).into_iter().map(|corners| Draw::Quad { corners, colour }).collect()
 }

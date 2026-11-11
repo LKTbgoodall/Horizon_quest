@@ -71,19 +71,27 @@ def depth(shape, x, y):
     return inside
 
 
-# Ring depths (from the edge, in 32-pixel units): the outline, the coloured
+# Ring depths (from the edge, in 32-unit units): the outline, the coloured
 # ring (its inner band in the plain colour), the inner shadow; the face
 # starts after. Shapes other than the square have a thicker ring, so they
-# read as boldly as the square's straight sides.
-RINGS = {"square": (1.0, 2.5, 3.5, 4.5)}
-OTHER_RINGS = (1.3, 3.4, 4.6, 5.6)
+# read as boldly as the square's straight sides; the book draws the
+# hexagon and the diamond bigger (`hq_book::shape_look`), so their ring is
+# thinner in units, to look as thick on screen as the octagon's. The third
+# value is `hq_book::face_share`'s.
+RINGS = {
+    "square": (1.0, 2.5, 3.5, 4.5),
+    "circle": (1.3, 3.4, 4.6, 5.6),
+    "octagon": (1.3, 3.4, 4.6, 5.6),
+    "hexagon": (1.15, 3.05, 4.15, 5.05),
+    "diamond": (0.95, 2.45, 3.3, 4.0),
+}
 
 
 def colour_at(shape, state, px, py):
     """The colour at a point of a 32-unit cell, or None outside."""
     colour = STATES[state]
     light, dark = shade(colour, 1.25), shade(colour, 0.7)
-    outline, inner, ring, shadow = RINGS.get(shape, OTHER_RINGS)
+    outline, inner, ring, shadow = RINGS[shape]
     d = depth(shape, px, py)
     if d < 0:
         return None
