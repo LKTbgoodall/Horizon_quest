@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.10.3
+- A line into a quest that cannot be started yet is a darker grey and half see-through, so the lines into quests you can do now stand out. A fifth colour in the line sheet (`LINE_LOCKED`, 0.55 opacity baked in: the game cannot fade a sprite), now 512 x 352.
+
 ## 0.10.2
 - Fixed: 0.10.1 drew no lines at all. The game leaves out GUI textures over 1024 x 512 pixels, and the new sheet was 256 x 640; it is now 512 x 288 (16 directions a row, two rows per colour, the four beads on the last row).
 

@@ -64,7 +64,7 @@ It ends with "The glue type-checks against Horizon fdc87ae", or with the compile
    Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order. The Options > Mods row now says **0.10.2**.
+3. Start the game and check, in order. The Options > Mods row now says **0.10.3**.
    Use a **new single-player world** in Survival:
    - [ ] **Build**: it succeeds. If not, send `native/build.log`.
    - [ ] **Open the Book (K)**: opens the graphical quest book. You should see the chapters on the left sidebar ("Getting started" and "Further afield"), the canvas with quest nodes, dependency lines, icons. (Since 0.1.1 there is no HUD hint in the top-left corner.)
@@ -77,7 +77,7 @@ It ends with "The glue type-checks against Horizon fdc87ae", or with the compile
    - [ ] **Saving**: leave the world and rejoin: pressing K shows your progress again, read from `saves/<world>/horizon-quests/progress/<your uuid>.json`.
    - [ ] **Quest Book (new in 0.1.1)**: on joining the world, chat says "Here is your Quest Book" and a book named **Quest Book** (since 0.1.2 a 16 x 16 violet book lying tilted, pages along its lower edge and a small round gold sun on its cover, with a dark violet outline like vanilla items; purple name, shining, "Right-click to open your quests" under it) is in your inventory. A right-click with it in hand opens the quest book. It does not stack and cannot be enchanted. Leave and rejoin: no second book. `/quests book` gives another. `quest_book = false` in the server config stops the first one.
    - [ ] **Key**: Options > Mods > Horizon Quests: change "Open the quest book" to another key; the new key opens the book.
-   - [ ] **`/quests` commands**: `/quests` (first line: "Horizon Quests 0.10.2 is running on this server. Hello <you>!"), `progress`, `check`, `claim`, `submit`, `reload`, `validate`. **New in 0.0.7**: `/quests check` alone lists the checkmark tasks you can tick (or ticks the only one); `/quests check welcome` (a quest's id) is enough. Same for `/quests submit` with hand-in tasks.
+   - [ ] **`/quests` commands**: `/quests` (first line: "Horizon Quests 0.10.3 is running on this server. Hello <you>!"), `progress`, `check`, `claim`, `submit`, `reload`, `validate`. **New in 0.0.7**: `/quests check` alone lists the checkmark tasks you can tick (or ticks the only one); `/quests check welcome` (a quest's id) is enough. Same for `/quests submit` with hand-in tasks.
    - [ ] **Optional, a server without the mod**: on a vanilla server, K opens the book and after about 5 seconds it says "No answer from the server: it may not have Horizon Quests."
    - [ ] **Config file** (new in 0.0.5): after opening a world, `config/horizon_quests-server.toml` exists in the instance's `config/` folder (beside `options.txt`), with `example_chapter = true`.
    - [ ] **Example chapter off**: with the world open, set `example_chapter = false` and save. Within a second or two the log says the file changed, and the book (press K again) shows "This world has no quests." Set it back to `true` and save: "Getting started" comes back, with your progress intact.
@@ -92,6 +92,7 @@ It ends with "The glue type-checks against Horizon fdc87ae", or with the compile
    - [ ] **New in 0.8.1**: once "Daily bread" (random) or "Seasoned" (choice) is claimed, its icon and tooltip show only what it gave, with a check (a reward claimed before 0.8.1 still shows the list: `/quests reset` the quest to see it). Zoomed far out, the padlocks shrink with the nodes.
    - [ ] **New in 0.8.2**: a locked node is greyed over its whole face, in the frame's shape: no grey square around the icon.
    - [ ] **New in 0.8.3**: the example quests use every node shape (square, circle, diamond, hexagon, octagon) to compare them; "Settled in" is an octagon now. Note which shapes look wrong (icon off centre, frame too thick).
+   - [ ] **New in 0.10.3**: a line into a quest you cannot start yet (locked, with a padlock) is darker and half see-through; a line into a quest you can do is the normal grey.
    - [ ] **New in 0.10.2**: the lines show at all (0.10.1 drew none: its sheet was too tall for the game). Same check as 0.10.1 below.
    - [ ] **New in 0.10.1**: the lines style Bastien picked from the preview page (D+): thin outlined chevrons with a bead between each two, no line under them; grey, green once both quests are done, cyan / yellow around the hovered quest, where they slide towards the quest each line opens. Check slanted lines and several zooms.
    - [ ] **New in 0.10.0**: no more chevrons. Lines are thin threads, dashed grey until both their quests are done, then solid green. Hover a quest: its lines turn solid cyan (what it needs) or yellow (what it opens), glow softly, and small comets run along them towards the quest each line opens. Check it at several zooms.

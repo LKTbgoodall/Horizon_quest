@@ -54,6 +54,9 @@ const LINE_DONE: u32 = 0xFF40_A050;
 const LINE_NEEDS: u32 = 0xFF38_C8E8;
 /// A line out of the quest under the pointer: what it opens.
 const LINE_OPENS: u32 = 0xFFE8_C838;
+/// A line into a quest that cannot be started yet: darker, half
+/// see-through (in the sprite sheet).
+const LINE_LOCKED: u32 = 0x8C5C_5664;
 /// A dependency line is a row of thin chevrons pointing to the quest it
 /// opens, with a bead between each two: a chevron every `CHEVRON_STEP`
 /// canvas units (a node is `canvas::NODE`), `CHEVRON_SIZE` across, beads
@@ -63,7 +66,7 @@ const CHEVRON_STEP: f32 = 8.5;
 const CHEVRON_SIZE: f32 = 7.0;
 const BEAD_SIZE: f32 = 2.8;
 const FLOW_TICKS: u32 = 14;
-/// The lines' sprite sheet (`tools/make-line-textures.py`, 512 x 288: the
+/// The lines' sprite sheet (`tools/make-line-textures.py`, 512 x 352: the
 /// game leaves out GUI textures over 1024 x 512): 16 cells a row; each line
 /// colour (`LINE_COLOURS` order) has two rows of chevrons, one per
 /// direction; the beads share the last row, one per colour.
@@ -72,7 +75,7 @@ pub const CHEVRON_CELL: f32 = 32.0;
 const CHEVRON_DIRECTIONS: usize = 32;
 const CHEVRON_COLUMNS: usize = 16;
 const LINE_ROWS: usize = CHEVRON_DIRECTIONS / CHEVRON_COLUMNS;
-const LINE_COLOURS: [u32; 4] = [LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS];
+const LINE_COLOURS: [u32; 5] = [LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS, LINE_LOCKED];
 const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0xA0_A0B0;
 const GOLD_INK: u32 = 0xFF_C040;
@@ -909,7 +912,8 @@ impl BookView {
 
         // Dependency lines first, under the nodes: thin chevrons pointing
         // from the quest needed to the quest it opens, a bead between each
-        // two, green once both quests are done. Those of the quest in focus
+        // two, green once both quests are done, darker and half see-through
+        // into a quest that cannot be started yet. Those of the quest in focus
         // (cyan: what it needs, yellow: what it opens) slide along; the
         // others stay still. Lines to another chapter's quests are not drawn.
         let zoom = self.view.zoom;
@@ -929,6 +933,8 @@ impl BookView {
                     (LINE_OPENS, true)
                 } else if s.progress.is_completed(&book.nodes()[d].id) && s.progress.is_completed(&book.nodes()[n].id) {
                     (LINE_DONE, false)
+                } else if statuses[n].state == QuestState::Locked {
+                    (LINE_LOCKED, false)
                 } else {
                     (LINE, false)
                 };
@@ -2557,16 +2563,17 @@ mod tests {
         // One icon per visible quest, and the chapter's in the list.
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
         assert_eq!(icons, 3);
-        // One line, start to next, grey: its chevrons all point the same way.
+        // One line, start to next, which cannot be started yet: dimmed, its
+        // chevrons all pointing the same way.
         let chevrons: Vec<[f32; 4]> = scene
             .draws
             .iter()
             .filter_map(|draw| match draw {
-                Draw::Sprite { name, src, .. } if name == CHEVRON_SPRITE && *src != bead_cell(LINE) => Some(*src),
+                Draw::Sprite { name, src, .. } if name == CHEVRON_SPRITE && *src != bead_cell(LINE_LOCKED) => Some(*src),
                 _ => None,
             })
             .collect();
-        assert!(!chevrons.is_empty() && chevrons.iter().all(|src| *src == chevrons[0] && src[1] < bead_cell(LINE)[1]));
+        assert!(!chevrons.is_empty() && chevrons.iter().all(|src| *src == chevron_cell(LINE_LOCKED, [1.0, 0.0])));
     }
 
     #[test]
@@ -2789,17 +2796,19 @@ mod tests {
         let only = |marks: &[([f32; 4], [f32; 4])], colour: u32| {
             !marks.is_empty() && marks.iter().all(|(src, _)| *src == chevron_cell(colour, [1.0, 0.0]) || *src == bead_cell(colour))
         };
+        // At rest the line into the next quest, which cannot be started
+        // yet, is dimmed.
         let resting = marks(&view, &progress, NOWHERE);
-        assert!(only(&resting, LINE));
-        assert!(resting.iter().any(|(src, _)| *src == bead_cell(LINE)));
+        assert!(only(&resting, LINE_LOCKED));
+        assert!(resting.iter().any(|(src, _)| *src == bead_cell(LINE_LOCKED)));
         // Over the first quest: the line to the quest it opens is yellow.
         let first = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(0)).unwrap();
         assert!(only(&marks(&view, &progress, first), LINE_OPENS));
         // Over the second: the line from what it needs is cyan.
         let second = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
         assert!(only(&marks(&view, &progress, second), LINE_NEEDS));
-        // A line is green while nothing is in focus only once both its
-        // quests are done: not when only the dependency is.
+        // Grey once the next quest can be started; green while nothing is in
+        // focus only once both its quests are done.
         let start = QuestEvent::Check { task: "a/start/ok".into() };
         assert!(only(&marks(&view, &progress_after(&book, std::slice::from_ref(&start)), NOWHERE), LINE));
         let planks = QuestEvent::Submitted { task: "a/next/planks".into(), count: 4 };
@@ -2818,8 +2827,9 @@ mod tests {
         assert_eq!(chevron_cell(LINE, [0.0, 1.0]), [256.0, 0.0, 32.0, 32.0]);
         assert_eq!(chevron_cell(LINE_OPENS, [-1.0, 0.0]), [0.0, 7.0 * 32.0, 32.0, 32.0]);
         assert_eq!(chevron_cell(LINE_DONE, [0.7071, -0.7071]), [12.0 * 32.0, 3.0 * 32.0, 32.0, 32.0]);
-        assert_eq!(bead_cell(LINE), [0.0, 256.0, 32.0, 32.0]);
-        assert_eq!(bead_cell(LINE_OPENS), [96.0, 256.0, 32.0, 32.0]);
+        assert_eq!(bead_cell(LINE), [0.0, 320.0, 32.0, 32.0]);
+        assert_eq!(bead_cell(LINE_OPENS), [96.0, 320.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE_LOCKED, [1.0, 0.0]), [0.0, 256.0, 32.0, 32.0]);
     }
 
     #[test]

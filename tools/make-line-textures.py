@@ -4,13 +4,15 @@ Original art for Horizon Quests (MIT). A line is a row of thin chevrons
 with a bead between each two, pointing to the quest the line opens. The game
 draws a sprite upright, with no rotation and no tint, so the sheet holds
 each chevron already turned: 32 directions (every 11.25 degrees, y down, 0
-pointing right, turning clockwise on screen) in each of the four line
-colours of `hq_book` (`LINE`, `LINE_DONE`, `LINE_NEEDS`, `LINE_OPENS`),
-and one bead per colour. A chevron is a thin stroke in the line's colour,
+pointing right, turning clockwise on screen) in each of the five line
+colours of `hq_book` (`LINE`, `LINE_DONE`, `LINE_NEEDS`, `LINE_OPENS`,
+`LINE_LOCKED`), and one bead per colour. The locked colour (a line into a
+quest that cannot be started yet) is a darker grey, half see-through: the
+game cannot tint or fade a sprite, so it is drawn so. A chevron is a thin stroke in the line's colour,
 lighter at its tip, with a dark edge all round; a bead is a round dot,
 lighter at its top left, with a dark edge. Sampled 4 x 4 times a pixel.
 
-Layout (512 x 288: the game leaves out GUI textures over 1024 x 512):
+Layout (512 x 352: the game leaves out GUI textures over 1024 x 512):
 cells of 32 x 32 pixels, 16 a row; each colour's chevrons take two rows
 (direction k at column k % 16, row 2 c + k / 16), the colours stacked from
 top to bottom; the beads share the last row, colour c at column c.
@@ -32,8 +34,10 @@ SAMPLES = 4
 DIRECTIONS = 32
 COLUMNS = 16
 ROWS = DIRECTIONS // COLUMNS
-# hq_book: LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS.
-COLOURS = [0x8C7C88, 0x40A050, 0x38C8E8, 0xE8C838]
+# hq_book: LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS, LINE_LOCKED, and how
+# opaque each is drawn.
+COLOURS = [0x8C7C88, 0x40A050, 0x38C8E8, 0xE8C838, 0x5C5664]
+OPACITY = [1.0, 1.0, 1.0, 1.0, 0.55]
 EDGE = (0x10, 0x10, 0x16)
 # The chevron in the cell's own axes (u along its direction, v across), in
 # pixels from the cell's centre: arms from (-4, +-7) to the tip (4, 0).
@@ -91,7 +95,7 @@ def bead_at(colour, x, y):
     return None
 
 
-def cell(colour_at):
+def cell(colour_at, opacity=1.0):
     rows = []
     for y in range(CELL):
         row = []
@@ -105,7 +109,7 @@ def cell(colour_at):
             if a == 0:
                 row.append((0, 0, 0, 0))
             else:
-                row.append((round(r / a), round(g / a), round(b / a), round(a / SAMPLES**2 * 255)))
+                row.append((round(r / a), round(g / a), round(b / a), round(a / SAMPLES**2 * 255 * opacity)))
         rows.append(row)
     return rows
 
@@ -120,8 +124,8 @@ def sheet():
 
     for c, colour in enumerate(COLOURS):
         for k in range(DIRECTIONS):
-            put((k % COLUMNS) * CELL, (c * ROWS + k // COLUMNS) * CELL, cell(lambda x, y: chevron_at(k, colour, x, y)))
-        put(c * CELL, ROWS * len(COLOURS) * CELL, cell(lambda x, y: bead_at(colour, x, y)))
+            put((k % COLUMNS) * CELL, (c * ROWS + k // COLUMNS) * CELL, cell(lambda x, y: chevron_at(k, colour, x, y), OPACITY[c]))
+        put(c * CELL, ROWS * len(COLOURS) * CELL, cell(lambda x, y: bead_at(colour, x, y), OPACITY[c]))
     return img
 
 

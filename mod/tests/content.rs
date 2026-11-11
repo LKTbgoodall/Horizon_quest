@@ -88,9 +88,9 @@ fn the_line_sheet_is_where_the_book_draws_it_from() {
     let (namespace, path) = CHEVRON_SPRITE.split_once(':').unwrap();
     let png = std::fs::read(content().join("assets").join(namespace).join("textures").join(format!("{path}.png"))).unwrap();
     assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
-    // IHDR: 16 directions across, 2 rows of them for each of the 4 line
+    // IHDR: 16 directions across, 2 rows of them for each of the 5 line
     // colours, and a row of beads; within the 1024 x 512 the game takes.
-    let (w, h) = (16 * CHEVRON_CELL as u32, 9 * CHEVRON_CELL as u32);
+    let (w, h) = (16 * CHEVRON_CELL as u32, 11 * CHEVRON_CELL as u32);
     assert!(w <= 1024 && h <= 512);
     assert_eq!(&png[16..24], [w.to_be_bytes(), h.to_be_bytes()].concat().as_slice());
     assert_eq!(&png[24..26], &[8, 6]);
