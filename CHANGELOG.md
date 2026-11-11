@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.10.1
+- Dependency lines in the style picked from a preview page of a dozen candidates: thin outlined chevrons (7 canvas units) pointing to the quest the line opens, a round bead (2.8 units) between each two, a chevron every 8.5 units, no line under them. Same colours as before; on the lines of the quest in focus the chevrons and beads slide along. Sprites from `horizon_quests:gui/chevrons`, drawn again by `tools/make-line-textures.py` (32 directions and a bead per colour). The dashes, glow and comets of 0.10.0 are gone, and so are the unused line quad helpers.
+
 ## 0.10.0
 - Dependency lines redone without chevrons: a thin thread (2 canvas units) with a fine dark outline, dashed while its quests are not both done, solid green once they are. The lines of the quest in focus are solid, a little thicker, sit in a soft glow of their colour (cyan: what it needs, yellow: what it opens) and carry small comets (a bright head, a fading tail) running towards the quest each line opens. The chevron texture and `tools/make-line-textures.py` are gone.
 

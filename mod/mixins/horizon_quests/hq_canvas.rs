@@ -89,52 +89,6 @@ pub fn cell_centre(cell: [f32; 2]) -> [f32; 2] {
     [cell[0] * GRID, cell[1] * GRID]
 }
 
-/// A line from `a` to `b`, `width` pixels thick, as the four corners of a
-/// quad (in order round it). None when the ends are the same point.
-pub fn line_quad(a: [f32; 2], b: [f32; 2], width: f32) -> Option<[[f32; 2]; 4]> {
-    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-    let len = (dx * dx + dy * dy).sqrt();
-    if !len.is_finite() || len < 0.001 {
-        return None;
-    }
-    let (nx, ny) = (-dy / len * width / 2.0, dx / len * width / 2.0);
-    Some([
-        [a[0] + nx, a[1] + ny],
-        [b[0] + nx, b[1] + ny],
-        [b[0] - nx, b[1] - ny],
-        [a[0] - nx, a[1] - ny],
-    ])
-}
-
-/// The part of the line from `a` to `b` between `from` and `to` pixels
-/// along it (clamped to the line), as a band `width` thick: the moving
-/// stretch of a line. None when nothing of it is on the line.
-pub fn line_part(a: [f32; 2], b: [f32; 2], width: f32, from: f32, to: f32) -> Option<[[f32; 2]; 4]> {
-    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-    let len = (dx * dx + dy * dy).sqrt();
-    if !len.is_finite() || len < 0.001 {
-        return None;
-    }
-    let (from, to) = (from.clamp(0.0, len), to.clamp(0.0, len));
-    if to - from < 0.5 {
-        return None;
-    }
-    let at = |t: f32| [a[0] + dx / len * t, a[1] + dy / len * t];
-    line_quad(at(from), at(to), width)
-}
-
-/// The bounding box of a quad's corners.
-pub fn quad_bounds(q: &[[f32; 2]; 4]) -> [f32; 4] {
-    let (mut x0, mut y0, mut x1, mut y1) = (f32::MAX, f32::MAX, f32::MIN, f32::MIN);
-    for p in q {
-        x0 = x0.min(p[0]);
-        y0 = y0.min(p[1]);
-        x1 = x1.max(p[0]);
-        y1 = y1.max(p[1]);
-    }
-    [x0, y0, x1 - x0, y1 - y0]
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -198,21 +152,4 @@ mod tests {
         assert_eq!(centre([10.0, 20.0, 100.0, 50.0]), [60.0, 45.0]);
         assert_eq!(cell_centre([1.0, -2.0]), [GRID, -2.0 * GRID]);
     }
-
-    #[test]
-    fn lines_are_quads_of_the_right_width() {
-        let q = line_quad([0.0, 0.0], [10.0, 0.0], 2.0).unwrap();
-        assert!(close(q[0], [0.0, 1.0]) && close(q[1], [10.0, 1.0]));
-        assert!(close(q[2], [10.0, -1.0]) && close(q[3], [0.0, -1.0]));
-        assert_eq!(quad_bounds(&q), [0.0, -1.0, 10.0, 2.0]);
-        assert_eq!(line_quad([3.0, 3.0], [3.0, 3.0], 2.0), None);
-    }
-
-    #[test]
-    fn a_part_of_a_line_is_clamped_to_it() {
-        let part = line_part([0.0, 0.0], [40.0, 0.0], 4.0, -5.0, 10.0).unwrap();
-        assert_eq!(quad_bounds(&part), [0.0, -2.0, 10.0, 4.0]);
-        assert!(line_part([0.0, 0.0], [40.0, 0.0], 4.0, 50.0, 60.0).is_none());
-    }
-
 }

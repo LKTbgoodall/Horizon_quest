@@ -54,25 +54,24 @@ const LINE_DONE: u32 = 0xFF40_A050;
 const LINE_NEEDS: u32 = 0xFF38_C8E8;
 /// A line out of the quest under the pointer: what it opens.
 const LINE_OPENS: u32 = 0xFFE8_C838;
-/// A dependency line is a thin thread, in canvas units (a node is
-/// `canvas::NODE`), with a thin dark outline (pixels each side). Done
-/// lines are solid; the others are dashed (`DASH` on, `GAP` off). The
-/// lines of the quest in focus are a little thicker, sit in a soft glow
-/// `GLOW` times their width, and carry comets: a bright head with a fading
-/// tail `COMET` long, one every `COMET_STEP`, running from the quest needed
-/// to the quest it opens, one step every `FLOW_TICKS` ticks.
-const LINE_WIDTH: f32 = 2.0;
-const FOCUS_WIDTH: f32 = 3.0;
-const LINE_EDGE: u32 = 0xA010_1016;
-const LINE_EDGE_WIDTH: f32 = 1.0;
-const DASH: f32 = 6.0;
-const GAP: f32 = 4.0;
-const GLOW: f32 = 3.5;
-const GLOW_ALPHA: u32 = 0x38;
-const COMET: f32 = 16.0;
-const COMET_STEP: f32 = 44.0;
-const COMET_SEGMENTS: usize = 5;
-const FLOW_TICKS: u32 = 24;
+/// A dependency line is a row of thin chevrons pointing to the quest it
+/// opens, with a bead between each two: a chevron every `CHEVRON_STEP`
+/// canvas units (a node is `canvas::NODE`), `CHEVRON_SIZE` across, beads
+/// `BEAD_SIZE` across. On the lines in focus they slide one step every
+/// `FLOW_TICKS` ticks.
+const CHEVRON_STEP: f32 = 8.5;
+const CHEVRON_SIZE: f32 = 7.0;
+const BEAD_SIZE: f32 = 2.8;
+const FLOW_TICKS: u32 = 14;
+/// The lines' sprite sheet (`tools/make-line-textures.py`): each line
+/// colour (`LINE_COLOURS` order) is a block of 8 x 5 cells, the chevrons in
+/// 32 directions, then its bead.
+pub const CHEVRON_SPRITE: &str = "horizon_quests:gui/chevrons";
+pub const CHEVRON_CELL: f32 = 32.0;
+const CHEVRON_DIRECTIONS: usize = 32;
+const CHEVRON_COLUMNS: usize = 8;
+const LINE_ROWS: usize = CHEVRON_DIRECTIONS / CHEVRON_COLUMNS + 1;
+const LINE_COLOURS: [u32; 4] = [LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS];
 const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0xA0_A0B0;
 const GOLD_INK: u32 = 0xFF_C040;
@@ -262,8 +261,8 @@ pub fn sidebar_rows(book: &Book, folded: &[String]) -> Vec<Row> {
     rows
 }
 
-/// The corners of a shape of this radius round `centre`, in the order
-/// `hq_canvas::line_quad` goes round its quads.
+/// The corners of a shape of this radius round `centre`, turning
+/// clockwise on screen from its bottom left (a square) or its right.
 pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]> {
     let [cx, cy] = centre;
     let (sides, start) = match shape {
@@ -305,47 +304,49 @@ fn outline(scene: &mut Scene, rect: [f32; 4], colour: u32) {
     }
 }
 
-/// The dashes of a line `len` long: `(from, to)` stretches along it, a
-/// dash `dash` long every `dash + gap`, centred so both ends look alike.
-pub fn line_dashes(len: f32, dash: f32, gap: f32) -> Vec<(f32, f32)> {
-    let period = dash + gap;
-    if len <= dash || period <= 0.0 {
-        return vec![(0.0, len.max(0.0))];
-    }
-    let count = ((len + gap) / period).floor().max(1.0);
-    let start = (len - (count * period - gap)) / 2.0;
-    (0..count as usize).map(|k| start + k as f32 * period).map(|a| (a, a + dash)).collect()
+/// The first row of the block of the line sheet for `colour`.
+fn line_block(colour: u32) -> usize {
+    LINE_COLOURS.iter().position(|c| *c == colour).unwrap_or(0) * LINE_ROWS
 }
 
-/// The comets on a line `len` long, at `flow` (0 to 1) of their step:
-/// `(from, to, brightness)` pieces along the line, `COMET_SEGMENTS` a
-/// comet, brightness rising from the tail (near 0) to the head (1).
-pub fn comet_parts(len: f32, step: f32, tail: f32, flow: f32) -> Vec<(f32, f32, f32)> {
-    let mut parts = Vec::new();
-    let piece = tail / COMET_SEGMENTS as f32;
-    let mut head = flow.rem_euclid(1.0) * step;
-    while head < len + tail {
-        for k in 0..COMET_SEGMENTS {
-            let b = head - k as f32 * piece;
-            let (from, to) = ((b - piece).max(0.0), b.min(len));
-            if to > from {
-                parts.push((from, to, 1.0 - k as f32 / COMET_SEGMENTS as f32));
-            }
+/// The cell of the line sheet for a chevron of `colour` going in direction
+/// `dir` (a unit vector, y down): the nearest of the 32 drawn directions.
+pub fn chevron_cell(colour: u32, dir: [f32; 2]) -> [f32; 4] {
+    let turn = dir[1].atan2(dir[0]).rem_euclid(std::f32::consts::TAU) / std::f32::consts::TAU;
+    let k = (turn * CHEVRON_DIRECTIONS as f32).round() as usize % CHEVRON_DIRECTIONS;
+    let (column, row) = (k % CHEVRON_COLUMNS, line_block(colour) + k / CHEVRON_COLUMNS);
+    [column as f32 * CHEVRON_CELL, row as f32 * CHEVRON_CELL, CHEVRON_CELL, CHEVRON_CELL]
+}
+
+/// The cell of the line sheet for a bead of `colour`.
+pub fn bead_cell(colour: u32) -> [f32; 4] {
+    let row = line_block(colour) + LINE_ROWS - 1;
+    [0.0, row as f32 * CHEVRON_CELL, CHEVRON_CELL, CHEVRON_CELL]
+}
+
+/// What a line `len` long carries, `phase` (0 to 1) of a step on from rest:
+/// `(distance along it, is a chevron)` in order, a chevron every `step`
+/// (half a step in at rest) and a bead half way between each two.
+pub fn line_marks(len: f32, step: f32, phase: f32) -> Vec<(f32, bool)> {
+    let mut marks = Vec::new();
+    if step <= 0.0 {
+        return marks;
+    }
+    let half = step / 2.0;
+    // Marks every half step, chevrons on the odd halves at rest.
+    let shift = phase.rem_euclid(1.0) * step;
+    let mut k = 0;
+    loop {
+        let at = shift + k as f32 * half;
+        if at >= len {
+            break;
         }
-        head += step;
+        if at > 0.0 {
+            marks.push((at, k % 2 == 1));
+        }
+        k += 1;
     }
-    parts
-}
-
-/// A comet piece's colour: the line's colour lightened towards white and
-/// more opaque the brighter the piece.
-fn comet_colour(colour: u32, bright: f32) -> u32 {
-    let light = |shift: u32| {
-        let c = ((colour >> shift) & 0xFF) as f32;
-        ((c + (255.0 - c) * 0.75 * bright).round() as u32).min(255) << shift
-    };
-    let alpha = ((0x30 as f32 + (0xFF - 0x30) as f32 * bright).round() as u32).min(255);
-    alpha << 24 | light(16) | light(8) | light(0)
+    marks
 }
 
 /// The closed chapter list's strip on the canvas's left, with an arrow
@@ -905,13 +906,14 @@ impl BookView {
         let hovered = hovered.filter(|_| !over_popup);
         let focus = hovered.or(selected);
 
-        // Dependency lines first, under the nodes: thin threads with a
-        // dark outline, dashed until both their quests are done, then solid
-        // green. The lines of the quest in focus (cyan: what it needs,
-        // yellow: what it opens) are solid, glow, and carry comets running
-        // towards the quest each one opens. Those to another chapter's
-        // quests are not drawn.
+        // Dependency lines first, under the nodes: thin chevrons pointing
+        // from the quest needed to the quest it opens, a bead between each
+        // two, green once both quests are done. Those of the quest in focus
+        // (cyan: what it needs, yellow: what it opens) slide along; the
+        // others stay still. Lines to another chapter's quests are not drawn.
         let zoom = self.view.zoom;
+        let step = (CHEVRON_STEP * zoom).max(7.0);
+        let (chevron, bead) = (CHEVRON_SIZE * zoom, BEAD_SIZE * zoom);
         let partial = self.partial_tick.clamp(0.0, 1.0);
         let flow = ((self.clock % FLOW_TICKS) as f32 + partial) / FLOW_TICKS as f32;
         let mut lines = Vec::new();
@@ -936,40 +938,21 @@ impl BookView {
         lines.sort_by_key(|(on_top, ..)| *on_top);
         for (focused, d, n, colour) in lines {
             let (from, to) = (centre_of(d), centre_of(n));
-            let width = if focused { (FOCUS_WIDTH * zoom).max(2.0) } else { (LINE_WIDTH * zoom).max(1.5) };
-            let Some(glow) = canvas::line_quad(from, to, width * GLOW) else {
-                continue;
-            };
-            if !canvas::overlaps(area, canvas::quad_bounds(&glow)) {
-                continue;
-            }
             let len = ((to[0] - from[0]).powi(2) + (to[1] - from[1]).powi(2)).sqrt();
-            // The stretches drawn: the whole line, or its dashes.
-            let stretches = if focused || colour == LINE_DONE {
-                vec![(0.0, len)]
-            } else {
-                line_dashes(len, (DASH * zoom).max(3.0), (GAP * zoom).max(2.0))
-            };
-            if focused {
-                scene.draws.push(Draw::Quad { corners: glow, colour: (colour & 0xFF_FFFF) | GLOW_ALPHA << 24 });
+            if !len.is_finite() || len < 0.001 {
+                continue;
             }
-            for &(a, b) in &stretches {
-                if let Some(edge) = canvas::line_part(from, to, width + 2.0 * LINE_EDGE_WIDTH, a, b) {
-                    scene.draws.push(Draw::Quad { corners: edge, colour: LINE_EDGE });
-                }
+            let half = chevron / 2.0;
+            let bounds = [from[0].min(to[0]) - half, from[1].min(to[1]) - half, (to[0] - from[0]).abs() + chevron, (to[1] - from[1]).abs() + chevron];
+            if !canvas::overlaps(area, bounds) {
+                continue;
             }
-            for &(a, b) in &stretches {
-                if let Some(corners) = canvas::line_part(from, to, width, a, b) {
-                    scene.draws.push(Draw::Quad { corners, colour });
-                }
-            }
-            if focused {
-                let (step, tail) = ((COMET_STEP * zoom).max(24.0), (COMET * zoom).max(8.0));
-                for (a, b, k) in comet_parts(len, step, tail, flow) {
-                    if let Some(corners) = canvas::line_part(from, to, width, a, b) {
-                        scene.draws.push(Draw::Quad { corners, colour: comet_colour(colour, k) });
-                    }
-                }
+            let (ux, uy) = ((to[0] - from[0]) / len, (to[1] - from[1]) / len);
+            let (chevron_src, bead_src) = (chevron_cell(colour, [ux, uy]), bead_cell(colour));
+            for (at, is_chevron) in line_marks(len, step, if focused { flow } else { 0.0 }) {
+                let (size, src) = if is_chevron { (chevron, chevron_src) } else { (bead, bead_src) };
+                let dst = [from[0] + ux * at - size / 2.0, from[1] + uy * at - size / 2.0, size, size];
+                scene.draws.push(Draw::Sprite { name: CHEVRON_SPRITE.to_owned(), src, dst, fallback: Vec::new() });
             }
         }
 
@@ -1748,6 +1731,9 @@ enum MarkCell {
     Button,
     ButtonDone,
 }
+
+// The sheet holds one cell per sign.
+const _: () = assert!(MARK_CELLS == MarkCell::ButtonDone as usize + 1);
 
 /// Cell `cell` of the sign sheet stretched into `dst`, `fallback` without it.
 fn mark_sprite(cell: MarkCell, dst: [f32; 4], fallback: Vec<Draw>) -> Draw {
@@ -2570,17 +2556,16 @@ mod tests {
         // One icon per visible quest, and the chapter's in the list.
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
         assert_eq!(icons, 3);
-        // One line, start to next, grey (in dashes).
-        let mut lines: Vec<u32> = scene
+        // One line, start to next, grey: its chevrons all point the same way.
+        let chevrons: Vec<[f32; 4]> = scene
             .draws
             .iter()
             .filter_map(|draw| match draw {
-                Draw::Quad { colour, .. } if [LINE, LINE_DONE].contains(colour) => Some(*colour),
+                Draw::Sprite { name, src, .. } if name == CHEVRON_SPRITE && *src != bead_cell(LINE) => Some(*src),
                 _ => None,
             })
             .collect();
-        lines.dedup();
-        assert_eq!(lines, [LINE]);
+        assert!(!chevrons.is_empty() && chevrons.iter().all(|src| *src == chevrons[0] && src[1] < bead_cell(LINE)[1]));
     }
 
     #[test]
@@ -2786,81 +2771,66 @@ mod tests {
     }
 
     #[test]
-    fn lines_are_dashed_threads_that_light_up_round_the_quest_under_the_pointer() {
+    fn lines_carry_chevrons_and_beads_and_light_up_round_the_quest_under_the_pointer() {
         let (book, progress) = (book(), Progress::default());
         let view = opened(&book, &progress);
-        // The lines: quads of a line colour, over their dark outline.
-        let colours = |mouse: [f32; 2]| -> Vec<u32> {
-            let mut found: Vec<u32> = view
-                .scene(&screen(&book, &progress, mouse))
+        // The marks of the lines: (cell, place) of each line sprite.
+        let marks = |view: &BookView, progress: &Progress, mouse: [f32; 2]| -> Vec<([f32; 4], [f32; 4])> {
+            view.scene(&screen(&book, progress, mouse))
                 .draws
                 .iter()
                 .filter_map(|d| match d {
-                    Draw::Quad { colour, .. } if [LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS].contains(colour) => Some(*colour),
-                    _ => None,
-                })
-                .collect();
-            found.dedup();
-            found
-        };
-        assert_eq!(colours(NOWHERE), [LINE]);
-        let still = view.scene(&screen(&book, &progress, NOWHERE));
-        assert!(still.draws.iter().any(|d| matches!(d, Draw::Quad { colour: LINE_EDGE, .. })));
-        // Over the first quest: the line to the quest it opens is yellow.
-        let first = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(0)).unwrap();
-        assert_eq!(colours(first), [LINE_OPENS]);
-        // Over the second: the line from what it needs is cyan.
-        let second = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
-        assert_eq!(colours(second), [LINE_NEEDS]);
-        // A line is green while nothing is in focus only once both its
-        // quests are done: not when only the dependency is.
-        let green = |progress: &Progress| {
-            let scene = view.scene(&screen(&book, progress, NOWHERE));
-            scene.draws.iter().any(|d| matches!(d, Draw::Quad { colour, .. } if *colour == LINE_DONE))
-        };
-        let start = QuestEvent::Check { task: "a/start/ok".into() };
-        assert!(!green(&progress_after(&book, std::slice::from_ref(&start))));
-        let planks = QuestEvent::Submitted { task: "a/next/planks".into(), count: 4 };
-        assert!(green(&progress_after(&book, &[start, planks])));
-
-        // At rest the line is dashed (several pieces); in focus it is one
-        // piece, with comets that move with time.
-        let pieces = |view: &BookView, mouse: [f32; 2], colour: u32| {
-            view.scene(&screen(&book, &progress, mouse)).draws.iter().filter(|d| matches!(d, Draw::Quad { colour: c, .. } if *c == colour)).count()
-        };
-        assert!(pieces(&view, NOWHERE, LINE) > 1);
-        assert_eq!(pieces(&view, first, LINE_OPENS), 1);
-        let comets = |view: &BookView, mouse: [f32; 2]| -> Vec<[[f32; 2]; 4]> {
-            view.scene(&screen(&book, &progress, mouse))
-                .draws
-                .iter()
-                .filter_map(|d| match d {
-                    Draw::Quad { corners, colour } if *colour == comet_colour(LINE_OPENS, 1.0) => Some(*corners),
+                    Draw::Sprite { name, src, dst, .. } if name == CHEVRON_SPRITE => Some((*src, *dst)),
                     _ => None,
                 })
                 .collect()
         };
-        assert!(comets(&view, NOWHERE).is_empty());
-        assert!(!comets(&view, first).is_empty());
+        let only = |marks: &[([f32; 4], [f32; 4])], colour: u32| {
+            !marks.is_empty() && marks.iter().all(|(src, _)| *src == chevron_cell(colour, [1.0, 0.0]) || *src == bead_cell(colour))
+        };
+        let resting = marks(&view, &progress, NOWHERE);
+        assert!(only(&resting, LINE));
+        assert!(resting.iter().any(|(src, _)| *src == bead_cell(LINE)));
+        // Over the first quest: the line to the quest it opens is yellow.
+        let first = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(0)).unwrap();
+        assert!(only(&marks(&view, &progress, first), LINE_OPENS));
+        // Over the second: the line from what it needs is cyan.
+        let second = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
+        assert!(only(&marks(&view, &progress, second), LINE_NEEDS));
+        // A line is green while nothing is in focus only once both its
+        // quests are done: not when only the dependency is.
+        let start = QuestEvent::Check { task: "a/start/ok".into() };
+        assert!(only(&marks(&view, &progress_after(&book, std::slice::from_ref(&start)), NOWHERE), LINE));
+        let planks = QuestEvent::Submitted { task: "a/next/planks".into(), count: 4 };
+        // (Once done, a quest further on shows, its line grey.)
+        let done = marks(&view, &progress_after(&book, &[start, planks]), NOWHERE);
+        assert!(done.iter().any(|(src, _)| *src == chevron_cell(LINE_DONE, [1.0, 0.0])));
+        // The marks of the lines in focus move with time, the others stay.
         let mut later = view.clone();
         later.clock += 3;
         later.partial_tick = 0.5;
-        assert_ne!(comets(&view, first), comets(&later, first));
+        assert_eq!(resting, marks(&later, &progress, NOWHERE));
+        assert_ne!(marks(&view, &progress, first), marks(&later, &progress, first));
+        // The nearest of the drawn directions, in its colour's block; the
+        // bead under the chevrons.
+        assert_eq!(chevron_cell(LINE, [1.0, 0.0]), [0.0, 0.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE, [0.0, 1.0]), [0.0, 32.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE_OPENS, [-1.0, 0.0]), [0.0, 17.0 * 32.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE_DONE, [0.7071, -0.7071]), [128.0, 8.0 * 32.0, 32.0, 32.0]);
+        assert_eq!(bead_cell(LINE), [0.0, 128.0, 32.0, 32.0]);
+        assert_eq!(bead_cell(LINE_OPENS), [0.0, 19.0 * 32.0, 32.0, 32.0]);
     }
 
     #[test]
-    fn dashes_are_centred_and_comets_fade_towards_their_tail() {
-        let dashes = line_dashes(30.0, 6.0, 4.0);
-        assert_eq!(dashes.len(), 3);
-        assert!((dashes[0].0 - (30.0 - dashes[2].1)).abs() < 1e-4);
-        assert_eq!(line_dashes(4.0, 6.0, 4.0), [(0.0, 4.0)]);
-        let parts = comet_parts(100.0, 40.0, 10.0, 0.5);
-        assert!(parts.iter().all(|&(a, b, _)| 0.0 <= a && a < b && b <= 100.0));
-        // The first comet's head at 20, brightest; its tail behind it.
-        assert!(parts.contains(&(18.0, 20.0, 1.0)));
-        assert!(parts.iter().any(|&(_, b, k)| b == 12.0 && k < 0.3));
-        assert_eq!(comet_colour(LINE_OPENS, 0.0) >> 24, 0x30);
-        assert_eq!(comet_colour(LINE_OPENS, 1.0) >> 24, 0xFF);
+    fn chevrons_and_beads_take_turns_along_a_line() {
+        let marks = line_marks(40.0, 10.0, 0.0);
+        assert_eq!(marks, [(5.0, true), (10.0, false), (15.0, true), (20.0, false), (25.0, true), (30.0, false), (35.0, true)]);
+        // Half a step on: everything moved 5 towards the end, and a bead
+        // comes in at the start.
+        let moved = line_marks(40.0, 10.0, 0.5);
+        assert_eq!(moved[..3], [(5.0, false), (10.0, true), (15.0, false)]);
+        assert!(moved.iter().all(|&(at, _)| at > 0.0 && at < 40.0));
+        assert!(line_marks(40.0, 0.0, 0.0).is_empty());
     }
 
     #[test]
