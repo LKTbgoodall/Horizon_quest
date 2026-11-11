@@ -34,6 +34,8 @@ verified_on: 2026-11-10
 - Mixins: https://github.com/horizon-rust/horizon-mixins
 - Template: https://github.com/horizon-rust/horizon-native-mod-template
 - Discord: https://discord.gg/HcTeMZxe5E
+- Registry (the submit form opens a pull request here): https://github.com/horizon-rust/horizon-mods
+- **Applied Energistics 2 for Horizon** (a big native mod on the registry that ships its content inside its `.hnmod`): https://github.com/Joeypc6/AE2-Horizon. Model for [[ADR-015 Embed the content pack in the native mod]] (`me_embedded_content.rs`, `tools/make_content_mod.py`). Read to understand; check its license before reusing anything.
 
 ## Local copies (`ext/`, gitignored)
 Since 2026-11-10: `ext/horizon` (sparse, partial clone at `1453e0e`: `docs/`, `native-hooks.json`, `Cargo.lock`, `crates/horizon-client/src/game/native_*`, `mod_api*`, `hud*`, `extras_hud.rs`) and `ext/horizon-mods` (`--depth 1`). Update with `git -C ext/horizon pull` (set `MSYS_NO_PATHCONV=1` before `git sparse-checkout` in Git Bash, or the paths get mangled). Other files: `git -C ext/horizon show HEAD:<path>`.

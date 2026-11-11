@@ -10,6 +10,7 @@ date: 2026-11-11
 ## Context
 - [[ADR-014 Publish one hmod with content and code]] chose one `.hmod` with code and content, but today's launchers and our pinned Horizon (`fdc87ae`) take a native mod's **code only**: published that way, players get no textures (no node frames, no line chevrons, a plain Quest Book). 1.0.0 was waiting for a Nightly that reads native content, with none in sight.
 - Bastien found that **Applied Energistics 2** (`ae2.hnmod`, on the registry) ships its whole content in one `.hnmod`: the content mod is a data file of the bundle (`native_data!("ae2", "ae2-content.hmod")`); a cancellable HEAD injection on `horizon_client::game::mods::content_root` writes it once to `.horizon-cache/` and calls `content_root` again with that file added to the dev mods, so Horizon loads it as a content mod installed by hand. An installed copy of the content mod wins (it is read first; a second mod of the same id is skipped).
+- AE2-Horizon source: https://github.com/Joeypc6/AE2-Horizon (helper `me_embedded_content.rs`, pack made by `tools/make_content_mod.py`).
 - `content_root(root, enabled, dev) -> PathBuf` exists with the same signature in our pin (`crates/horizon-client/src/game/mods.rs`).
 - [[ADR-003 Hook points over raw injections]] allows a raw injection only as a last resort, with its own ADR. No hook point loads a native mod's content.
 
