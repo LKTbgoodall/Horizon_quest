@@ -405,6 +405,7 @@ pub(super) fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScree
                 measure: &measure,
             };
             s.view.open(&scr);
+            s.view.hover(&scr);
             let scene = s.view.scene(&scr);
             (scene.draws, None)
         } else {

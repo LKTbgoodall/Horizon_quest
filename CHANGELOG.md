@@ -4,6 +4,10 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.9
+- The chapter list is closed by default, a thin strip with an arrow on the book's left; the pointer on it opens the list over the canvas without a click, and leaving the list closes it. The canvas takes the whole width.
+- The list's new look: a grey panel with a light edge, grey group headings with a triangle (the old gold one was drawn without alpha and never showed), 12-pixel chapter icons, chapters indented under their group, the current chapter outlined, no progress bars; a chapter's name is green when all its quests are done, cyan when it has rewards to claim.
+
 ## 0.8.8
 - Chapter groups fold: a group heading in the chapter list has a triangle (down when open, right when folded) and a click folds or unfolds it, for as long as the client runs.
 - The example pack gathers its chapters in two groups, "Basics" and "Exploration".

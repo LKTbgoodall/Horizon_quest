@@ -56,7 +56,7 @@ Complete, working examples:
 | `default_size` | 1.0 | The node size (1 is standard). |
 | `auto_claim_rewards` | false | Give rewards without a click. A reward can override it. |
 | `detection_delay` | 20 | Ticks between two looks at a player's inventory (the server's config can override it). |
-| `groups` | none | Headings that gather chapters in the book's chapter list (chapters without a group come first). A click on a heading folds or unfolds it. |
+| `groups` | none | Headings that gather chapters in the book's chapter list (chapters without a group come first). The list sits closed on the book's left side; the pointer on its strip opens it. A click on a heading folds or unfolds it. |
 
 ## A chapter
 

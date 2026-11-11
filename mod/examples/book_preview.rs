@@ -318,6 +318,7 @@ fn main() {
     );
     let mut view = BookView::default();
     view.open(&screen(&book, &progress, AWAY));
+    view.sidebar_open = true;
     click(&mut view, &book, &progress, &Action::Chapter(1));
     let mouse = pointing_at(&view, &book, &progress, &Action::Chapter(3));
     pictures.push((

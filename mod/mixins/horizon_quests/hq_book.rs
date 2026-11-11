@@ -20,9 +20,26 @@ use std::collections::VecDeque;
 
 const SHADE: u32 = 0xD010_1018;
 const BAND: u32 = 0xFF20_2030;
-const SIDEBAR: u32 = 0xFF18_1822;
+/// The chapter list: a panel over the canvas while the pointer is on it,
+/// a thin strip with an arrow otherwise.
+const LIST_BACK: u32 = 0xF02A_2E36;
+const LIST_EDGE: u32 = 0xFF4A_4E5A;
+const LIST_HOVER: u32 = 0xFF36_3A44;
+const LIST_CURRENT: u32 = 0xFF3A_3E48;
+const LIST_OUTLINE: u32 = 0xFF9A_9EA8;
+const LIST_ARROW: u32 = 0xFFC8_C8D0;
+const STRIP_BACK: u32 = 0xD024_2830;
+/// Text colours (no alpha): a group heading, a chapter's name, a chapter
+/// all done, a chapter with rewards to claim.
+const GROUP_INK: u32 = 0xD0_D0D8;
+const CHAPTER_INK: u32 = 0xC0_C0C8;
+const CHAPTER_DONE: u32 = 0x60_E060;
+const CHAPTER_WAITING: u32 = 0x40_D8E0;
+/// A row of the chapter list, its chapter icons, and the closed list's strip.
+const LIST_ROW: f32 = 16.0;
+const LIST_ICON: f32 = 12.0;
+pub const STRIP: f32 = 10.0;
 const PANEL: u32 = 0xFF1C_1C28;
-const ROW_CURRENT: u32 = 0xFF34_344A;
 const ROW_HOVER: u32 = 0xFF2A_2A3A;
 const BUTTON: u32 = 0xFF3A_5A8A;
 const BUTTON_HOVER: u32 = 0xFF4A_74B0;
@@ -42,7 +59,6 @@ const LINE_OPENS: u32 = 0xFFE8_C838;
 /// canvas units (a node is `canvas::NODE`).
 const LINE_WIDTH: f32 = 5.0;
 const CHEVRON_STEP: f32 = 9.0;
-const BAR: u32 = 0xFF30_303C;
 const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0xA0_A0B0;
 const GOLD_INK: u32 = 0xFF_C040;
@@ -50,7 +66,6 @@ const GOLD_INK: u32 = 0xFF_C040;
 /// A line of text's height, a chapter row's, and the space left round
 /// things, in GUI pixels.
 const TEXT: f32 = 10.0;
-const ROW: f32 = 14.0;
 const PAD: f32 = 4.0;
 /// The recipe view's title bar.
 const TITLE_BAR: f32 = 14.0;
@@ -122,7 +137,10 @@ pub enum Reaction {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Regions {
     pub header: [f32; 4],
+    /// The chapter list when open, over the canvas's left side.
     pub sidebar: [f32; 4],
+    /// The closed list's strip, left of the canvas.
+    pub strip: [f32; 4],
     pub canvas: [f32; 4],
     pub footer: [f32; 4],
 }
@@ -133,11 +151,13 @@ pub fn regions(rect: [f32; 4]) -> Regions {
     let [x, y, w, h] = rect;
     let body_y = y + canvas::HEADER;
     let body_h = (h - canvas::HEADER - canvas::FOOTER).max(0.0);
-    let sidebar_w = (w * 0.25).clamp(90.0, 150.0).min(w.max(0.0));
+    let sidebar_w = (w * 0.3).clamp(110.0, 170.0).min(w.max(0.0));
+    let strip_w = STRIP.min(w.max(0.0));
     Regions {
         header: [x, y, w, canvas::HEADER],
         sidebar: [x, body_y, sidebar_w, body_h],
-        canvas: [x + sidebar_w, body_y, (w - sidebar_w).max(0.0), body_h],
+        strip: [x, body_y, strip_w, body_h],
+        canvas: [x + strip_w, body_y, (w - strip_w).max(0.0), body_h],
         footer: [x, y + h - canvas::FOOTER, w, canvas::FOOTER],
     }
 }
@@ -251,16 +271,36 @@ pub fn shape_points(shape: Shape, centre: [f32; 2], radius: f32) -> Vec<[f32; 2]
         .collect()
 }
 
-/// A group heading's triangle in a 5-pixel box at `at`: pointing down
-/// when the group is open, right when folded. One quad, its last corner
-/// doubled, in `shape_points`' turning order.
-fn fold_arrow(at: [f32; 2], folded: bool) -> [[f32; 2]; 4] {
-    let [x, y] = at;
-    if folded {
-        [[x + 1.0, y + 5.0], [x + 4.5, y + 2.5], [x + 1.0, y], [x + 1.0, y]]
+/// A triangle `size` pixels across, its left (pointing right) or top
+/// (pointing down) side starting at `at`'s x, centred on `at`'s y. One
+/// quad, its last corner doubled, in `shape_points`' turning order.
+fn arrow(at: [f32; 2], size: f32, down: bool) -> [[f32; 2]; 4] {
+    let ([x, y], h) = (at, size / 2.0);
+    if down {
+        let top = y - h * 0.6;
+        [[x + h, top + h * 1.6], [x + size, top], [x, top], [x, top]]
     } else {
-        [[x + 2.5, y + 4.0], [x + 5.0, y + 0.5], [x, y + 0.5], [x, y + 0.5]]
+        let left = x + h * 0.2;
+        [[left, y + h], [left + h * 1.6, y], [left, y - h], [left, y - h]]
     }
+}
+
+/// A one-pixel frame just inside `rect`.
+fn outline(scene: &mut Scene, rect: [f32; 4], colour: u32) {
+    let [x, y, w, h] = rect;
+    for edge in [[x, y, w, 1.0], [x, y + h - 1.0, w, 1.0], [x, y + 1.0, 1.0, h - 2.0], [x + w - 1.0, y + 1.0, 1.0, h - 2.0]] {
+        scene.fill(edge, colour);
+    }
+}
+
+/// The closed chapter list's strip on the canvas's left, with an arrow
+/// pointing right; the pointer on it opens the list.
+fn draw_strip(scene: &mut Scene, s: &Screen<'_>) {
+    let strip = scene.regions.strip;
+    scene.fill(strip, if canvas::inside(strip, s.mouse) { LIST_HOVER } else { STRIP_BACK });
+    scene.fill([strip[0] + strip[2] - 1.0, strip[1], 1.0, strip[3]], LIST_EDGE);
+    let [cx, cy] = canvas::centre(strip);
+    scene.draws.push(Draw::Quad { corners: arrow([cx - 3.0, cy], 7.0, false), colour: LIST_ARROW });
 }
 
 /// `colour` darker, for the chevrons on a line of that colour.
@@ -557,6 +597,9 @@ pub struct BookView {
     /// The quest whose window is open.
     pub selected: Option<usize>,
     pub sidebar_scroll: f32,
+    /// Whether the chapter list is open: the pointer came onto its strip
+    /// and has not left the list since (`hover`).
+    pub sidebar_open: bool,
     /// The groups of the chapter list folded by the player (their ids).
     pub folded: Vec<String>,
     pub popup_scroll: f32,
@@ -680,10 +723,32 @@ impl BookView {
     }
 
     /// The pointer dragged by `delta`: over the canvas, it pans.
+    /// Each frame, with the pointer where it is: the chapter list opens when
+    /// the pointer comes onto its strip, no click needed, and closes when
+    /// the pointer leaves it.
+    pub fn hover(&mut self, s: &Screen<'_>) {
+        let regions = regions(s.rect);
+        if canvas::inside(regions.strip, s.mouse) && self.recipe.is_none() && self.choosing.is_none() {
+            self.sidebar_open = true;
+        } else if !canvas::inside(regions.sidebar, s.mouse) {
+            self.sidebar_open = false;
+        }
+    }
+
+    /// Whether the open chapter list is under the pointer.
+    fn over_list(&self, s: &Screen<'_>) -> bool {
+        self.sidebar_open && canvas::inside(regions(s.rect).sidebar, s.mouse)
+    }
+
     pub fn drag(&mut self, s: &Screen<'_>, delta: [f32; 2]) {
         let scene = self.scene(s);
         let over_popup = scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse));
-        if self.recipe.is_none() && self.choosing.is_none() && !over_popup && canvas::inside(scene.regions.canvas, s.mouse) {
+        if self.recipe.is_none()
+            && self.choosing.is_none()
+            && !over_popup
+            && !self.over_list(s)
+            && canvas::inside(scene.regions.canvas, s.mouse)
+        {
             self.view.drag(delta);
         }
     }
@@ -696,8 +761,8 @@ impl BookView {
         let regions = scene.regions;
         let moved = |scroll: f32, by: f32, max: f32| (scroll - steps as f32 * by).clamp(0.0, max.max(0.0));
         if !steps.is_finite() || self.recipe.is_some() || self.choosing.is_some() {
-        } else if canvas::inside(regions.sidebar, s.mouse) {
-            self.sidebar_scroll = moved(self.sidebar_scroll, ROW, scene.sidebar_max_scroll);
+        } else if self.over_list(s) {
+            self.sidebar_scroll = moved(self.sidebar_scroll, LIST_ROW, scene.sidebar_max_scroll);
         } else if scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse)) {
             self.popup_scroll = moved(self.popup_scroll, 3.0 * TEXT, scene.popup_max_scroll);
         } else if canvas::inside(regions.canvas, s.mouse) {
@@ -720,8 +785,11 @@ impl BookView {
             popup,
         };
         scene.fill(s.rect, SHADE);
-        let hovered = self.draw_canvas(&mut scene, s, &statuses, selected);
-        self.draw_sidebar(&mut scene, s);
+        let hovered = self.draw_canvas(&mut scene, s, &statuses, selected).filter(|_| !self.over_list(s));
+        draw_strip(&mut scene, s);
+        if self.sidebar_open {
+            self.draw_sidebar(&mut scene, s, &statuses);
+        }
         self.draw_bands(&mut scene, s, &statuses);
         let mut tip = hovered.map(|n| {
             let quest = s.book.quest(n);
@@ -878,52 +946,63 @@ impl BookView {
         hovered.filter(|_| canvas::inside(area, s.mouse))
     }
 
-    /// The chapter list.
-    fn draw_sidebar(&self, scene: &mut Scene, s: &Screen<'_>) {
+    /// The open chapter list, over the canvas: group headings with their
+    /// triangle, chapters with their icon (indented under a group), the
+    /// current one outlined, names green when all done and cyan with
+    /// rewards to claim.
+    fn draw_sidebar(&self, scene: &mut Scene, s: &Screen<'_>, statuses: &[Status]) {
         let area = scene.regions.sidebar;
-        scene.fill(area, SIDEBAR);
+        scene.fill(area, LIST_BACK);
+        scene.fill([area[0] + area[2] - 1.0, area[1], 1.0, area[3]], LIST_EDGE);
+        // The list's background takes clicks: none fall through to the canvas.
+        scene.zones.push((area, Action::Stay));
         let rows = sidebar_rows(s.book, &self.folded);
-        scene.sidebar_max_scroll = (rows.len() as f32 * ROW + 2.0 * PAD - area[3]).max(0.0);
-        let [x, _, w, _] = area;
+        scene.sidebar_max_scroll = (rows.len() as f32 * LIST_ROW + 2.0 * PAD - area[3]).max(0.0);
+        let (x, w) = (area[0] + 2.0, area[2] - 5.0);
+        let mut in_group = false;
         for (i, row) in rows.iter().enumerate() {
-            let rect = [x, area[1] + PAD + i as f32 * ROW - self.sidebar_scroll, w, ROW];
+            in_group |= matches!(row, Row::Group { .. });
+            let rect = [x, area[1] + PAD + i as f32 * LIST_ROW - self.sidebar_scroll, w, LIST_ROW];
             if !contains(area, rect) {
                 continue;
             }
+            let text_y = rect[1] + (LIST_ROW - 8.0) / 2.0;
             match row {
                 Row::Group { id, title } => {
                     if canvas::inside(rect, s.mouse) {
-                        scene.fill(rect, ROW_HOVER);
+                        scene.fill(rect, LIST_HOVER);
                     }
-                    // A small triangle: down when open, right when folded.
-                    let folded = self.folded.contains(id);
-                    scene.draws.push(Draw::Quad { corners: fold_arrow([x + PAD, rect[1] + 4.0], folded), colour: GOLD_INK });
-                    let left = x + PAD + 8.0;
-                    let title = fit_text(title, x + w - PAD - left, s.measure);
-                    scene.text(title, [left, rect[1] + 3.0], GOLD_INK);
+                    let open = !self.folded.contains(id);
+                    scene.draws.push(Draw::Quad { corners: arrow([x + 3.0, rect[1] + LIST_ROW / 2.0], 5.0, open), colour: LIST_ARROW });
+                    let left = x + 12.0;
+                    scene.text(fit_text(title, x + w - 2.0 - left, s.measure), [left, text_y], GROUP_INK);
                     scene.zones.push((rect, Action::Group(id.clone())));
                 }
                 Row::Chapter(c) => {
                     let chapter = s.book.chapter(*c);
                     if *c == self.chapter {
-                        scene.fill(rect, ROW_CURRENT);
+                        scene.fill(rect, LIST_CURRENT);
+                        outline(scene, rect, LIST_OUTLINE);
                     } else if canvas::inside(rect, s.mouse) {
-                        scene.fill(rect, ROW_HOVER);
+                        scene.fill(rect, LIST_HOVER);
                     }
-                    let mut left = x + PAD;
+                    let mut left = x + if in_group { 8.0 } else { 3.0 };
                     if let Some(icon) = &chapter.icon {
-                        scene.draws.push(Draw::Item { item: icon.clone(), at: [left, rect[1] + 2.0], size: 10.0 });
-                        left += 13.0;
+                        let at = [left, rect[1] + (LIST_ROW - LIST_ICON) / 2.0];
+                        scene.draws.push(Draw::Item { item: icon.clone(), at, size: LIST_ICON });
                     }
-                    let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
-                    scene.text(fit_text(name, x + w - PAD - left, s.measure), [left, rect[1] + 2.0], INK);
-                    // How far the chapter is, as a thin bar under its name.
+                    left += LIST_ICON + 3.0;
                     let (done, total) = s.book.chapter_tally(*c, s.progress);
-                    let track = [x + PAD, rect[1] + ROW - 2.5, w - 2.0 * PAD, 1.5];
-                    scene.fill(track, BAR);
-                    if done > 0 {
-                        scene.fill([track[0], track[1], track[2] * done as f32 / total as f32, track[3]], LINE_DONE);
-                    }
+                    let waiting = s.book.chapter_nodes(*c).any(|n| statuses[n].state == QuestState::RewardsWaiting);
+                    let ink = if waiting {
+                        CHAPTER_WAITING
+                    } else if total > 0 && done == total {
+                        CHAPTER_DONE
+                    } else {
+                        CHAPTER_INK
+                    };
+                    let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
+                    scene.text(fit_text(name, x + w - 2.0 - left, s.measure), [left, text_y], ink);
                     scene.zones.push((rect, Action::Chapter(*c)));
                 }
             }
@@ -2286,7 +2365,10 @@ mod tests {
         let closed = regions(RECT);
         assert_eq!(closed.header, [0.0, 0.0, 480.0, canvas::HEADER]);
         assert_eq!(closed.footer, [0.0, 270.0 - canvas::FOOTER, 480.0, canvas::FOOTER]);
-        assert_eq!(closed.sidebar[2] + closed.canvas[2], 480.0);
+        assert_eq!(closed.strip[2] + closed.canvas[2], 480.0);
+        // The open chapter list goes over the canvas's left side.
+        assert_eq!(closed.sidebar[0], closed.strip[0]);
+        assert!(closed.sidebar[2] > closed.strip[2] && closed.sidebar[2] < closed.canvas[2]);
         assert_eq!(closed.canvas[1], canvas::HEADER);
         assert_eq!(closed.canvas[3], 270.0 - canvas::HEADER - canvas::FOOTER);
 
@@ -2372,6 +2454,7 @@ mod tests {
     fn a_click_on_a_group_heading_folds_and_unfolds_it() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
+        view.sidebar_open = true;
         let group = Action::Group("main".into());
         assert_eq!(click(&mut view, &book, &progress, &group), Reaction::Nothing);
         assert_eq!(view.folded, ["main"]);
@@ -2396,28 +2479,36 @@ mod tests {
             assert!(canvas::inside(scene.regions.canvas, at), "{n}");
         }
         assert_eq!(zone(&scene, &Action::Quest(2)), None);
-        assert!(zone(&scene, &Action::Chapter(0)).is_some() && zone(&scene, &Action::Chapter(1)).is_some());
-        assert_eq!(zone(&scene, &Action::Chapter(2)), None);
+        // The chapter list is closed: only its strip shows.
+        assert_eq!(zone(&scene, &Action::Chapter(0)), None);
         assert!(zone(&scene, &Action::Close).is_some());
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
-
         let shown = texts(&scene);
-        for text in ["Alpha", "The first one", "0/3", "Main story", "Beta"] {
+        for text in ["Alpha", "The first one", "0/3"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
-        // Each listed chapter has a progress bar, empty for now.
-        let bars = |scene: &Scene, colour: u32| {
-            let list = scene.regions.sidebar;
-            scene
-                .draws
-                .iter()
-                .filter(|draw| matches!(draw, Draw::Fill { rect, colour: c } if *c == colour && rect[3] == 1.5 && contains(list, *rect)))
-                .count()
+
+        // Open, it lists the chapters under their group.
+        let mut view = view;
+        view.sidebar_open = true;
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(zone(&scene, &Action::Chapter(0)).is_some() && zone(&scene, &Action::Chapter(1)).is_some());
+        assert_eq!(zone(&scene, &Action::Chapter(2)), None);
+        let shown = texts(&scene);
+        for text in ["Main story", "Beta"] {
+            assert!(shown.contains(&text), "{text} in {shown:?}");
+        }
+        // A chapter's name is grey, green once all its quests are done.
+        let ink = |scene: &Scene, name: &str| {
+            scene.draws.iter().find_map(|d| match d {
+                Draw::Text { text, colour, .. } if text == name => Some(*colour),
+                _ => None,
+            })
         };
-        assert_eq!((bars(&scene, BAR), bars(&scene, LINE_DONE)), (2, 0));
-        // Beta's only quest has no task: once the engine has run, its bar is full.
+        assert_eq!(ink(&scene, "Beta"), Some(CHAPTER_INK));
+        // Beta's only quest has no task: once the engine has run, it is done.
         let done = progress_after(&book, &[QuestEvent::Refresh]);
-        assert_eq!(bars(&view.scene(&screen(&book, &done, NOWHERE)), LINE_DONE), 1);
+        assert_eq!(ink(&view.scene(&screen(&book, &done, NOWHERE)), "Beta"), Some(CHAPTER_DONE));
         // One icon per visible quest, and the chapter's in the list.
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
         assert_eq!(icons, 3);
@@ -2936,6 +3027,7 @@ mod tests {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         click(&mut view, &book, &progress, &Action::Quest(0));
+        view.sidebar_open = true;
         assert_eq!(click(&mut view, &book, &progress, &Action::Chapter(1)), Reaction::Nothing);
         assert_eq!((view.chapter, view.selected), (1, None));
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
@@ -3004,10 +3096,37 @@ mod tests {
         let mut view = opened(&book, &progress);
         let regions = view.scene(&screen(&book, &progress, NOWHERE)).regions;
         let pan = view.view.pan;
+        view.drag(&screen(&book, &progress, canvas::centre(regions.strip)), [10.0, 10.0]);
+        assert_eq!(view.view.pan, pan);
+        // Nor over the open chapter list.
+        view.sidebar_open = true;
         view.drag(&screen(&book, &progress, canvas::centre(regions.sidebar)), [10.0, 10.0]);
         assert_eq!(view.view.pan, pan);
         view.drag(&screen(&book, &progress, canvas::centre(regions.canvas)), [10.0, 0.0]);
         assert!(view.view.pan[0] < pan[0]);
+    }
+
+    #[test]
+    fn the_chapter_list_opens_under_the_pointer_without_a_click() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        let regions = regions(RECT);
+        let at = |view: &mut BookView, mouse: [f32; 2]| {
+            view.hover(&screen(&book, &progress, mouse));
+            view.sidebar_open
+        };
+        // Closed at first; the canvas where the list would be does not open it.
+        assert!(!view.sidebar_open);
+        assert!(!at(&mut view, [regions.sidebar[0] + regions.sidebar[2] - 2.0, regions.sidebar[1] + 20.0]));
+        // The strip opens it; it stays open over the list, closes off it.
+        let strip = canvas::centre(regions.strip);
+        assert!(at(&mut view, strip));
+        assert!(at(&mut view, [regions.sidebar[0] + regions.sidebar[2] - 2.0, strip[1]]));
+        assert!(!at(&mut view, canvas::centre(regions.canvas)));
+        // Open, it hides the quest under it from the pointer.
+        view.sidebar_open = true;
+        let scene = view.scene(&screen(&book, &progress, strip));
+        assert_eq!(scene.action_at(strip), Some(&Action::Stay));
     }
 
     #[test]
@@ -3017,10 +3136,10 @@ mod tests {
         view.view.pan = [10_000.0, 0.0];
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         assert_eq!(zone(&scene, &Action::Quest(0)), None);
-        // Only the chapter's icon in the list is left.
-        assert_eq!(scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count(), 1);
-        // No quad but the group heading's triangle in the list.
-        assert!(!scene.draws.iter().any(|draw| matches!(draw, Draw::Quad { colour, .. } if *colour != GOLD_INK)));
+        // No icon left (the chapter list is closed).
+        assert_eq!(scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count(), 0);
+        // No quad but the list strip's arrow.
+        assert!(!scene.draws.iter().any(|draw| matches!(draw, Draw::Quad { colour, .. } if *colour != LIST_ARROW)));
     }
 
     #[test]
@@ -3035,13 +3154,13 @@ mod tests {
 
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         let (rect, _) = scene.zones.iter().find(|(_, action)| *action == Action::Quest(0)).unwrap();
-        // Half the node takes clicks; the chapter list, drawn after, covers the rest.
+        // Half the node takes clicks; the list's strip, drawn after, covers the rest.
         assert!((rect[0] - area[0]).abs() < 0.01 && (rect[2] - canvas::NODE / 2.0).abs() < 0.01, "{rect:?}");
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
-        assert_eq!(icons, 2);
-        let sidebar_fill = scene.draws.iter().position(|draw| *draw == Draw::Fill { rect: scene.regions.sidebar, colour: SIDEBAR });
-        let last_quad = scene.draws.iter().rposition(|draw| matches!(draw, Draw::Quad { colour, .. } if *colour != GOLD_INK));
-        assert!(sidebar_fill > last_quad);
+        assert_eq!(icons, 1);
+        let strip_fill = scene.draws.iter().position(|draw| *draw == Draw::Fill { rect: scene.regions.strip, colour: STRIP_BACK });
+        let last_quad = scene.draws.iter().rposition(|draw| matches!(draw, Draw::Quad { colour, .. } if *colour != LIST_ARROW));
+        assert!(strip_fill > last_quad);
         // The pointer over the covered half is over the chapter list, not the quest.
         assert_eq!(scene.action_at([area[0] - 3.0, at[1]]), None);
     }
