@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.9.3
+- Lines redrawn: 7 canvas units thick (was 5) with a dark border, chevrons across the whole band every 8 units. The lines of the quest in focus also glow (a soft band round them) and a light gleam runs along them every 1.5 s, on top of the flowing chevrons. Other lines stay still.
+
 ## 0.9.2
 - The lines of the quest in focus (cyan: what it needs, yellow: what it opens) are animated: their chevrons slide from the quest needed towards the quest it opens, one step every 0.6 s, smoothly between ticks. Other lines stay still.
 

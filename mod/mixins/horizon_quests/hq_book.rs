@@ -56,8 +56,15 @@ const LINE_NEEDS: u32 = 0xFF38_C8E8;
 const LINE_OPENS: u32 = 0xFFE8_C838;
 /// A dependency line's thickness and the step between its chevrons, in
 /// canvas units (a node is `canvas::NODE`).
-const LINE_WIDTH: f32 = 5.0;
-const CHEVRON_STEP: f32 = 9.0;
+const LINE_WIDTH: f32 = 7.0;
+const CHEVRON_STEP: f32 = 8.0;
+/// A line's dark border, and how much wider than the band it is (pixels).
+const LINE_EDGE: u32 = 0xD010_1016;
+const LINE_EDGE_WIDTH: f32 = 2.0;
+/// Ticks for the gleam to run the length of a line in focus, and its
+/// length in chevron steps.
+const GLEAM_TICKS: u32 = 30;
+const GLEAM_STEPS: f32 = 2.0;
 /// Ticks for the chevrons of the lines in focus to slide one step: they
 /// flow from the quest needed to the quest it opens.
 const FLOW_TICKS: u32 = 12;
@@ -301,6 +308,18 @@ fn draw_strip(scene: &mut Scene, s: &Screen<'_>) {
     scene.fill([strip[0] + strip[2] - 1.0, strip[1], 1.0, strip[3]], LIST_EDGE);
     let [cx, cy] = canvas::centre(strip);
     scene.draws.push(Draw::Quad { corners: arrow([cx - 3.0, cy], 7.0, false), colour: LIST_ARROW });
+}
+
+/// `colour` halfway to white, for the gleam on a line in focus.
+fn lighter(colour: u32) -> u32 {
+    let [a, r, g, b] = colour.to_be_bytes();
+    let lift = |c: u8| ((u32::from(c) + 255) / 2) as u8;
+    u32::from_be_bytes([a, lift(r), lift(g), lift(b)])
+}
+
+/// `colour` with its alpha replaced.
+fn with_alpha(colour: u32, alpha: u8) -> u32 {
+    (colour & 0x00FF_FFFF) | (u32::from(alpha) << 24)
 }
 
 /// `colour` darker, for the chevrons on a line of that colour.
@@ -857,13 +876,16 @@ impl BookView {
         let hovered = hovered.filter(|_| !over_popup);
         let focus = hovered.or(selected);
 
-        // Dependency lines first, under the nodes: a band with chevrons
-        // pointing from the dependency to the quest it opens, green once
-        // both ends are done. Those to another chapter's quests are not drawn.
-        let width = (LINE_WIDTH * self.view.zoom).max(3.0);
-        let spacing = (CHEVRON_STEP * self.view.zoom).max(8.0);
-        // Only the lines in focus move, so the canvas never swarms.
-        let flow = ((self.clock % FLOW_TICKS) as f32 + self.partial_tick.clamp(0.0, 1.0)) / FLOW_TICKS as f32 * spacing;
+        // Dependency lines first, under the nodes: a band with a dark border
+        // and full-width chevrons pointing from the dependency to the quest
+        // it opens, green once both ends are done. The lines of the quest in
+        // focus glow, their chevrons flow and a gleam runs along them; the
+        // others stay still. Those to another chapter's quests are not drawn.
+        let width = (LINE_WIDTH * self.view.zoom).max(4.0);
+        let spacing = (CHEVRON_STEP * self.view.zoom).max(7.0);
+        let partial = self.partial_tick.clamp(0.0, 1.0);
+        let flow = ((self.clock % FLOW_TICKS) as f32 + partial) / FLOW_TICKS as f32 * spacing;
+        let gleam = ((self.clock % GLEAM_TICKS) as f32 + partial) / GLEAM_TICKS as f32;
         let mut lines = Vec::new();
         for &n in &shown {
             for &d in &book.nodes()[n].dependencies {
@@ -886,14 +908,35 @@ impl BookView {
         lines.sort_by_key(|(on_top, ..)| *on_top);
         for (_, d, n, colour) in lines {
             let (from, to) = (centre_of(d), centre_of(n));
-            if let Some(corners) = canvas::line_quad(from, to, width)
-                && canvas::overlaps(area, canvas::quad_bounds(&corners))
-            {
-                scene.draws.push(Draw::Quad { corners, colour });
-                let mark = darker(colour);
-                let phase = if [LINE_NEEDS, LINE_OPENS].contains(&colour) { flow } else { 0.0 };
-                for corners in canvas::chevrons(from, to, width, spacing, phase) {
-                    scene.draws.push(Draw::Quad { corners, colour: mark });
+            let Some(corners) = canvas::line_quad(from, to, width) else {
+                continue;
+            };
+            if !canvas::overlaps(area, canvas::quad_bounds(&canvas::line_quad(from, to, width * 2.0).unwrap_or(corners))) {
+                continue;
+            }
+            let lit = [LINE_NEEDS, LINE_OPENS].contains(&colour);
+            if lit {
+                // A soft glow round it.
+                if let Some(glow) = canvas::line_quad(from, to, width * 2.2) {
+                    scene.draws.push(Draw::Quad { corners: glow, colour: with_alpha(colour, 0x38) });
+                }
+            }
+            if let Some(edge) = canvas::line_quad(from, to, width + LINE_EDGE_WIDTH) {
+                scene.draws.push(Draw::Quad { corners: edge, colour: LINE_EDGE });
+            }
+            scene.draws.push(Draw::Quad { corners, colour });
+            let mark = darker(colour);
+            let phase = if lit { flow } else { 0.0 };
+            for corners in canvas::chevrons(from, to, width, spacing, phase) {
+                scene.draws.push(Draw::Quad { corners, colour: mark });
+            }
+            if lit {
+                // A gleam running from the quest needed to the quest it opens.
+                let len = ((to[0] - from[0]).powi(2) + (to[1] - from[1]).powi(2)).sqrt();
+                let long = spacing * GLEAM_STEPS;
+                let head = gleam * (len + long);
+                if let Some(part) = canvas::line_part(from, to, width, head - long, head) {
+                    scene.draws.push(Draw::Quad { corners: part, colour: with_alpha(lighter(colour), 0x70) });
                 }
             }
         }

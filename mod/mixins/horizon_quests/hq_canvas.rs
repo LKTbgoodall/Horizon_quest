@@ -112,7 +112,8 @@ const CHEVRONS_MAX: usize = 64;
 /// The chevrons along a line from `a` to `b` that is `width` pixels thick,
 /// pointing towards `b`, one every `spacing` pixels, all moved `phase`
 /// pixels towards `b` (an animation: from 0 to `spacing`, they slide one
-/// step): each chevron is two quads, its arms meeting at its tip.
+/// step): each chevron is two quads, its arms running from the band's
+/// edges to its tip in the middle, like road markings.
 pub fn chevrons(a: [f32; 2], b: [f32; 2], width: f32, spacing: f32, phase: f32) -> Vec<[[f32; 2]; 4]> {
     let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
     let len = (dx * dx + dy * dy).sqrt();
@@ -121,7 +122,8 @@ pub fn chevrons(a: [f32; 2], b: [f32; 2], width: f32, spacing: f32, phase: f32) 
     }
     let (ux, uy) = (dx / len, dy / len);
     let (nx, ny) = (-uy, ux);
-    let (half_length, half_width, thickness) = (width * 0.3, width * 0.32, (width * 0.24).max(1.0));
+    let thickness = (width * 0.26).max(1.0);
+    let (half_length, half_width) = (width * 0.32, (width * 0.5 - thickness * 0.5).max(0.0));
     let mut quads = Vec::new();
     let mut t = (spacing / 2.0 + phase.max(0.0)) % spacing;
     while t < len && quads.len() < 2 * CHEVRONS_MAX {
@@ -134,6 +136,23 @@ pub fn chevrons(a: [f32; 2], b: [f32; 2], width: f32, spacing: f32, phase: f32) 
         t += spacing;
     }
     quads
+}
+
+/// The part of the line from `a` to `b` between `from` and `to` pixels
+/// along it (clamped to the line), as a band `width` thick: the moving
+/// gleam on a line in focus. None when nothing of it is on the line.
+pub fn line_part(a: [f32; 2], b: [f32; 2], width: f32, from: f32, to: f32) -> Option<[[f32; 2]; 4]> {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    let len = (dx * dx + dy * dy).sqrt();
+    if !len.is_finite() || len < 0.001 {
+        return None;
+    }
+    let (from, to) = (from.clamp(0.0, len), to.clamp(0.0, len));
+    if to - from < 0.5 {
+        return None;
+    }
+    let at = |t: f32| [a[0] + dx / len * t, a[1] + dy / len * t];
+    line_quad(at(from), at(to), width)
 }
 
 /// The bounding box of a quad's corners.
@@ -222,6 +241,13 @@ mod tests {
     }
 
     #[test]
+    fn a_part_of_a_line_is_clamped_to_it() {
+        let part = line_part([0.0, 0.0], [40.0, 0.0], 4.0, -5.0, 10.0).unwrap();
+        assert_eq!(quad_bounds(&part), [0.0, -2.0, 10.0, 4.0]);
+        assert!(line_part([0.0, 0.0], [40.0, 0.0], 4.0, 50.0, 60.0).is_none());
+    }
+
+    #[test]
     fn chevrons_point_along_the_line_at_even_steps() {
         // A line 40 long to the right, a chevron every 10: at 5, 15, 25, 35.
         let quads = chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 10.0, 0.0);
@@ -229,19 +255,19 @@ mod tests {
         // Each chevron's two arms meet at its tip, ahead of its middle, and spread behind it.
         let tip = |q: &[[f32; 2]; 4]| [(q[1][0] + q[2][0]) / 2.0, (q[1][1] + q[2][1]) / 2.0];
         let back = |q: &[[f32; 2]; 4]| [(q[0][0] + q[3][0]) / 2.0, (q[0][1] + q[3][1]) / 2.0];
-        assert!(close(tip(&quads[0]), [8.0, 0.0]) && close(tip(&quads[1]), [8.0, 0.0]));
-        assert!(close(back(&quads[0]), [2.0, 3.2]) && close(back(&quads[1]), [2.0, -3.2]));
-        assert!(close(tip(&quads[6]), [38.0, 0.0]));
+        assert!(close(tip(&quads[0]), [8.2, 0.0]) && close(tip(&quads[1]), [8.2, 0.0]));
+        assert!(close(back(&quads[0]), [1.8, 3.7]) && close(back(&quads[1]), [1.8, -3.7]));
+        assert!(close(tip(&quads[6]), [38.2, 0.0]));
         // Reversed, they point the other way.
         let back_again = chevrons([40.0, 0.0], [0.0, 0.0], 10.0, 10.0, 0.0);
-        assert!(close(tip(&back_again[0]), [32.0, 0.0]));
+        assert!(close(tip(&back_again[0]), [31.8, 0.0]));
         // Nothing for a point, a bad spacing, or a line too short for one.
         assert!(chevrons([1.0, 1.0], [1.0, 1.0], 10.0, 10.0, 0.0).is_empty());
         assert!(chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 0.0, 0.0).is_empty());
         assert!(chevrons([0.0, 0.0], [4.0, 0.0], 10.0, 10.0, 0.0).is_empty());
         // Moved by a phase, they slide towards the end; a whole step brings them back.
         let moved = chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 10.0, 3.0);
-        assert!(close(tip(&moved[0]), [11.0, 0.0]));
+        assert!(close(tip(&moved[0]), [11.2, 0.0]));
         assert_eq!(chevrons([0.0, 0.0], [40.0, 0.0], 10.0, 10.0, 10.0), quads);
         // A very long line carries a bounded number.
         assert_eq!(chevrons([0.0, 0.0], [1.0e6, 0.0], 10.0, 1.0, 0.0).len(), 128);
