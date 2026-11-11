@@ -852,8 +852,8 @@ impl BookView {
         let focus = hovered.or(selected);
 
         // Dependency lines first, under the nodes: a band with chevrons
-        // pointing from the dependency to the quest it opens. Those to
-        // another chapter's quests are not drawn.
+        // pointing from the dependency to the quest it opens, green once
+        // both ends are done. Those to another chapter's quests are not drawn.
         let width = (LINE_WIDTH * self.view.zoom).max(3.0);
         let spacing = (CHEVRON_STEP * self.view.zoom).max(8.0);
         let mut lines = Vec::new();
@@ -866,7 +866,7 @@ impl BookView {
                     (LINE_NEEDS, true)
                 } else if focus == Some(d) {
                     (LINE_OPENS, true)
-                } else if s.progress.is_completed(&book.nodes()[d].id) {
+                } else if s.progress.is_completed(&book.nodes()[d].id) && s.progress.is_completed(&book.nodes()[n].id) {
                     (LINE_DONE, false)
                 } else {
                     (LINE, false)
@@ -2729,10 +2729,16 @@ mod tests {
         // Over the second: the line from what it needs is cyan.
         let second = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(1)).unwrap();
         assert_eq!(colours(second), [LINE_NEEDS]);
-        // A completed dependency's line is green while nothing is in focus.
-        let done = progress_after(&book, &[QuestEvent::Check { task: "a/start/ok".into() }]);
-        let scene = view.scene(&screen(&book, &done, NOWHERE));
-        assert!(scene.draws.iter().any(|d| matches!(d, Draw::Quad { colour, .. } if *colour == LINE_DONE)));
+        // A line is green while nothing is in focus only once both its
+        // quests are done: not when only the dependency is.
+        let green = |progress: &Progress| {
+            let scene = view.scene(&screen(&book, progress, NOWHERE));
+            scene.draws.iter().any(|d| matches!(d, Draw::Quad { colour, .. } if *colour == LINE_DONE))
+        };
+        let start = QuestEvent::Check { task: "a/start/ok".into() };
+        assert!(!green(&progress_after(&book, std::slice::from_ref(&start))));
+        let planks = QuestEvent::Submitted { task: "a/next/planks".into(), count: 4 };
+        assert!(green(&progress_after(&book, &[start, planks])));
         assert_eq!(darker(0xFF64_C8FF), 0xFF3C_7899);
     }
 

@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.9.1
+- A dependency line is green only once both of its quests are completed, not as soon as the dependency is (optional quests included).
+
 ## 0.9.0
 - The built-in pack is a vanilla progression to the end of the game, 81 quests in 9 chapters. "Main story": Getting started, Iron Age (iron gear, bucket, lava, ores, compass), Diamonds (deepslate, diamond gear, obsidian, enchanting), The Nether (portal, quartz, gold and piglins, fortress, blaze rods, nether wart, brewing), The End (pearls, eyes of Ender, stronghold, the dragon, its egg), Beyond the dragon (gateways, end cities, elytra, shulker boxes, netherite, the Wither, a beacon). "Side paths": Further afield, Farm and food, Monster hunter. Each chapter opens from the one before; the side paths open early.
 - Item icons in the nodes are a little bigger (square 0.58, circle 0.5, hexagon 0.46, diamond 0.37 of the drawn box).
