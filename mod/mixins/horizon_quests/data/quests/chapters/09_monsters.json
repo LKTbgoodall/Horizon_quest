@@ -1,0 +1,243 @@
+{
+  "id": "monsters",
+  "title": "Monster hunter",
+  "icon": "minecraft:iron_sword",
+  "group": "side",
+  "quests": [
+    {
+      "id": "zombies",
+      "title": "Night watch",
+      "description": [
+        "Clear the night of zombies. Light your base well and they stop coming so close."
+      ],
+      "icon": "minecraft:zombie_head",
+      "x": 0,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "getting_started/stone"
+      ],
+      "tasks": [
+        {
+          "id": "zombies",
+          "type": "kill",
+          "entity": "minecraft:zombie",
+          "count": 10
+        }
+      ],
+      "rewards": [
+        {
+          "id": "bread",
+          "type": "item",
+          "item": "minecraft:bread",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "id": "skeletons",
+      "title": "Bone collector",
+      "description": [
+        "Skeletons shoot from a distance: close in fast or use a shield."
+      ],
+      "icon": "minecraft:bone",
+      "x": 2,
+      "y": -1.5,
+      "shape": "square",
+      "dependencies": [
+        "zombies"
+      ],
+      "tasks": [
+        {
+          "id": "skeletons",
+          "type": "kill",
+          "entity": "minecraft:skeleton",
+          "count": 10
+        }
+      ],
+      "rewards": [
+        {
+          "id": "bow",
+          "type": "item",
+          "item": "minecraft:bow"
+        }
+      ]
+    },
+    {
+      "id": "spiders",
+      "title": "Eight legs",
+      "description": [
+        "Spiders climb walls and hunt at night. Their string makes bows and fishing rods."
+      ],
+      "icon": "minecraft:string",
+      "x": 2,
+      "y": 0,
+      "shape": "square",
+      "dependencies": [
+        "zombies"
+      ],
+      "tasks": [
+        {
+          "id": "spiders",
+          "type": "kill",
+          "entity": "minecraft:spider",
+          "count": 10
+        }
+      ],
+      "rewards": [
+        {
+          "id": "string",
+          "type": "item",
+          "item": "minecraft:string",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "creepers",
+      "title": "That's a nice house",
+      "description": [
+        "Creepers sneak up and explode. Hit them and step back."
+      ],
+      "icon": "minecraft:gunpowder",
+      "x": 2,
+      "y": 1.5,
+      "shape": "square",
+      "dependencies": [
+        "zombies"
+      ],
+      "tasks": [
+        {
+          "id": "creepers",
+          "type": "kill",
+          "entity": "minecraft:creeper",
+          "count": 5
+        }
+      ],
+      "rewards": [
+        {
+          "id": "tnt",
+          "type": "item",
+          "item": "minecraft:tnt",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "endermen",
+      "title": "Don't look",
+      "description": [
+        "Endermen are tall, fast and strike hard. Fight them under a two-block-high roof, or in water's reach."
+      ],
+      "icon": "minecraft:ender_pearl",
+      "x": 4,
+      "y": 0,
+      "shape": "hexagon",
+      "dependencies": [
+        "skeletons",
+        "spiders",
+        "creepers"
+      ],
+      "tasks": [
+        {
+          "id": "endermen",
+          "type": "kill",
+          "entity": "minecraft:enderman",
+          "count": 3
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "witch",
+      "title": "Double trouble",
+      "subtitle": "Optional",
+      "description": [
+        "Witches throw potions and drink their own. Rush them before they heal."
+      ],
+      "icon": "minecraft:glass_bottle",
+      "x": 6,
+      "y": -1.5,
+      "shape": "diamond",
+      "optional": true,
+      "dependencies": [
+        "endermen"
+      ],
+      "tasks": [
+        {
+          "id": "witch",
+          "type": "kill",
+          "entity": "minecraft:witch"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "potions",
+          "type": "item",
+          "item": "minecraft:glass_bottle",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "pillagers",
+      "title": "Voluntary exile",
+      "subtitle": "Optional",
+      "description": [
+        "Defeat the captain of a pillager patrol: the one carrying a banner."
+      ],
+      "icon": "minecraft:crossbow",
+      "x": 6,
+      "y": 1.5,
+      "shape": "diamond",
+      "optional": true,
+      "dependencies": [
+        "endermen"
+      ],
+      "tasks": [
+        {
+          "id": "exile",
+          "type": "advancement",
+          "advancement": "minecraft:adventure/voluntary_exile"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "emeralds",
+          "type": "item",
+          "item": "minecraft:emerald",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "hunter",
+      "title": "Monster hunter",
+      "description": [
+        "Zombies, skeletons, spiders, creepers and endermen: the night holds no more fear for you."
+      ],
+      "icon": "minecraft:diamond_sword",
+      "x": 8,
+      "y": 0,
+      "shape": "hexagon",
+      "visibility": "until_deps_complete",
+      "size": 1.5,
+      "dependencies": [
+        "endermen"
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 5
+        }
+      ]
+    }
+  ]
+}

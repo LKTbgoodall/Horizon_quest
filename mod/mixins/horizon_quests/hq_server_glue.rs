@@ -114,6 +114,13 @@ fn load_pack(dir: Option<&Path>) -> (Loaded, &'static str) {
             "02_further_afield.json",
             text(horizon_client::native_data!("horizon_quests", "quests/chapters/02_further_afield.json")),
         ),
+        ("03_iron_age.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/03_iron_age.json"))),
+        ("04_diamonds.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/04_diamonds.json"))),
+        ("05_the_nether.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/05_the_nether.json"))),
+        ("06_the_end.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/06_the_end.json"))),
+        ("07_beyond.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/07_beyond.json"))),
+        ("08_farming.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/08_farming.json"))),
+        ("09_monsters.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/09_monsters.json"))),
     ];
     let tables = [
         ("baker_loot.json", text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/baker_loot.json"))),

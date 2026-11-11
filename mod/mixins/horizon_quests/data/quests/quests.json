@@ -6,7 +6,7 @@
   "auto_claim_rewards": false,
   "detection_delay": 20,
   "groups": [
-    { "id": "basics", "title": "Basics" },
-    { "id": "exploration", "title": "Exploration" }
+    { "id": "main", "title": "Main story" },
+    { "id": "side", "title": "Side paths" }
   ]
 }

@@ -22,7 +22,7 @@ const SHADE: u32 = 0xD010_1018;
 const BAND: u32 = 0xFF20_2030;
 /// The chapter list: a panel over the canvas while the pointer is on it,
 /// a thin strip with an arrow otherwise.
-const LIST_BACK: u32 = 0xF02A_2E36;
+const LIST_BACK: u32 = 0x902A_2E36;
 const LIST_EDGE: u32 = 0xFF4A_4E5A;
 const LIST_HOVER: u32 = 0xFF36_3A44;
 const LIST_CURRENT: u32 = 0xFF3A_3E48;
@@ -313,10 +313,10 @@ fn darker(colour: u32) -> u32 {
 /// face leaves inside the ring, with a margin).
 fn shape_look(shape: Shape) -> (f32, f32) {
     match shape {
-        Shape::Square => (1.0, 0.54),
-        Shape::Circle => (1.15, 0.47),
-        Shape::Hexagon => (1.28, 0.43),
-        Shape::Diamond => (1.5, 0.34),
+        Shape::Square => (1.0, 0.58),
+        Shape::Circle => (1.15, 0.5),
+        Shape::Hexagon => (1.28, 0.46),
+        Shape::Diamond => (1.5, 0.37),
     }
 }
 

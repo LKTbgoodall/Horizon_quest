@@ -3,7 +3,7 @@
   "title": "Getting started",
   "subtitle": "Your first days in a new world",
   "icon": "minecraft:oak_sapling",
-  "group": "basics",
+  "group": "main",
   "quests": [
     {
       "id": "welcome",

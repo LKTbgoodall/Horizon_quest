@@ -1,0 +1,331 @@
+{
+  "id": "beyond",
+  "title": "Beyond the dragon",
+  "icon": "minecraft:elytra",
+  "group": "main",
+  "quests": [
+    {
+      "id": "gateway",
+      "title": "The outer islands",
+      "description": [
+        "After the fight a small gateway opens near the edge of the main island. Throw an ender pearl into it."
+      ],
+      "icon": "minecraft:end_stone",
+      "x": 0,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "the_end/dragon"
+      ],
+      "tasks": [
+        {
+          "id": "gateway",
+          "type": "advancement",
+          "advancement": "minecraft:end/enter_end_gateway"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "pearls",
+          "type": "item",
+          "item": "minecraft:ender_pearl",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "end_city",
+      "title": "An end city",
+      "description": [
+        "Tall purple towers on the outer islands. Watch out for shulkers: their bullets make you float."
+      ],
+      "icon": "minecraft:purpur_block",
+      "x": 2,
+      "y": 0,
+      "shape": "hexagon",
+      "dependencies": [
+        "gateway"
+      ],
+      "tasks": [
+        {
+          "id": "city",
+          "type": "advancement",
+          "advancement": "minecraft:end/find_end_city"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "elytra",
+      "title": "Wings",
+      "description": [
+        "Some cities have a ship floating nearby, with elytra on its wall. Glide, and use rockets to fly."
+      ],
+      "x": 4,
+      "y": -1.5,
+      "shape": "diamond",
+      "dependencies": [
+        "end_city"
+      ],
+      "tasks": [
+        {
+          "id": "elytra",
+          "type": "item",
+          "item": "minecraft:elytra"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "rockets",
+          "type": "item",
+          "item": "minecraft:firework_rocket",
+          "count": 32
+        }
+      ]
+    },
+    {
+      "id": "shulker_box",
+      "title": "Pocket storage",
+      "description": [
+        "Two shulker shells around a chest make a shulker box: a chest that keeps its contents when broken."
+      ],
+      "icon": "minecraft:shulker_box",
+      "x": 4,
+      "y": 1.5,
+      "shape": "square",
+      "dependencies": [
+        "end_city"
+      ],
+      "tasks": [
+        {
+          "id": "shells",
+          "type": "item",
+          "item": "minecraft:shulker_shell",
+          "count": 2
+        },
+        {
+          "id": "box",
+          "type": "item",
+          "item": "minecraft:shulker_box"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 60
+        }
+      ]
+    },
+    {
+      "id": "debris",
+      "title": "Ancient debris",
+      "description": [
+        "Very rare, very deep in the Nether, and immune to lava. Only a diamond pickaxe mines it."
+      ],
+      "x": 0,
+      "y": 3,
+      "shape": "square",
+      "dependencies": [
+        "the_nether/portal"
+      ],
+      "tasks": [
+        {
+          "id": "debris",
+          "type": "item",
+          "item": "minecraft:ancient_debris",
+          "count": 4
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 60
+        }
+      ]
+    },
+    {
+      "id": "netherite",
+      "title": "Netherite",
+      "description": [
+        "Smelt the debris into scrap; four scrap and four gold ingots make one netherite ingot."
+      ],
+      "icon": "minecraft:netherite_ingot",
+      "x": 2,
+      "y": 3,
+      "shape": "hexagon",
+      "dependencies": [
+        "debris"
+      ],
+      "tasks": [
+        {
+          "id": "ingot",
+          "type": "item",
+          "item": "minecraft:netherite_ingot"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 5
+        }
+      ]
+    },
+    {
+      "id": "netherite_gear",
+      "title": "Cover me in debris",
+      "subtitle": "Optional",
+      "description": [
+        "Upgrade a full set of diamond armour at a smithing table with netherite (each piece needs an upgrade template, found in bastions)."
+      ],
+      "icon": "minecraft:netherite_chestplate",
+      "x": 4,
+      "y": 3,
+      "shape": "circle",
+      "optional": true,
+      "dependencies": [
+        "netherite"
+      ],
+      "tasks": [
+        {
+          "id": "armor",
+          "type": "advancement",
+          "advancement": "minecraft:nether/netherite_armor"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 10
+        }
+      ]
+    },
+    {
+      "id": "skulls",
+      "title": "Spooky skulls",
+      "description": [
+        "Wither skeletons roam nether fortresses and sometimes drop their skull. Three are needed for what comes next."
+      ],
+      "x": 0,
+      "y": -3,
+      "shape": "square",
+      "dependencies": [
+        "the_nether/fortress"
+      ],
+      "tasks": [
+        {
+          "id": "skulls",
+          "type": "item",
+          "item": "minecraft:wither_skeleton_skull",
+          "count": 3
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 60
+        }
+      ]
+    },
+    {
+      "id": "wither",
+      "title": "The Wither",
+      "description": [
+        "Four soul sand in a T and the three skulls on top summon the Wither. Fight it far from home."
+      ],
+      "icon": "minecraft:nether_star",
+      "x": 2,
+      "y": -3,
+      "shape": "diamond",
+      "dependencies": [
+        "skulls"
+      ],
+      "tasks": [
+        {
+          "id": "wither",
+          "type": "kill",
+          "entity": "minecraft:wither"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 5
+        }
+      ]
+    },
+    {
+      "id": "beacon",
+      "title": "Bring home the beacon",
+      "description": [
+        "The Wither's nether star, glass and obsidian make a beacon. On a pyramid of iron, gold, emerald or diamond blocks it gives powers to everyone near."
+      ],
+      "x": 4,
+      "y": -3,
+      "shape": "hexagon",
+      "dependencies": [
+        "wither"
+      ],
+      "tasks": [
+        {
+          "id": "beacon",
+          "type": "item",
+          "item": "minecraft:beacon"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "iron",
+          "type": "item",
+          "item": "minecraft:iron_block",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "master",
+      "title": "Master of the world",
+      "description": [
+        "Wings, a beacon, netherite and storage that travels: there is little left this world can throw at you.",
+        "Thank you for playing through these quests."
+      ],
+      "icon": "minecraft:nether_star",
+      "x": 7,
+      "y": 0,
+      "shape": "hexagon",
+      "visibility": "until_deps_complete",
+      "size": 2,
+      "dependencies": [
+        "elytra",
+        "shulker_box",
+        "netherite",
+        "beacon"
+      ],
+      "rewards": [
+        {
+          "id": "done",
+          "type": "toast",
+          "title": "Well done",
+          "text": "You have finished the vanilla quests.",
+          "auto_claim": "enabled"
+        },
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 10
+        }
+      ]
+    }
+  ]
+}

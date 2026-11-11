@@ -37,6 +37,7 @@ updated: 2026-11-10
 - [x] `hq_book`: the whole book as a draw list + click zones: regions (header, chapter list, canvas, quest panel, footer), nodes with shapes / sizes / state colours, dependency lines, fit-to-canvas, text wrapping, buttons (Check, Submit, Claim, Claim all), tooltip, click / drag / wheel handling (2026-11-10)
 - [x] `hq_commands`: `/quests` forms, op levels, help, validation report, chat lines for effects; `force_complete` and `reset_quest` in `hq_progress` (2026-11-10)
 - [x] Example chapter "Getting started" in `data/quests/` (11 quests), with an end-to-end test that finishes it (2026-11-10)
+- [ ] Built-in vanilla progression pack to the end of the game (9 chapters, 81 quests): coded (v0.9.0, 2026-11-11), to play through in game
 - [x] Config option to turn the example chapter off: `example_chapter` in `config/horizon_quests-server.toml` (`hq_config`, API 397): coded (v0.0.5), **tested in game 2026-11-10**
 
 > **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).

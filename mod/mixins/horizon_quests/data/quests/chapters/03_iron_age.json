@@ -1,0 +1,266 @@
+{
+  "id": "iron_age",
+  "title": "Iron Age",
+  "icon": "minecraft:iron_pickaxe",
+  "group": "main",
+  "quests": [
+    {
+      "id": "iron_pickaxe",
+      "title": "Iron in hand",
+      "description": [
+        "Iron tools mine faster, last longer and can break the ores stone tools cannot. Start with a pickaxe."
+      ],
+      "x": 0,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "getting_started/settled"
+      ],
+      "tasks": [
+        {
+          "id": "pickaxe",
+          "type": "item",
+          "item": "minecraft:iron_pickaxe"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 30
+        }
+      ]
+    },
+    {
+      "id": "iron_armor",
+      "title": "Suit up",
+      "description": [
+        "A full set of iron armour takes 24 ingots and turns most fights in your favour."
+      ],
+      "icon": "minecraft:iron_chestplate",
+      "x": 2,
+      "y": -1.5,
+      "shape": "square",
+      "dependencies": [
+        "iron_pickaxe"
+      ],
+      "tasks": [
+        {
+          "id": "helmet",
+          "type": "item",
+          "item": "minecraft:iron_helmet"
+        },
+        {
+          "id": "chestplate",
+          "type": "item",
+          "item": "minecraft:iron_chestplate"
+        },
+        {
+          "id": "leggings",
+          "type": "item",
+          "item": "minecraft:iron_leggings"
+        },
+        {
+          "id": "boots",
+          "type": "item",
+          "item": "minecraft:iron_boots"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "shield",
+      "title": "Hold the line",
+      "description": [
+        "Planks and one iron ingot make a shield. Raise it to stop arrows and blows, even a creeper's blast."
+      ],
+      "x": 4,
+      "y": -1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "iron_armor"
+      ],
+      "tasks": [
+        {
+          "id": "shield",
+          "type": "item",
+          "item": "minecraft:shield"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "arrows",
+          "type": "item",
+          "item": "minecraft:arrow",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "bucket",
+      "title": "A bucket",
+      "description": [
+        "Three ingots make a bucket: carry water to put out fires, break a fall, or make a farm anywhere."
+      ],
+      "x": 2,
+      "y": 0,
+      "shape": "square",
+      "dependencies": [
+        "iron_pickaxe"
+      ],
+      "tasks": [
+        {
+          "id": "bucket",
+          "type": "item",
+          "item": "minecraft:bucket"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 20
+        }
+      ]
+    },
+    {
+      "id": "lava",
+      "title": "Handle with care",
+      "description": [
+        "Scoop up some lava. It keeps a furnace burning for a long time, and water poured over it makes obsidian."
+      ],
+      "x": 4,
+      "y": 0,
+      "shape": "diamond",
+      "dependencies": [
+        "bucket"
+      ],
+      "tasks": [
+        {
+          "id": "lava",
+          "type": "item",
+          "item": "minecraft:lava_bucket"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 30
+        }
+      ]
+    },
+    {
+      "id": "ores",
+      "title": "Shiny rocks",
+      "description": [
+        "The deeper caves hide more than iron. Bring back a little of each."
+      ],
+      "icon": "minecraft:redstone",
+      "x": 2,
+      "y": 1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "iron_pickaxe"
+      ],
+      "tasks": [
+        {
+          "id": "coal",
+          "type": "item",
+          "item": "minecraft:coal",
+          "count": 16
+        },
+        {
+          "id": "copper",
+          "type": "item",
+          "item": "minecraft:copper_ingot",
+          "count": 8
+        },
+        {
+          "id": "redstone",
+          "type": "item",
+          "item": "minecraft:redstone",
+          "count": 8
+        },
+        {
+          "id": "lapis",
+          "type": "item",
+          "item": "minecraft:lapis_lazuli",
+          "count": 8
+        }
+      ],
+      "rewards": [
+        {
+          "id": "torches",
+          "type": "item",
+          "item": "minecraft:torch",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "compass",
+      "title": "Find your way",
+      "description": [
+        "Iron and redstone make a compass. It always points to where you first woke up."
+      ],
+      "x": 4,
+      "y": 1.5,
+      "shape": "circle",
+      "dependencies": [
+        "ores"
+      ],
+      "tasks": [
+        {
+          "id": "compass",
+          "type": "item",
+          "item": "minecraft:compass"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "map",
+          "type": "item",
+          "item": "minecraft:map"
+        }
+      ]
+    },
+    {
+      "id": "iron_block",
+      "title": "Ready to dig deep",
+      "description": [
+        "Nine ingots press into a block of iron: proof that you have more than you need.",
+        "Diamonds lie far below, near the bottom of the world. Time to go and look."
+      ],
+      "x": 6,
+      "y": 0,
+      "shape": "hexagon",
+      "size": 1.5,
+      "dependencies": [
+        "shield",
+        "lava",
+        "compass"
+      ],
+      "tasks": [
+        {
+          "id": "block",
+          "type": "item",
+          "item": "minecraft:iron_block"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 3
+        }
+      ]
+    }
+  ]
+}

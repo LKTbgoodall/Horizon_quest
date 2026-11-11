@@ -1,0 +1,267 @@
+{
+  "id": "farming",
+  "title": "Farm and food",
+  "icon": "minecraft:wheat",
+  "group": "side",
+  "quests": [
+    {
+      "id": "seeds",
+      "title": "A seed in the ground",
+      "description": [
+        "Break grass for seeds, till the dirt next to water with a hoe, and plant them."
+      ],
+      "icon": "minecraft:wheat_seeds",
+      "x": 0,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "getting_started/crafting_table"
+      ],
+      "tasks": [
+        {
+          "id": "plant",
+          "type": "advancement",
+          "advancement": "minecraft:husbandry/plant_seed"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "bone_meal",
+          "type": "item",
+          "item": "minecraft:bone_meal",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "wheat",
+      "title": "Harvest",
+      "description": [
+        "Wait for the wheat to turn golden and harvest it. Bone meal speeds it up."
+      ],
+      "x": 2,
+      "y": 0,
+      "shape": "square",
+      "dependencies": [
+        "seeds"
+      ],
+      "tasks": [
+        {
+          "id": "wheat",
+          "type": "item",
+          "item": "minecraft:wheat",
+          "count": 16
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 20
+        }
+      ]
+    },
+    {
+      "id": "sugar_cane",
+      "title": "Sweet reeds",
+      "description": [
+        "Sugar cane grows on sand or dirt next to water. It makes sugar, and paper for books and maps."
+      ],
+      "x": 2,
+      "y": -1.5,
+      "shape": "square",
+      "dependencies": [
+        "seeds"
+      ],
+      "tasks": [
+        {
+          "id": "cane",
+          "type": "item",
+          "item": "minecraft:sugar_cane",
+          "count": 16
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 20
+        }
+      ]
+    },
+    {
+      "id": "breed",
+      "title": "Two by two",
+      "description": [
+        "Feed two animals of the same kind their favourite food: wheat for cows and sheep, carrots for pigs, seeds for chickens."
+      ],
+      "icon": "minecraft:lead",
+      "x": 2,
+      "y": 1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "seeds"
+      ],
+      "tasks": [
+        {
+          "id": "breed",
+          "type": "advancement",
+          "advancement": "minecraft:husbandry/breed_an_animal"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "leads",
+          "type": "item",
+          "item": "minecraft:lead",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "leather",
+      "title": "Leather",
+      "description": [
+        "Cows drop leather. It makes books, item frames and light armour."
+      ],
+      "x": 4,
+      "y": 1.5,
+      "shape": "square",
+      "dependencies": [
+        "breed"
+      ],
+      "tasks": [
+        {
+          "id": "leather",
+          "type": "item",
+          "item": "minecraft:leather",
+          "count": 8
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 25
+        }
+      ]
+    },
+    {
+      "id": "cake",
+      "title": "A cake",
+      "description": [
+        "Milk, sugar, an egg and wheat. Place it and take a slice whenever you are hungry."
+      ],
+      "x": 4,
+      "y": -1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "wheat",
+        "sugar_cane"
+      ],
+      "tasks": [
+        {
+          "id": "cake",
+          "type": "craft",
+          "item": "minecraft:cake"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "fishing",
+      "title": "Gone fishing",
+      "description": [
+        "Sticks and string make a fishing rod. Cast it into water and pull when the float dips."
+      ],
+      "icon": "minecraft:fishing_rod",
+      "x": 4,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "wheat"
+      ],
+      "tasks": [
+        {
+          "id": "fish",
+          "type": "advancement",
+          "advancement": "minecraft:husbandry/fishy_business"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "cod",
+          "type": "item",
+          "item": "minecraft:cooked_cod",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "golden_carrots",
+      "title": "The best food",
+      "description": [
+        "A carrot wrapped in gold nuggets: the most filling food you can farm."
+      ],
+      "x": 6,
+      "y": 0,
+      "shape": "diamond",
+      "dependencies": [
+        "cake",
+        "fishing"
+      ],
+      "tasks": [
+        {
+          "id": "carrots",
+          "type": "craft",
+          "item": "minecraft:golden_carrot",
+          "count": 8
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "tame",
+      "title": "A friend",
+      "subtitle": "Optional",
+      "description": [
+        "Tame a wolf with bones, or a cat with raw fish. It follows you and fights by your side."
+      ],
+      "icon": "minecraft:bone",
+      "x": 6,
+      "y": 1.5,
+      "shape": "square",
+      "optional": true,
+      "dependencies": [
+        "leather"
+      ],
+      "tasks": [
+        {
+          "id": "tame",
+          "type": "advancement",
+          "advancement": "minecraft:husbandry/tame_an_animal"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "bones",
+          "type": "item",
+          "item": "minecraft:bone",
+          "count": 8
+        }
+      ]
+    }
+  ]
+}

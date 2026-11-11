@@ -1,0 +1,309 @@
+{
+  "id": "diamonds",
+  "title": "Diamonds",
+  "icon": "minecraft:diamond",
+  "group": "main",
+  "quests": [
+    {
+      "id": "deepslate",
+      "title": "The deep dark rock",
+      "description": [
+        "Below level 0 the stone turns to deepslate: harder to mine, and home to the best ores.",
+        "Mine your way down and bring some back."
+      ],
+      "x": 0,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "iron_age/iron_block"
+      ],
+      "tasks": [
+        {
+          "id": "deepslate",
+          "type": "item",
+          "item": "minecraft:cobbled_deepslate",
+          "count": 32
+        }
+      ],
+      "rewards": [
+        {
+          "id": "torches",
+          "type": "item",
+          "item": "minecraft:torch",
+          "count": 32
+        }
+      ]
+    },
+    {
+      "id": "diamonds",
+      "title": "Diamonds!",
+      "description": [
+        "Diamond ore sparkles pale blue, mostly very deep down. Only an iron pickaxe or better can break it."
+      ],
+      "x": 2,
+      "y": 0,
+      "shape": "diamond",
+      "dependencies": [
+        "deepslate"
+      ],
+      "tasks": [
+        {
+          "id": "diamonds",
+          "type": "item",
+          "item": "minecraft:diamond",
+          "count": 3
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "diamond_pickaxe",
+      "title": "The best pickaxe",
+      "description": [
+        "Three diamonds and two sticks. This pickaxe can mine obsidian."
+      ],
+      "x": 4,
+      "y": -1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "diamonds"
+      ],
+      "tasks": [
+        {
+          "id": "pickaxe",
+          "type": "item",
+          "item": "minecraft:diamond_pickaxe"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "id": "obsidian",
+      "title": "Obsidian",
+      "description": [
+        "Pour water over still lava and mine the obsidian with your diamond pickaxe. Ten blocks build a portal."
+      ],
+      "x": 6,
+      "y": -1.5,
+      "shape": "square",
+      "dependencies": [
+        "diamond_pickaxe"
+      ],
+      "tasks": [
+        {
+          "id": "obsidian",
+          "type": "item",
+          "item": "minecraft:obsidian",
+          "count": 10
+        }
+      ],
+      "rewards": [
+        {
+          "id": "flint_and_steel",
+          "type": "item",
+          "item": "minecraft:flint_and_steel"
+        }
+      ]
+    },
+    {
+      "id": "diamond_sword",
+      "title": "A sharper edge",
+      "description": [
+        "Two diamonds and a stick. Nothing in the Overworld stands up to it for long."
+      ],
+      "x": 4,
+      "y": 1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "diamonds"
+      ],
+      "tasks": [
+        {
+          "id": "sword",
+          "type": "item",
+          "item": "minecraft:diamond_sword"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 40
+        }
+      ]
+    },
+    {
+      "id": "diamond_armor",
+      "title": "Diamond-clad",
+      "description": [
+        "A full set of diamond armour. You will want it where you are going next."
+      ],
+      "icon": "minecraft:diamond_chestplate",
+      "x": 6,
+      "y": 1.5,
+      "shape": "circle",
+      "dependencies": [
+        "diamond_sword"
+      ],
+      "tasks": [
+        {
+          "id": "helmet",
+          "type": "item",
+          "item": "minecraft:diamond_helmet"
+        },
+        {
+          "id": "chestplate",
+          "type": "item",
+          "item": "minecraft:diamond_chestplate"
+        },
+        {
+          "id": "leggings",
+          "type": "item",
+          "item": "minecraft:diamond_leggings"
+        },
+        {
+          "id": "boots",
+          "type": "item",
+          "item": "minecraft:diamond_boots"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 3
+        }
+      ]
+    },
+    {
+      "id": "enchanting_table",
+      "title": "A table of spells",
+      "description": [
+        "A book, two diamonds and four obsidian make an enchanting table. Lapis lazuli pays for the spells."
+      ],
+      "x": 8,
+      "y": -1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "obsidian"
+      ],
+      "tasks": [
+        {
+          "id": "table",
+          "type": "item",
+          "item": "minecraft:enchanting_table"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "lapis",
+          "type": "item",
+          "item": "minecraft:lapis_lazuli",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "bookshelves",
+      "title": "A proper library",
+      "description": [
+        "Fifteen bookshelves around the table, one block away, unlock the strongest enchantments."
+      ],
+      "x": 10,
+      "y": -1.5,
+      "shape": "square",
+      "dependencies": [
+        "enchanting_table"
+      ],
+      "tasks": [
+        {
+          "id": "shelves",
+          "type": "item",
+          "item": "minecraft:bookshelf",
+          "count": 15
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 5
+        }
+      ]
+    },
+    {
+      "id": "enchant",
+      "title": "Enchanter",
+      "description": [
+        "Put a tool or a piece of armour on the table and pick an enchantment."
+      ],
+      "icon": "minecraft:enchanted_book",
+      "x": 10,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "enchanting_table"
+      ],
+      "tasks": [
+        {
+          "id": "enchant",
+          "type": "advancement",
+          "advancement": "minecraft:story/enchant_item"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "bottles",
+          "type": "item",
+          "item": "minecraft:experience_bottle",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "ready_for_nether",
+      "title": "Ready for the heat",
+      "description": [
+        "Obsidian, enchanted gear, diamond armour: you have everything you need to open a portal to the Nether.",
+        "Build a frame of obsidian, four wide and five tall, and light it."
+      ],
+      "icon": "minecraft:flint_and_steel",
+      "x": 12,
+      "y": 0,
+      "shape": "hexagon",
+      "size": 1.5,
+      "dependencies": [
+        "bookshelves",
+        "enchant",
+        "diamond_armor"
+      ],
+      "tasks": [
+        {
+          "id": "ready",
+          "type": "checkmark",
+          "title": "I am ready"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "golden_apples",
+          "type": "item",
+          "item": "minecraft:golden_apple",
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

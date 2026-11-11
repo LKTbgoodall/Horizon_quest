@@ -21,17 +21,42 @@ fn example() -> Book {
 fn the_example_pack_is_sound() {
     let book = example();
     let chapters: Vec<&str> = book.file().chapters.iter().map(|c| c.id.as_str()).collect();
-    assert_eq!(chapters, ["getting_started", "further_afield"]);
-    assert_eq!((book.chapter_nodes(0).len(), book.chapter_nodes(1).len()), (11, 6));
+    assert_eq!(
+        chapters,
+        ["getting_started", "further_afield", "iron_age", "diamonds", "the_nether", "the_end", "beyond", "farming", "monsters"]
+    );
+    let sizes: Vec<usize> = (0..chapters.len()).map(|c| book.chapter_nodes(c).len()).collect();
+    assert_eq!(sizes, [11, 6, 8, 10, 10, 8, 11, 9, 8]);
+    // The main story, from the first tree to the dragon and beyond, then the side paths.
+    let groups: Vec<(&str, Vec<&str>)> = book
+        .file()
+        .settings
+        .groups
+        .iter()
+        .map(|g| {
+            let members = book.file().chapters.iter().filter(|c| c.group.as_deref() == Some(g.id.as_str())).map(|c| c.id.as_str());
+            (g.title.as_str(), members.collect())
+        })
+        .collect();
+    assert_eq!(
+        groups,
+        [
+            ("Main story", vec!["getting_started", "iron_age", "diamonds", "the_nether", "the_end", "beyond"]),
+            ("Side paths", vec!["further_afield", "farming", "monsters"]),
+        ]
+    );
     let tables: Vec<&str> = book.file().reward_tables.iter().map(|t| t.id.as_str()).collect();
     assert_eq!(tables, ["baker_loot", "seasoned_choice"]);
 
-    // A new player sees every quest but the last of the first chapter (a
-    // surprise), and only the first is open.
+    // A new player sees every quest but the surprises that end a chapter,
+    // and only the first is open.
     let statuses = book.statuses(&Progress::default(), "steve");
     let hidden: Vec<&str> =
         (0..statuses.len()).filter(|&n| !statuses[n].visible).map(|n| book.nodes()[n].id.as_str()).collect();
-    assert_eq!(hidden, ["getting_started/settled"]);
+    assert_eq!(
+        hidden,
+        ["getting_started/settled", "the_nether/nether_done", "the_end/credits", "beyond/master", "monsters/hunter"]
+    );
     let open: Vec<&str> = (0..statuses.len())
         .filter(|&n| statuses[n].state != QuestState::Locked)
         .map(|n| book.nodes()[n].id.as_str())
@@ -99,7 +124,7 @@ fn the_example_pack_can_be_finished() {
     }
     play(&mut progress, QuestEvent::ClaimAll);
 
-    for chapter in ["getting_started", "further_afield"] {
+    for chapter in book.file().chapters.iter().map(|c| c.id.as_str()) {
         let done = Effect::ChapterCompleted { chapter: chapter.into() };
         assert_eq!(effects.iter().filter(|e| **e == done).count(), 1, "{chapter}");
     }
@@ -110,4 +135,19 @@ fn the_example_pack_can_be_finished() {
     assert!(!effects.iter().any(|e| matches!(e, Effect::Reward { kind, .. } if kind.table().is_some())));
     // The repeatable quest is still inside its cooldown: everything shows as done.
     assert!(book.statuses(&progress, "steve").iter().all(|s| s.visible && s.state == QuestState::Done));
+}
+
+#[test]
+fn the_server_embeds_every_chapter_of_the_example_pack() {
+    // The built-in pack is read from `native_data!` lines in the server glue,
+    // one per file: a chapter file left out of them would never load in game.
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("mixins/horizon_quests");
+    let glue = std::fs::read_to_string(root.join("hq_server_glue.rs")).unwrap();
+    for folder in ["chapters", "reward_tables"] {
+        for entry in std::fs::read_dir(root.join("data/quests").join(folder)).unwrap() {
+            let name = entry.unwrap().file_name().into_string().unwrap();
+            let line = format!("\"quests/{folder}/{name}\"");
+            assert!(glue.contains(&line), "{line} is not embedded");
+        }
+    }
 }

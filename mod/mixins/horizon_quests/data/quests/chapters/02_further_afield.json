@@ -3,7 +3,7 @@
   "title": "Further afield",
   "subtitle": "Things to do once you have a base",
   "icon": "minecraft:compass",
-  "group": "exploration",
+  "group": "side",
   "quests": [
     {
       "id": "baker",

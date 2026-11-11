@@ -1,0 +1,241 @@
+{
+  "id": "the_end",
+  "title": "The End",
+  "icon": "minecraft:end_stone",
+  "group": "main",
+  "quests": [
+    {
+      "id": "pearls",
+      "title": "Ender pearls",
+      "description": [
+        "Endermen drop pearls. Do not look them in the eye unless you are ready for a fight. Twelve should be plenty."
+      ],
+      "x": 0,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "the_nether/nether_done"
+      ],
+      "tasks": [
+        {
+          "id": "pearls",
+          "type": "item",
+          "item": "minecraft:ender_pearl",
+          "count": 12
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 40
+        }
+      ]
+    },
+    {
+      "id": "eyes",
+      "title": "Eyes of Ender",
+      "description": [
+        "A pearl and blaze powder make an eye of Ender. Throw one in the air and it flies towards a stronghold."
+      ],
+      "icon": "minecraft:ender_eye",
+      "x": 2,
+      "y": 0,
+      "shape": "square",
+      "dependencies": [
+        "pearls"
+      ],
+      "tasks": [
+        {
+          "id": "eyes",
+          "type": "craft",
+          "item": "minecraft:ender_eye",
+          "count": 12
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 40
+        }
+      ]
+    },
+    {
+      "id": "bow",
+      "title": "Something for range",
+      "subtitle": "Optional",
+      "description": [
+        "The dragon heals from crystals on top of the obsidian pillars. A bow and plenty of arrows will take them down."
+      ],
+      "icon": "minecraft:bow",
+      "x": 2,
+      "y": -1.5,
+      "shape": "hexagon",
+      "optional": true,
+      "dependencies": [
+        "pearls"
+      ],
+      "tasks": [
+        {
+          "id": "bow",
+          "type": "item",
+          "item": "minecraft:bow"
+        },
+        {
+          "id": "arrows",
+          "type": "item",
+          "item": "minecraft:arrow",
+          "count": 64
+        }
+      ],
+      "rewards": [
+        {
+          "id": "arrows",
+          "type": "item",
+          "item": "minecraft:arrow",
+          "count": 32
+        }
+      ]
+    },
+    {
+      "id": "stronghold",
+      "title": "The stronghold",
+      "description": [
+        "Follow the eyes to where they dive into the ground, dig down, and find the portal room."
+      ],
+      "icon": "minecraft:mossy_stone_bricks",
+      "x": 4,
+      "y": 0,
+      "shape": "hexagon",
+      "dependencies": [
+        "eyes"
+      ],
+      "tasks": [
+        {
+          "id": "follow",
+          "type": "advancement",
+          "advancement": "minecraft:story/follow_ender_eye"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "food",
+          "type": "item",
+          "item": "minecraft:cooked_beef",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "enter_end",
+      "title": "The End",
+      "description": [
+        "Fill the portal frame with eyes and jump in. There is no way back until the dragon falls."
+      ],
+      "icon": "minecraft:end_portal_frame",
+      "x": 6,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "stronghold"
+      ],
+      "tasks": [
+        {
+          "id": "arrive",
+          "type": "dimension",
+          "dimension": "minecraft:the_end"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "dragon",
+      "title": "Free the End",
+      "description": [
+        "Break the crystals, then bring down the Ender Dragon."
+      ],
+      "icon": "minecraft:dragon_head",
+      "x": 8,
+      "y": 0,
+      "shape": "diamond",
+      "size": 1.5,
+      "dependencies": [
+        "enter_end"
+      ],
+      "tasks": [
+        {
+          "id": "dragon",
+          "type": "advancement",
+          "advancement": "minecraft:end/kill_dragon"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "bottles",
+          "type": "item",
+          "item": "minecraft:experience_bottle",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "dragon_egg",
+      "title": "The next generation",
+      "subtitle": "Optional",
+      "description": [
+        "The dragon leaves an egg on the portal. It teleports when touched: push it off with a piston, or catch it as it falls onto a torch."
+      ],
+      "icon": "minecraft:dragon_egg",
+      "x": 10,
+      "y": -1.5,
+      "shape": "square",
+      "optional": true,
+      "dependencies": [
+        "dragon"
+      ],
+      "tasks": [
+        {
+          "id": "egg",
+          "type": "advancement",
+          "advancement": "minecraft:end/dragon_egg"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "credits",
+      "title": "The end?",
+      "description": [
+        "You have beaten the Ender Dragon. The game is yours, but the End still hides cities and treasure."
+      ],
+      "icon": "minecraft:end_crystal",
+      "x": 10,
+      "y": 0,
+      "shape": "hexagon",
+      "visibility": "until_deps_complete",
+      "dependencies": [
+        "dragon"
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 5
+        }
+      ]
+    }
+  ]
+}

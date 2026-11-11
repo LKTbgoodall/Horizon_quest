@@ -1,0 +1,310 @@
+{
+  "id": "the_nether",
+  "title": "The Nether",
+  "icon": "minecraft:netherrack",
+  "group": "main",
+  "quests": [
+    {
+      "id": "portal",
+      "title": "Through the portal",
+      "description": [
+        "Step through your portal. The Nether is hot, dangerous and full of things the Overworld does not have."
+      ],
+      "icon": "minecraft:obsidian",
+      "x": 0,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "diamonds/ready_for_nether"
+      ],
+      "tasks": [
+        {
+          "id": "arrive",
+          "type": "dimension",
+          "dimension": "minecraft:the_nether"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "welcome",
+          "type": "toast",
+          "title": "Welcome to the Nether",
+          "text": "Mind the lava.",
+          "auto_claim": "enabled"
+        },
+        {
+          "id": "carrots",
+          "type": "item",
+          "item": "minecraft:golden_carrot",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "quartz",
+      "title": "Nether quartz",
+      "description": [
+        "White ore all through the netherrack. It gives a lot of experience and makes fine building blocks."
+      ],
+      "x": 2,
+      "y": -1.5,
+      "shape": "square",
+      "dependencies": [
+        "portal"
+      ],
+      "tasks": [
+        {
+          "id": "quartz",
+          "type": "item",
+          "item": "minecraft:quartz",
+          "count": 16
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 30
+        }
+      ]
+    },
+    {
+      "id": "gold",
+      "title": "Piglins love gold",
+      "description": [
+        "Piglins attack anyone not wearing gold. Wear a piece of golden armour, and bring gold to trade."
+      ],
+      "icon": "minecraft:gold_ingot",
+      "x": 2,
+      "y": 1.5,
+      "shape": "square",
+      "dependencies": [
+        "portal"
+      ],
+      "tasks": [
+        {
+          "id": "gold",
+          "type": "item",
+          "item": "minecraft:gold_ingot",
+          "count": 8
+        },
+        {
+          "id": "helmet",
+          "type": "item",
+          "item": "minecraft:golden_helmet"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 30
+        }
+      ]
+    },
+    {
+      "id": "barter",
+      "title": "Bargain",
+      "subtitle": "Optional",
+      "description": [
+        "Throw a gold ingot to a piglin and see what it gives you back."
+      ],
+      "icon": "minecraft:gold_nugget",
+      "x": 4,
+      "y": 2.5,
+      "shape": "diamond",
+      "optional": true,
+      "dependencies": [
+        "gold"
+      ],
+      "tasks": [
+        {
+          "id": "barter",
+          "type": "advancement",
+          "advancement": "minecraft:nether/distract_piglin"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "pearls",
+          "type": "item",
+          "item": "minecraft:ender_pearl",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "fortress",
+      "title": "A fortress",
+      "description": [
+        "Nether fortresses are dark brick strongholds over the lava seas. Find one."
+      ],
+      "icon": "minecraft:nether_bricks",
+      "x": 4,
+      "y": 0,
+      "shape": "hexagon",
+      "dependencies": [
+        "quartz",
+        "gold"
+      ],
+      "tasks": [
+        {
+          "id": "fortress",
+          "type": "advancement",
+          "advancement": "minecraft:nether/find_fortress"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "blaze_rods",
+      "title": "Into the fire",
+      "description": [
+        "Blazes guard the fortress. Defeat them for their rods: you will need them to brew, and to reach the End."
+      ],
+      "icon": "minecraft:blaze_rod",
+      "x": 6,
+      "y": -1.5,
+      "shape": "hexagon",
+      "dependencies": [
+        "fortress"
+      ],
+      "tasks": [
+        {
+          "id": "blazes",
+          "type": "kill",
+          "entity": "minecraft:blaze",
+          "count": 3
+        },
+        {
+          "id": "rods",
+          "type": "item",
+          "item": "minecraft:blaze_rod",
+          "count": 6
+        }
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 2
+        }
+      ]
+    },
+    {
+      "id": "nether_wart",
+      "title": "Nether wart",
+      "description": [
+        "Red fungus growing on soul sand in the fortress. It is the base of almost every potion."
+      ],
+      "x": 6,
+      "y": 1.5,
+      "shape": "square",
+      "dependencies": [
+        "fortress"
+      ],
+      "tasks": [
+        {
+          "id": "wart",
+          "type": "item",
+          "item": "minecraft:nether_wart",
+          "count": 8
+        }
+      ],
+      "rewards": [
+        {
+          "id": "xp",
+          "type": "xp",
+          "points": 25
+        }
+      ]
+    },
+    {
+      "id": "brewing_stand",
+      "title": "The alchemist's stand",
+      "description": [
+        "A blaze rod and three cobblestone make a brewing stand."
+      ],
+      "x": 8,
+      "y": 0,
+      "shape": "circle",
+      "dependencies": [
+        "blaze_rods",
+        "nether_wart"
+      ],
+      "tasks": [
+        {
+          "id": "stand",
+          "type": "item",
+          "item": "minecraft:brewing_stand"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "bottles",
+          "type": "item",
+          "item": "minecraft:glass_bottle",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "id": "potion",
+      "title": "Local brewery",
+      "description": [
+        "Fill bottles with water, add nether wart, then an ingredient: a potion of fire resistance is a good start (magma cream)."
+      ],
+      "icon": "minecraft:potion",
+      "x": 10,
+      "y": 0,
+      "shape": "diamond",
+      "dependencies": [
+        "brewing_stand"
+      ],
+      "tasks": [
+        {
+          "id": "brew",
+          "type": "advancement",
+          "advancement": "minecraft:nether/brew_potion"
+        }
+      ],
+      "rewards": [
+        {
+          "id": "blaze_powder",
+          "type": "item",
+          "item": "minecraft:blaze_powder",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "nether_done",
+      "title": "Eyes on the End",
+      "description": [
+        "You have braved the Nether and come back with blaze rods. Next: the stronghold, and what lies beyond it."
+      ],
+      "icon": "minecraft:ender_eye",
+      "x": 12,
+      "y": 0,
+      "shape": "hexagon",
+      "visibility": "until_deps_complete",
+      "size": 1.5,
+      "dependencies": [
+        "potion"
+      ],
+      "rewards": [
+        {
+          "id": "levels",
+          "type": "xp_levels",
+          "levels": 3
+        }
+      ]
+    }
+  ]
+}
