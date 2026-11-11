@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.7.7
+- Bigger count digits (4.2 x 5.6 GUI pixels a cell instead of 3.3 x 4.4).
+
 ## 0.7.6
 - Counts: smooth anti-aliased digits from a texture (`textures/gui/digits.png`, made by `tools/make-digit-textures.py`), white with a dark edge; the half-pixel digits stay as the fallback without the content half.
 

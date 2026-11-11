@@ -1356,8 +1356,8 @@ pub const DIGIT_SPRITE: &str = "horizon_quests:gui/digits";
 pub const DIGIT_CELL: [f32; 2] = [24.0, 32.0];
 /// A digit's cell on screen, in GUI pixels, and the step from one digit to
 /// the next (the cells overlap where they are clear).
-const DIGIT_SIZE: [f32; 2] = [3.3, 4.4];
-const DIGIT_STEP: f32 = 2.5;
+const DIGIT_SIZE: [f32; 2] = [4.2, 5.6];
+const DIGIT_STEP: f32 = 3.2;
 
 /// A count in small smooth white digits with a dark edge (the digit
 /// sprite), in the bottom-right corner of the 16-pixel icon at `icon`, as
@@ -1368,7 +1368,7 @@ fn count_draws(count: &str, icon: [f32; 2]) -> Vec<Draw> {
     let digits: Vec<usize> = count.chars().filter_map(|c| c.to_digit(10)).map(|d| d as usize).collect();
     let n = digits.len() as f32;
     // The last cell's right edge: its digit ends about at the icon's edge.
-    let right = icon[0] + 17.3;
+    let right = icon[0] + 17.0;
     let top = icon[1] + 16.6 - DIGIT_SIZE[1];
     let left = right - DIGIT_SIZE[0] - (n - 1.0) * DIGIT_STEP;
     let mut fallback = Some(count_pixel_draws(count, icon));
