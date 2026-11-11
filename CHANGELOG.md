@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.11
+- Node frames: every shape's border (outline, ring, inner shadow) is half as thick; the nodes keep their size and their face is larger. The locked veil follows the face.
+
 ## 0.8.10
 - No band at the top: the canvas starts at the window's top. The bottom band holds the chapter's name and tally, "Claim all", the last notice, the party, the help ("drag: move | wheel: zoom") and the close button. The chapter subtitle is no longer shown.
 - The closed chapter list's strip is 18 pixels wide (was 10) and more see-through, and is not drawn while the list is open (it showed through the panel).

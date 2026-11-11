@@ -75,15 +75,16 @@ def depth(shape, x, y):
 # Ring depths (from the edge, in 32-unit units): the outline, the coloured
 # ring (its inner band in the plain colour), the inner shadow; the face
 # starts after. Shapes other than the square have a thicker ring, so they
-# read as boldly as the square's straight sides; the book draws the
+# read as boldly as the square's straight sides (all of them half as
+# thick as before v0.8.11, the node the same size); the book draws the
 # hexagon and the diamond bigger (`hq_book::shape_look`), so their ring is
 # thinner in units, to look as thick on screen as the circle's. The third
 # value is `hq_book::face_share`'s.
 RINGS = {
-    "square": (1.0, 2.5, 3.5, 4.5),
-    "circle": (1.3, 3.4, 4.6, 5.6),
-    "hexagon": (1.15, 3.05, 4.15, 5.05),
-    "diamond": (0.95, 2.45, 3.3, 4.0),
+    "square": (0.5, 1.25, 1.75, 2.25),
+    "circle": (0.65, 1.7, 2.3, 2.8),
+    "hexagon": (0.575, 1.525, 2.075, 2.525),
+    "diamond": (0.475, 1.225, 1.65, 2.0),
 }
 
 

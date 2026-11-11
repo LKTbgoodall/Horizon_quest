@@ -331,10 +331,10 @@ fn face_share(shape: Shape) -> f32 {
         Shape::Hexagon => 0.866,
     };
     let ring = match shape {
-        Shape::Square => 3.5,
-        Shape::Circle => 4.6,
-        Shape::Hexagon => 4.15,
-        Shape::Diamond => 3.3,
+        Shape::Square => 1.75,
+        Shape::Circle => 2.3,
+        Shape::Hexagon => 2.075,
+        Shape::Diamond => 1.65,
     };
     1.0 - (ring / 16.0) / apothem
 }
