@@ -20,7 +20,7 @@ Tick in order. Claude prepares and checks; Bastien tests in game, decides and se
 - [x] Root `README.md`: what the mod does, commands, building.
 - [x] `docs/making-quests.md`: the pack format for pack makers.
 - [x] `CHANGELOG.md`.
-- [ ] Screenshots in the README (Bastien takes them, see `registry-entry.md`).
+- [x] Screenshots in the README: six taken by Bastien 2026-11-11, in `docs/images/` (see `registry-entry.md`).
 
 ## 4. Re-pin on a recent Horizon (Bastien, then Claude)
 - [x] How the content half is published: one `.hmod` with content and code, which Horizon `main` supports ([ADR-014](../vault/05%20-%20Decisions/ADR-014%20Publish%20one%20hmod%20with%20content%20and%20code.md)).

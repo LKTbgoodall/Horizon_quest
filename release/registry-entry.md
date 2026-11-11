@@ -36,13 +36,16 @@ A quest book in the spirit of FTB Quests: chapters, quests, tasks, rewards and p
 Solo and LAN. Every player needs the mod. Dedicated servers are planned. Needs a launcher that reads native `.hmod` files (a recent one).
 ```
 
-## Screenshots to take in game (for the description and the README)
+## Screenshots (taken 2026-11-11, in `docs/images/`, shown in the README)
 
-1. The book on "Getting started", a quest under the pointer (cyan and yellow lines).
-2. A quest window with tasks done (checks) and a reward waiting ("!").
-3. The choice window.
-4. The tracked quest in the top-left corner while playing.
-5. A party: two players' books with "Party ..." in the header.
+1. `book-overview.png`: the book on "Getting started".
+2. `book-hover.png`: a quest under the pointer (cyan and yellow lines, its title).
+3. `quest-window.png`: a quest window with a task done and a reward waiting ("!").
+4. `choice-window.png`: the choice window (taken before 0.10.7 made it opaque).
+5. `chapter-list.png`: the chapter list, names green / blue / grey, a "!".
+6. `tracked-quest.png`: the tracked quest in the top-left corner while playing.
+
+For the form's description, link them from the GitHub repository (`https://raw.githubusercontent.com/LKTbgoodall/Horizon_quest/main/docs/images/<file>`) if it takes images.
 
 ## Open points before sending
 

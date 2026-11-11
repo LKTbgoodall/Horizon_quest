@@ -2,6 +2,8 @@
 
 A quest book for [Horizon](https://playhorizon.dev), the Rust rewrite of Minecraft: Java Edition 26.3, in the spirit of FTB Quests: chapters of quests linked by dependencies, tasks to do, rewards to claim, and parties that share their progress. It is a native Horizon mod written from scratch in Rust: it contains no FTB Quests code, text or assets.
 
+![The quest book on its first chapter](docs/images/book-overview.png)
+
 ## What it does
 
 - **A graphical quest book**, opened with a key (K by default) or by right-clicking the **Quest Book** every player gets on their first join. Chapters in a sidebar, quests as framed nodes on a canvas you can drag and zoom, dependency lines of small chevrons and beads pointing to what each quest opens (green once done). The pointer on a quest lights up what it needs (cyan) and what it opens (yellow).
@@ -14,6 +16,15 @@ A quest book for [Horizon](https://playhorizon.dev), the Rust rewrite of Minecra
 - **Packs** in the world's folder or in **data packs**, checked on load with a report of every problem, and reloaded with `/quests reload` or `/reload`.
 - **Settings** for the server (`config/horizon_quests-server.toml`) and for each player (`config/horizon_quests-client.toml`).
 - Solo and LAN. Dedicated servers are planned.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![A quest under the pointer: what it needs in cyan, what it opens in yellow](docs/images/book-hover.png) | ![A quest window: a task done, a reward waiting](docs/images/quest-window.png) |
+| ![Choosing one reward](docs/images/choice-window.png) | ![The chapter list: done in green, started in blue, a "!" where rewards wait](docs/images/chapter-list.png) |
+
+![The tracked quest in the corner of the screen](docs/images/tracked-quest.png)
 
 ## Making quests
 
