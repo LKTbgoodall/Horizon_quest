@@ -3,10 +3,10 @@
 Tick in order. Claude prepares and checks; Bastien tests in game, decides and sends.
 
 ## 1. Everything works in game (Bastien)
-- [ ] `git pull`, `tools\build-mod.ps1`: the build succeeds.
-- [ ] The look of 0.6.0 to 0.7.3 in game: node frames, chevron lines and their colours, selection corners, the quest window (icons, checks, "!", counts, tooltips, pin), the choice window. Screenshots of anything odd.
+- [x] `git pull`, `tools\build-mod.ps1`: the build succeeds (2026-11-11, v0.10.x).
+- [x] (2026-11-11, seen through v0.10.7) The look of 0.6.0 to 0.7.3 in game: node frames, chevron lines and their colours, selection corners, the quest window (icons, checks, "!", counts, tooltips, pin), the choice window. Screenshots of anything odd.
 - [ ] The server settings never tried: `completion_messages = false`, `parties = false`, `party_size = 2`, `detection_delay = 200` (the README checklist says how).
-- [ ] A full playthrough of both example chapters in a new world, solo.
+- [x] A full playthrough of both example chapters in a new world, solo (Bastien, 2026-11-11: "everything works").
 - [ ] A short LAN session: a party, a shared task, a team reward if a pack has one.
 - [ ] Leave and rejoin worlds a few times: progress, tracked quest and party come back.
 
