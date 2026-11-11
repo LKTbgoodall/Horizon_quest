@@ -254,9 +254,24 @@ fn darker(colour: u32) -> u32 {
 }
 
 /// A shape filled with `colour`, as quads.
+/// How a shape is drawn against a square of the same `size`: how much
+/// bigger (a circle or a diamond inside the square's box looks smaller than
+/// the square) and the share of the drawn box its icon takes (what room the
+/// face leaves inside the ring, with a margin).
+fn shape_look(shape: Shape) -> (f32, f32) {
+    match shape {
+        Shape::Square => (1.0, 0.6),
+        Shape::Circle => (1.15, 0.52),
+        Shape::Hexagon => (1.15, 0.46),
+        Shape::Octagon => (1.08, 0.55),
+        Shape::Diamond => (1.5, 0.32),
+    }
+}
+
 /// The share of a node's radius that is the frame's face, inside its ring
-/// (`tools/make-node-textures.py`: the face starts 3.5 pixels in from the
-/// edge of a 32-pixel cell, measured square to each side).
+/// (`tools/make-node-textures.py`: the face starts 3.5 units in from the
+/// edge of a 32-unit cell for the square, 4.6 for the other shapes, whose
+/// ring is thicker, measured square to each side).
 fn face_share(shape: Shape) -> f32 {
     // The ratio of each shape's apothem to the radius `shape_points` takes.
     let apothem = match shape {
@@ -265,7 +280,8 @@ fn face_share(shape: Shape) -> f32 {
         Shape::Hexagon => 0.866,
         Shape::Octagon => 0.924,
     };
-    1.0 - (3.5 / 16.0) / apothem
+    let ring = if shape == Shape::Square { 3.5 } else { 4.6 };
+    1.0 - (ring / 16.0) / apothem
 }
 
 fn polygon_draws(shape: Shape, centre: [f32; 2], radius: f32, colour: u32) -> Vec<Draw> {
@@ -275,7 +291,7 @@ fn polygon_draws(shape: Shape, centre: [f32; 2], radius: f32, colour: u32) -> Ve
 /// The node frames' sprite sheet (`tools/make-node-textures.py`): a row per
 /// shape, a column per state, each cell `NODE_CELL` pixels square.
 pub const NODE_SPRITE: &str = "horizon_quests:gui/nodes";
-const NODE_CELL: f32 = 32.0;
+const NODE_CELL: f32 = 64.0;
 
 /// The cell of the node sprite sheet for a node of this shape and state.
 pub fn node_cell(shape: Shape, state: QuestState) -> [f32; 4] {
@@ -469,9 +485,9 @@ pub fn state_look(state: QuestState) -> (u32, &'static str) {
 }
 
 /// A node's box on screen.
-fn node_box(view: &View, origin: [f32; 2], quest: &Quest, size: f32) -> [f32; 4] {
+fn node_box(view: &View, origin: [f32; 2], quest: &Quest, shape: Shape, size: f32) -> [f32; 4] {
     let [sx, sy] = view.to_screen(origin, canvas::cell_centre([quest.x, quest.y]));
-    let side = canvas::NODE * size * view.zoom;
+    let side = canvas::NODE * size * shape_look(shape).0 * view.zoom;
     [sx - side / 2.0, sy - side / 2.0, side, side]
 }
 
@@ -732,7 +748,7 @@ impl BookView {
             .iter()
             .copied()
             .filter(|&n| {
-                let b = node_box(&self.view, origin, book.quest(n), book.nodes()[n].size);
+                let b = node_box(&self.view, origin, book.quest(n), book.nodes()[n].shape, book.nodes()[n].size);
                 intersect(b, area).is_some_and(|part| canvas::inside(part, s.mouse))
             })
             .last();
@@ -781,7 +797,7 @@ impl BookView {
         for &n in &shown {
             let node = &book.nodes()[n];
             let quest = book.quest(n);
-            let at_rest = node_box(&self.view, origin, quest, node.size);
+            let at_rest = node_box(&self.view, origin, quest, node.shape, node.size);
             // Only the part of the node inside the canvas takes clicks.
             let Some(part) = intersect(at_rest, area) else {
                 continue;
@@ -795,8 +811,8 @@ impl BookView {
             let mut fallback = polygon_draws(node.shape, centre, radius, state_look(state).0);
             fallback.extend(polygon_draws(node.shape, centre, (radius - 1.5).max(0.0), NODE_FILL));
             scene.draws.push(Draw::Sprite { name: NODE_SPRITE.to_owned(), src: node_cell(node.shape, state), dst: b, fallback });
-            // A diamond has less room inside than the other shapes.
-            let share = if node.shape == Shape::Diamond { 0.45 } else { 0.6 };
+            // Each shape has its own room inside.
+            let share = shape_look(node.shape).1;
             let icon = (b[2] * share).clamp(4.0, 64.0);
             let at = [centre[0] - icon / 2.0, centre[1] - icon / 2.0];
             if contains(area, [at[0], at[1], icon, icon]) {
@@ -807,9 +823,10 @@ impl BookView {
                     scene.draws.extend(polygon_draws(node.shape, centre, radius * face_share(node.shape), LOCKED_VEIL));
                 }
             }
-            // And a small padlock on its bottom-right corner.
+            // And a small padlock on the bottom-right corner of the box a
+            // square of the same size would have: the same padlock for all shapes.
             if state == QuestState::Locked {
-                if let lock @ Draw::Sprite { dst, .. } = lock_draws(b)
+                if let lock @ Draw::Sprite { dst, .. } = lock_draws(grow(b, 1.0 / shape_look(node.shape).0))
                     && contains(area, dst)
                 {
                     scene.draws.push(lock);
@@ -2531,7 +2548,7 @@ mod tests {
         // The open quest is "available", the other "locked", each in its shape's row.
         let shape = book.nodes()[0].shape;
         assert_eq!(*frames[0].0, node_cell(shape, QuestState::Available));
-        assert_eq!(node_cell(Shape::Octagon, QuestState::Done), [128.0, 128.0, 32.0, 32.0]);
+        assert_eq!(node_cell(Shape::Octagon, QuestState::Done), [256.0, 256.0, 64.0, 64.0]);
         assert!(frames.iter().all(|(_, fallback)| fallback.iter().all(|d| matches!(d, Draw::Quad { .. })) && !fallback.is_empty()));
     }
 

@@ -1,6 +1,7 @@
 """Draws the quest book's node frames: one sprite sheet of 5 shapes x 5 states.
 
-Original pixel art for Horizon Quests (MIT). Each cell is 32 x 32 pixels: a
+Original art for Horizon Quests (MIT). Each cell is 64 x 64 pixels,
+anti-aliased (drawn in 32-pixel units, sampled 4 x 4 times a pixel): a
 dark outline, a bevelled ring in the colour of the quest's state (lighter on
 the top-left half, darker on the bottom-right), a thin inner shadow and the
 node's dark face, where the book draws the quest's icon. Rows are the shapes
@@ -13,7 +14,7 @@ frame lines up with the polygon the book draws when the texture is missing.
     python tools/make-node-textures.py
 
 writes mod/content/assets/horizon_quests/textures/gui/nodes.png (the sprite
-`horizon_quests:gui/nodes`) and build/node_textures_preview.png (8 times
+`horizon_quests:gui/nodes`) and build/node_textures_preview.png (twice as
 larger). No third-party library: the PNG is written with zlib.
 """
 import math
@@ -21,7 +22,9 @@ import os
 import struct
 import zlib
 
-CELL = 32
+CELL = 32  # the geometry is drawn in these units
+OUT = 64  # pixels a cell in the texture
+SAMPLES = 4
 SHAPES = ["square", "circle", "diamond", "hexagon", "octagon"]
 # hq_book::state_look, in NODE_STATES order.
 STATES = [0x50505A, 0xD8D8E0, 0xE8C040, 0x50B8FF, 0x40B050]
@@ -68,38 +71,60 @@ def depth(shape, x, y):
     return inside
 
 
-def cell(shape, state):
+# Ring depths (from the edge, in 32-pixel units): the outline, the coloured
+# ring (its inner band in the plain colour), the inner shadow; the face
+# starts after. Shapes other than the square have a thicker ring, so they
+# read as boldly as the square's straight sides.
+RINGS = {"square": (1.0, 2.5, 3.5, 4.5)}
+OTHER_RINGS = (1.3, 3.4, 4.6, 5.6)
+
+
+def colour_at(shape, state, px, py):
+    """The colour at a point of a 32-unit cell, or None outside."""
     colour = STATES[state]
     light, dark = shade(colour, 1.25), shade(colour, 0.7)
-    pixels = [[None] * CELL for _ in range(CELL)]
-    for y in range(CELL):
-        for x in range(CELL):
-            px, py = x + 0.5, y + 0.5
-            d = depth(shape, px, py)
-            if d < 0:
-                continue
-            if d < 1:
-                pixels[y][x] = OUTLINE
-            elif d < 3.5:
-                top_left = (px - CELL / 2) + (py - CELL / 2) < 0
-                pixels[y][x] = light if top_left else dark
-                if d >= 2.5:
-                    pixels[y][x] = colour
-            elif d < 4.5:
-                pixels[y][x] = SHADOW
-            else:
-                pixels[y][x] = FACE
+    outline, inner, ring, shadow = RINGS.get(shape, OTHER_RINGS)
+    d = depth(shape, px, py)
+    if d < 0:
+        return None
+    if d < outline:
+        return OUTLINE
+    if d < ring:
+        if d >= inner:
+            return colour
+        top_left = (px - CELL / 2) + (py - CELL / 2) < 0
+        return light if top_left else dark
+    if d < shadow:
+        return SHADOW
+    return FACE
+
+
+def cell(shape, state):
+    """The cell's RGBA pixels, OUT pixels square, each sampled 4 x 4 times
+    (smooth slanted edges; the square's straight ones stay sharp)."""
+    scale = CELL / OUT
+    pixels = [[None] * OUT for _ in range(OUT)]
+    for y in range(OUT):
+        for x in range(OUT):
+            r = g = b = n = 0
+            for sy in range(SAMPLES):
+                for sx in range(SAMPLES):
+                    c = colour_at(shape, state, (x + (sx + 0.5) / SAMPLES) * scale, (y + (sy + 0.5) / SAMPLES) * scale)
+                    if c is not None:
+                        r, g, b, n = r + (c >> 16), g + ((c >> 8) & 0xFF), b + (c & 0xFF), n + 1
+            if n:
+                pixels[y][x] = (round(r / n), round(g / n), round(b / n), round(n * 255 / SAMPLES**2))
     return pixels
 
 
 def sheet():
-    size = CELL * len(SHAPES)
+    size = OUT * len(SHAPES)
     img = [[None] * size for _ in range(size)]
     for row, shape in enumerate(SHAPES):
         for col in range(len(STATES)):
             for y, line in enumerate(cell(shape, col)):
                 for x, colour in enumerate(line):
-                    img[row * CELL + y][col * CELL + x] = colour
+                    img[row * OUT + y][col * OUT + x] = colour
     return img
 
 
@@ -108,7 +133,7 @@ def rgba_rows(img, scale=1):
     for line in img:
         row = bytearray()
         for colour in line:
-            pixel = b"\x00\x00\x00\x00" if colour is None else struct.pack(">I", (colour << 8) | 0xFF)
+            pixel = b"\x00\x00\x00\x00" if colour is None else bytes(colour)
             row += pixel * scale
         rows.extend([bytes(row)] * scale)
     return rows
@@ -135,7 +160,7 @@ def main():
     preview = os.path.join(root, "build", "node_textures_preview.png")
     os.makedirs(os.path.dirname(preview), exist_ok=True)
     with open(preview, "wb") as f:
-        f.write(png(rgba_rows(img, 8)))
+        f.write(png(rgba_rows(img, 2)))
     print(out)
     print(preview)
 

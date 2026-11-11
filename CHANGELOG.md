@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.4
+- Node shapes: circles, hexagons and octagons are drawn a little larger and diamonds half as large again, so they weigh as much as a square; their ring is thicker; each shape has its own icon size, with a margin. The frame sheet is 64 pixels a cell, anti-aliased, so slanted edges are smooth.
+
 ## 0.8.3
 - The example chapters use every node shape, to compare them; "Settled in" is an octagon instead of a diamond.
 

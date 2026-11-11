@@ -48,8 +48,8 @@ fn the_node_frames_are_where_the_book_draws_them_from() {
     let (namespace, path) = NODE_SPRITE.split_once(':').unwrap();
     let png = std::fs::read(content().join("assets").join(namespace).join("textures").join(format!("{path}.png"))).unwrap();
     assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
-    // IHDR: 5 shapes x 5 states of 32 x 32 pixels, 8-bit RGBA.
-    assert_eq!(&png[16..24], &[0, 0, 0, 160, 0, 0, 0, 160]);
+    // IHDR: 5 shapes x 5 states of 64 x 64 pixels, 8-bit RGBA.
+    assert_eq!(&png[16..24], &[0, 0, 1, 64, 0, 0, 1, 64]);
     assert_eq!(&png[24..26], &[8, 6]);
 }
 
