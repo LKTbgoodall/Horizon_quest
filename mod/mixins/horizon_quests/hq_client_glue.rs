@@ -262,6 +262,14 @@ pub(super) fn tick(game: &mut Game<'_>) {
             s.greeted = true;
         });
     }
+    // The items' names in the player's language, for the book's tooltips:
+    // once per world, when the game has its item list.
+    if with(|s| s.view.item_names.is_empty())
+        && let Some(all) = game.native_recipes()
+    {
+        let names = all.items.iter().filter(|item| !item.name.is_empty()).map(|item| (item.id.clone(), item.name.clone())).collect();
+        with(|s| s.view.item_names = names);
+    }
     // Items for the tags the book met, from the game's item list.
     let wanted: Vec<String> = with(|s| s.tags_wanted.drain().collect());
     if !wanted.is_empty()

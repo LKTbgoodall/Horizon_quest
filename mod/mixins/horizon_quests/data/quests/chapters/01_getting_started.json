@@ -116,7 +116,7 @@
       "subtitle": "Optional",
       "description": [
         "Zombies leave rotten flesh behind. Hand some in and get something more useful for it.",
-        "This quest takes the items: press Submit while you carry them."
+        "This quest takes the items: click the rotten flesh under Tasks while you carry them."
       ],
       "x": 10, "y": 1,
       "optional": true,
