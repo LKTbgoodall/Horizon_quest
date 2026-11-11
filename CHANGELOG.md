@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.9.5
+- The chevrons no longer stick out of their line: the line is 5 canvas units wide again (its width before 0.9.3) and each chevron is sized from it (1.2 times the width, its stroke spanning 0.8 of that), at every zoom; one every 9 units.
+
 ## 0.9.4
 - Lines redone again: a thin line (2.5 canvas units) with a fine dark outline, and smooth chevrons from a texture (`horizon_quests:gui/chevrons`, drawn by `tools/make-line-textures.py`: 32 directions in each line colour, outlined, lighter at the tip) every 12 units, pointing to the quest the line opens. No glow, no thick band, no gleam. On the lines of the quest in focus the chevrons slide along.
 

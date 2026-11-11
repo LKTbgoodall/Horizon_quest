@@ -56,14 +56,16 @@ const LINE_NEEDS: u32 = 0xFF38_C8E8;
 const LINE_OPENS: u32 = 0xFFE8_C838;
 /// A dependency line's thickness, in canvas units (a node is
 /// `canvas::NODE`), and its thin dark outline (pixels each side).
-const LINE_WIDTH: f32 = 2.5;
+const LINE_WIDTH: f32 = 5.0;
 const LINE_EDGE: u32 = 0xA010_1016;
 const LINE_EDGE_WIDTH: f32 = 1.0;
 /// Chevrons along a line, pointing to the quest it opens: one every
-/// `CHEVRON_STEP` canvas units, `CHEVRON_SIZE` across. On the lines in
+/// `CHEVRON_STEP` canvas units, inside the line: a chevron's cell is
+/// `CHEVRON_FIT` times the line's width (its stroke and edge span about
+/// 0.8 of the cell across, `tools/make-line-textures.py`). On the lines in
 /// focus they slide one step every `FLOW_TICKS` ticks.
-const CHEVRON_STEP: f32 = 12.0;
-const CHEVRON_SIZE: f32 = 9.0;
+const CHEVRON_STEP: f32 = 9.0;
+const CHEVRON_FIT: f32 = 1.2;
 const FLOW_TICKS: u32 = 14;
 /// The chevrons' sprite sheet (`tools/make-line-textures.py`): each line
 /// colour (`CHEVRON_COLOURS` order) is a block of 8 x 4 cells, one per
@@ -873,15 +875,16 @@ impl BookView {
         let hovered = hovered.filter(|_| !over_popup);
         let focus = hovered.or(selected);
 
-        // Dependency lines first, under the nodes: a thin line with a dark
-        // outline and smooth chevrons pointing from the dependency to the
+        // Dependency lines first, under the nodes: a line with a dark
+        // outline and smooth chevrons inside it pointing from the dependency to the
         // quest it opens, green once both its quests are done. The chevrons
         // of the quest in focus (cyan: what it needs, yellow: what it opens)
         // flow; the others stay still. Those to another chapter's quests are
         // not drawn.
-        let width = (LINE_WIDTH * self.view.zoom).max(2.0);
-        let step = (CHEVRON_STEP * self.view.zoom).max(10.0);
-        let size = (CHEVRON_SIZE * self.view.zoom).max(6.0);
+        let width = (LINE_WIDTH * self.view.zoom).max(3.0);
+        let step = (CHEVRON_STEP * self.view.zoom).max(7.0);
+        // The chevrons never stick out of the line.
+        let size = width * CHEVRON_FIT;
         let partial = self.partial_tick.clamp(0.0, 1.0);
         let flow = ((self.clock % FLOW_TICKS) as f32 + partial) / FLOW_TICKS as f32 * step;
         let mut lines = Vec::new();
@@ -2787,6 +2790,9 @@ mod tests {
                 .collect()
         };
         let resting = chevrons(&view, NOWHERE);
+        // Each chevron (its stroke spans 0.8 of its cell) stays inside the line.
+        let line_width = (LINE_WIDTH * view.view.zoom).max(3.0);
+        assert!(resting.iter().all(|(_, dst)| dst[2] * 0.8 <= line_width), "{resting:?}");
         assert!(!resting.is_empty() && resting.iter().all(|(src, _)| *src == chevron_cell(LINE, [1.0, 0.0])));
         let mut later = view.clone();
         later.clock += 3;
