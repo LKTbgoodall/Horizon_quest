@@ -32,9 +32,12 @@ const STRIP_BACK: u32 = 0x9024_2830;
 /// Text colours (no alpha): a group heading, a chapter's name, a chapter
 /// all done, a chapter with rewards to claim.
 const GROUP_INK: u32 = 0xD0_D0D8;
-const CHAPTER_INK: u32 = 0xC0_C0C8;
+/// A chapter's name in the list: grey while nothing in it is started, blue
+/// once something is, green once every quest is done. A red "!" at the end
+/// of its row says rewards wait in it.
+const CHAPTER_INK: u32 = 0xA0_A0AC;
+const CHAPTER_STARTED: u32 = 0x58_A8F8;
 const CHAPTER_DONE: u32 = 0x60_E060;
-const CHAPTER_WAITING: u32 = 0x40_D8E0;
 /// A row of the chapter list, its chapter icons, and the closed list's strip.
 const LIST_ROW: f32 = 16.0;
 const LIST_ICON: f32 = 12.0;
@@ -1018,8 +1021,8 @@ impl BookView {
 
     /// The open chapter list, over the canvas: group headings with their
     /// triangle, chapters with their icon (indented under a group), the
-    /// current one outlined, names green when all done and cyan with
-    /// rewards to claim.
+    /// current one outlined, names coloured by `chapter_ink`, a red "!" at
+    /// the end of the row of a chapter with rewards to claim.
     fn draw_sidebar(&self, scene: &mut Scene, s: &Screen<'_>, statuses: &[Status]) {
         let area = scene.regions.sidebar;
         scene.fill(area, LIST_BACK);
@@ -1062,17 +1065,16 @@ impl BookView {
                         scene.draws.push(Draw::Item { item: icon.clone(), at, size: LIST_ICON });
                     }
                     left += LIST_ICON + 3.0;
-                    let (done, total) = s.book.chapter_tally(*c, s.progress);
-                    let waiting = s.book.chapter_nodes(*c).any(|n| statuses[n].state == QuestState::RewardsWaiting);
-                    let ink = if waiting {
-                        CHAPTER_WAITING
-                    } else if total > 0 && done == total {
-                        CHAPTER_DONE
-                    } else {
-                        CHAPTER_INK
-                    };
+                    let states: Vec<QuestState> = s.book.chapter_nodes(*c).map(|n| statuses[n].state).collect();
+                    let waiting = states.contains(&QuestState::RewardsWaiting);
+                    let mut right = x + w - 2.0;
+                    if waiting {
+                        let size = LIST_ROW - 5.0;
+                        right -= size + 2.0;
+                        scene.draws.push(alert_sign([right + 1.0, rect[1] + (LIST_ROW - size) / 2.0, size, size]));
+                    }
                     let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
-                    scene.text(fit_text(name, x + w - 2.0 - left, s.measure), [left, text_y], ink);
+                    scene.text(fit_text(name, right - left, s.measure), [left, text_y], chapter_ink(s.book.chapter_completed(*c, s.progress), &states));
                     scene.zones.push((rect, Action::Chapter(*c)));
                 }
             }
@@ -1787,12 +1789,32 @@ fn lock_draws(node: [f32; 4]) -> Draw {
     mark_sprite(MarkCell::Lock, dst, pixels)
 }
 
+/// The colour of a chapter's name: green once it is `completed` (every
+/// quest that counts, `Book::chapter_completed`; rewards still to claim are
+/// the row's "!"), else blue once one of its quests (`states`) is started
+/// or done, else grey.
+pub fn chapter_ink(completed: bool, states: &[QuestState]) -> u32 {
+    if completed {
+        CHAPTER_DONE
+    } else if states.iter().any(|s| matches!(s, QuestState::InProgress | QuestState::Done | QuestState::RewardsWaiting)) {
+        CHAPTER_STARTED
+    } else {
+        CHAPTER_INK
+    }
+}
+
 /// The red "!" badge on the top-right corner of a node whose rewards wait
 /// (the node's box at `node`), bigger as the node grows: the sign sheet's
 /// alert, or its pixel art without the sheet.
 fn alert_badge_draws(node: [f32; 4]) -> Draw {
     let size = node[2] * 0.4;
-    let dst = [node[0] + node[2] - size * 0.7, node[1] - size * 0.3, size, size];
+    alert_sign([node[0] + node[2] - size * 0.7, node[1] - size * 0.3, size, size])
+}
+
+/// The red "!" sign stretched into `dst`: the sign sheet's alert, or its
+/// pixel art without the sheet.
+fn alert_sign(dst: [f32; 4]) -> Draw {
+    let size = dst[2];
     let scale = size / ALERT_PIXELS.len() as f32;
     let pixels = pixel_art(&ALERT_PIXELS, [dst[0], dst[1]], scale, &|c| match c {
         'r' => Some(0xFFE0_3434),
@@ -2549,7 +2571,8 @@ mod tests {
         for text in ["Main story", "Beta"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
-        // A chapter's name is grey, green once all its quests are done.
+        // A chapter's name is grey, blue once started, green once all its
+        // quests are done.
         let ink = |scene: &Scene, name: &str| {
             scene.draws.iter().find_map(|d| match d {
                 Draw::Text { text, colour, .. } if text == name => Some(*colour),
@@ -2560,6 +2583,12 @@ mod tests {
         // Beta's only quest has no task: once the engine has run, it is done.
         let done = progress_after(&book, &[QuestEvent::Refresh]);
         assert_eq!(ink(&view.scene(&screen(&book, &done, NOWHERE)), "Beta"), Some(CHAPTER_DONE));
+        use QuestState::*;
+        assert_eq!(chapter_ink(false, &[Available, Locked]), CHAPTER_INK);
+        assert_eq!(chapter_ink(false, &[InProgress, Locked]), CHAPTER_STARTED);
+        assert_eq!(chapter_ink(false, &[Done, Available]), CHAPTER_STARTED);
+        assert_eq!(chapter_ink(false, &[RewardsWaiting, Locked]), CHAPTER_STARTED);
+        assert_eq!(chapter_ink(true, &[Done, RewardsWaiting]), CHAPTER_DONE);
         // One icon per visible quest, and the chapter's in the list.
         let icons = scene.draws.iter().filter(|draw| matches!(draw, Draw::Item { .. })).count();
         assert_eq!(icons, 3);

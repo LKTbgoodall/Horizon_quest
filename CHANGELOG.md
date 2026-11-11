@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.10.4
+- Chapter list: a chapter with rewards to claim gets the red "!" sign at the end of its row (its name no longer turns cyan for that). Names are grey while nothing in the chapter is started, blue once a quest is in progress or done, green once the chapter is complete (optional quests not counted). `hq_book::chapter_ink`.
+
 ## 0.10.3
 - A line into a quest that cannot be started yet is a darker grey and half see-through, so the lines into quests you can do now stand out. A fifth colour in the line sheet (`LINE_LOCKED`, 0.55 opacity baked in: the game cannot fade a sprite), now 512 x 352.
 
