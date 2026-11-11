@@ -124,6 +124,9 @@ pub enum Action {
     /// Turn the recipe view's page by this many.
     TurnRecipe(i32),
     CloseRecipe,
+    /// Open the window to pick an entry of this choice reward, or close it.
+    OpenChoice(String),
+    CloseChoice,
     /// A click on a window (the quest window, the recipe view) that does
     /// nothing: it stays.
     Stay,
@@ -575,6 +578,8 @@ pub struct BookView {
     /// An item whose recipes the player asked for: the glue looks them up
     /// and opens `recipe`.
     pub recipe_wanted: Option<String>,
+    /// The choice reward whose entries are shown to pick from.
+    pub choosing: Option<String>,
     /// Item id → its name in the player's language, from the game (the
     /// glue fills it); an item missing here is named from its id.
     pub item_names: HashMap<String, String>,
@@ -637,8 +642,11 @@ impl BookView {
             Some(Action::Submit(task)) => return Reaction::Send(ToServer::Submit { task }),
             Some(Action::Claim(reward)) => return Reaction::Send(ToServer::Claim { reward, choice: None }),
             Some(Action::Choose(reward, entry)) => {
+                self.choosing = None;
                 return Reaction::Send(ToServer::Claim { reward, choice: Some(entry) });
             }
+            Some(Action::OpenChoice(reward)) => self.choosing = Some(reward),
+            Some(Action::CloseChoice) => self.choosing = None,
             Some(Action::ClaimAll) => return Reaction::Send(ToServer::ClaimAll),
             Some(Action::Close) => return Reaction::Close,
             Some(Action::Track(quest)) => {
@@ -665,7 +673,7 @@ impl BookView {
     pub fn drag(&mut self, s: &Screen<'_>, delta: [f32; 2]) {
         let scene = self.scene(s);
         let over_popup = scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse));
-        if self.recipe.is_none() && !over_popup && canvas::inside(scene.regions.canvas, s.mouse) {
+        if self.recipe.is_none() && self.choosing.is_none() && !over_popup && canvas::inside(scene.regions.canvas, s.mouse) {
             self.view.drag(delta);
         }
     }
@@ -676,7 +684,7 @@ impl BookView {
         let scene = self.scene(s);
         let regions = scene.regions;
         let moved = |scroll: f32, by: f32, max: f32| (scroll - steps as f32 * by).clamp(0.0, max.max(0.0));
-        if !steps.is_finite() || self.recipe.is_some() {
+        if !steps.is_finite() || self.recipe.is_some() || self.choosing.is_some() {
         } else if canvas::inside(regions.sidebar, s.mouse) {
             self.sidebar_scroll = moved(self.sidebar_scroll, ROW, scene.sidebar_max_scroll);
         } else if scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse)) {
@@ -710,6 +718,9 @@ impl BookView {
         });
         if let (Some(n), Some(popup)) = (selected, popup) {
             tip = self.draw_popup(&mut scene, s, &statuses, n, popup);
+        }
+        if let Some(reward) = self.choosing.as_deref().filter(|_| self.recipe.is_none()) {
+            tip = draw_choice(&mut scene, s, &self.item_names, reward);
         }
         if let Some(recipe) = &self.recipe {
             draw_recipe(&mut scene, s, recipe);
@@ -1105,6 +1116,8 @@ enum Mark {
     Check,
     /// A reward waits to be claimed.
     Alert,
+    /// A reward to choose among several (not claimable yet).
+    Choice,
 }
 
 /// The item that stands for a task.
@@ -1128,7 +1141,7 @@ fn reward_item(kind: &RewardKind) -> (String, String) {
     match kind {
         RewardKind::Item { item, count: n } => (item.clone(), count(*n)),
         RewardKind::Xp { points } => ("minecraft:experience_bottle".to_owned(), points.to_string()),
-        RewardKind::XpLevels { levels } => ("minecraft:experience_bottle".to_owned(), format!("{levels}L")),
+        RewardKind::XpLevels { levels } => ("minecraft:experience_bottle".to_owned(), levels.to_string()),
         RewardKind::Command { .. } => ("minecraft:command_block".to_owned(), String::new()),
         RewardKind::Toast { .. } => ("minecraft:paper".to_owned(), String::new()),
         RewardKind::Random { .. } | RewardKind::Choice { .. } => ("minecraft:chest".to_owned(), String::new()),
@@ -1251,17 +1264,21 @@ fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Ve
         let team = reward.team.then(|| ("Team reward: one claim for the party".to_owned(), DIM_INK));
         let table = reward.kind.table().and_then(|table| book.table(table));
         if let (RewardKind::Choice { .. }, Some(table), false) = (&reward.kind, table, claimed) {
-            // A choice: each entry is an icon; a click picks it.
-            for (e, entry) in table.entries.iter().enumerate() {
-                let (item, count) = reward_item(&entry.kind);
-                let link = link_of(&entry.kind);
-                let action = if completed { Action::Choose(id.clone(), e as u32) } else { recipe_of(link.clone()) };
-                let mut more = vec![("One of these, your choice".to_owned(), DIM_INK)];
-                more.extend(team.clone());
-                let click = if completed { "Click to take this one" } else if link.is_some() { "Click to view recipe(s)" } else { "" };
-                let tip = item_tip(names, link.as_deref(), &entry_label(entry), more, click);
-                icons.push(Icon { item, count, action, tip, veil: None, mark: completed.then_some(Mark::Alert) });
-            }
+            // A choice: one icon; a click opens the window to pick from.
+            let mut more = vec![("Choose one of:".to_owned(), DIM_INK)];
+            more.extend(table.entries.iter().take(TABLE_ROWS).map(|entry| (format!(" {}", entry_label(entry)), DIM_INK)));
+            more.extend(team.clone());
+            let click = if completed { "Click to choose" } else { "Click to see the choices" };
+            let tip = item_tip(names, None, &reward_label(reward), more, click);
+            let mark = if completed { Mark::Alert } else { Mark::Choice };
+            icons.push(Icon {
+                item: "minecraft:chest".to_owned(),
+                count: String::new(),
+                action: Action::OpenChoice(id.clone()),
+                tip,
+                veil: None,
+                mark: Some(mark),
+            });
             continue;
         }
         let (item, count) = reward_item(&reward.kind);
@@ -1287,8 +1304,35 @@ fn reward_icons(s: &Screen<'_>, names: &HashMap<String, String>, n: usize) -> Ve
 
 /// A green check, and a red disc with a white "!", as pixel maps (one
 /// character a pixel: `g`/`r` the sign, `w` white, `k` its dark edge).
-const CHECK_PIXELS: [&str; 7] = ["......kk", ".....kgk", "k...kgk.", "kk.kgk..", "kgkgk...", ".kgk....", "..k....."];
+const CHECK_PIXELS: [&str; 7] = ["........gg", ".......gg.", "......gg..", "gg...gg...", ".gg.gg....", "..ggg.....", "..gg......"];
 const ALERT_PIXELS: [&str; 7] = [".rrrrr.", "rrrwrrr", "rrrwrrr", "rrrwrrr", "rrrrrrr", "rrrwrrr", ".rrrrr."];
+/// A "?" for a reward to choose.
+const QUESTION_PIXELS: [&str; 7] = [".yyy.", "yy.yy", "...yy", "..yy.", "..yy.", ".....", "..yy."];
+
+/// `map` with a one-pixel `edge` round every `fill` pixel (sides and
+/// corners), the map grown by one pixel on each side.
+fn outlined(map: &[&str], fill: char, edge: char) -> Vec<String> {
+    let (h, w) = (map.len() + 2, map.iter().map(|row| row.len()).max().unwrap_or(0) + 2);
+    let at = |r: isize, c: isize| -> bool {
+        r >= 1 && c >= 1 && map.get((r - 1) as usize).and_then(|row| row.chars().nth((c - 1) as usize)) == Some(fill)
+    };
+    (0..h as isize)
+        .map(|r| {
+            (0..w as isize)
+                .map(|c| {
+                    if at(r, c) {
+                        fill
+                    } else if (-1..=1).any(|dr| (-1..=1).any(|dc| at(r + dr, c + dc))) {
+                        edge
+                    } else {
+                        '.'
+                    }
+                })
+                .collect()
+        })
+        .collect()
+}
+
 /// A push pin, upright: `p` its colour, `k` its needle.
 const PIN_PIXELS: [&str; 9] = [".ppppp.", ".ppppp.", "..ppp..", "..ppp..", ".ppppp.", "ppppppp", "...k...", "...k...", "...k..."];
 
@@ -1319,11 +1363,25 @@ fn pixel_art(map: &[&str], at: [f32; 2], scale: f32, colour: &dyn Fn(char) -> Op
 /// pixels wide).
 fn mark_draws(mark: Mark, icon: [f32; 2]) -> Vec<Draw> {
     match mark {
-        Mark::Check => pixel_art(&CHECK_PIXELS, [icon[0] + 9.0, icon[1] - 1.0], 1.0, &|c| match c {
-            'g' => Some(0xFF6C_E04A),
-            'k' => Some(0xFF14_3010),
-            _ => None,
-        }),
+        Mark::Check => {
+            // A thick green check with a dark edge all round.
+            let map = outlined(&CHECK_PIXELS, 'g', 'k');
+            let rows: Vec<&str> = map.iter().map(String::as_str).collect();
+            pixel_art(&rows, [icon[0] + 6.0, icon[1] - 3.0], 1.0, &|c| match c {
+                'g' => Some(0xFF5C_E83C),
+                'k' => Some(0xFF0C_2208),
+                _ => None,
+            })
+        }
+        Mark::Choice => {
+            let map = outlined(&QUESTION_PIXELS, 'y', 'k');
+            let rows: Vec<&str> = map.iter().map(String::as_str).collect();
+            pixel_art(&rows, [icon[0] + 10.0, icon[1] - 3.0], 1.0, &|c| match c {
+                'y' => Some(0xFFFF_D040),
+                'k' => Some(0xFF2A_1C04),
+                _ => None,
+            })
+        }
         Mark::Alert => pixel_art(&ALERT_PIXELS, [icon[0] + 10.0, icon[1] - 2.0], 1.0, &|c| match c {
             'r' => Some(0xFFE0_3434),
             'w' => Some(0xFFFF_FFFF),
@@ -1395,6 +1453,69 @@ fn draw_icons(scene: &mut Scene, s: &Screen<'_>, area: [f32; 4], heading: &str, 
     }
     tip
 }
+
+/// The window to pick an entry of choice reward `reward`, over the book:
+/// each entry with its icon and name; a click takes it once the quest is
+/// done. A click outside closes it. Returns the tooltip under the pointer.
+fn draw_choice(scene: &mut Scene, s: &Screen<'_>, names: &HashMap<String, String>, reward: &str) -> Option<Vec<(String, u32)>> {
+    let book = s.book;
+    let (n, r) = book.find_reward(reward)?;
+    let found = &book.quest(n).rewards[r];
+    let table = found.kind.table().and_then(|table| book.table(table))?;
+    let completed = s.progress.is_completed(&book.nodes()[n].id);
+    let [x, y, w, h] = s.rect;
+    scene.zones.push((s.rect, Action::CloseChoice));
+    let entries = table.entries.len().min(TABLE_ROWS);
+    let bw = CHOICE_WIDTH.min(w);
+    let bh = (POPUP_BAR + 2.0 * PAD + TEXT + entries as f32 * ICON_CELL + PAD).min(h);
+    let b = [x + (w - bw) / 2.0, y + (h - bh) / 2.0, bw, bh];
+    scene.fill(b, POPUP_BACK);
+    scene.fill([b[0], b[1], bw, 1.0], POPUP_EDGE);
+    scene.fill([b[0], b[1] + bh - 1.0, bw, 1.0], POPUP_EDGE);
+    scene.fill([b[0], b[1], 1.0, bh], POPUP_EDGE);
+    scene.fill([b[0] + bw - 1.0, b[1], 1.0, bh], POPUP_EDGE);
+    scene.zones.push((b, Action::Stay));
+    scene.fill([b[0] + 1.0, b[1] + 1.0, bw - 2.0, POPUP_BAR], BAND);
+    let close = scene.button(s, "x", b[0] + bw - PAD, b[1] + 4.0, Action::CloseChoice);
+    let title = fit_text("Choose one reward", close - PAD - b[0] - PAD, s.measure);
+    scene.text(title, [b[0] + PAD, b[1] + 5.0], GOLD_INK);
+    let say = if completed { "Click the one you want." } else { "Finish the quest, then pick one." };
+    let top = b[1] + 1.0 + POPUP_BAR + PAD;
+    scene.text(fit_text(say, bw - 2.0 * PAD, s.measure), [b[0] + PAD, top], DIM_INK);
+    let mut tip = None;
+    for (e, entry) in table.entries.iter().take(entries).enumerate() {
+        let row = [b[0] + 1.0, top + TEXT + PAD + e as f32 * ICON_CELL, bw - 2.0, ICON_CELL];
+        if !contains(b, row) {
+            continue;
+        }
+        let (item, count) = reward_item(&entry.kind);
+        let link = match &entry.kind {
+            RewardKind::Item { item, .. } => Some(item.as_str()),
+            _ => None,
+        };
+        if canvas::inside(row, s.mouse) {
+            if completed {
+                scene.fill(row, ROW_HOVER);
+            }
+            let click = if completed { "Click to take this one" } else { "" };
+            tip = Some(item_tip(names, link, &entry_label(entry), Vec::new(), click));
+        }
+        let at = [row[0] + PAD, row[1] + 2.0];
+        scene.draws.push(Draw::Item { item, at, size: 16.0 });
+        if !count.is_empty() {
+            let width = (s.measure)(&count);
+            scene.text(count, [at[0] + 17.0 - width, at[1] + 9.0], INK);
+        }
+        let label = fit_text(&entry_label(entry), bw - 2.0 * PAD - 24.0, s.measure);
+        scene.text(label, [at[0] + 22.0, row[1] + 6.0], if completed { INK } else { DIM_INK });
+        let action = if completed { Action::Choose(reward.to_owned(), e as u32) } else { Action::Stay };
+        scene.zones.push((row, action));
+    }
+    tip
+}
+
+/// The choice window's width.
+const CHOICE_WIDTH: f32 = 200.0;
 
 /// One recipe, as the recipe view draws it: item ids only.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -2077,7 +2198,7 @@ mod tests {
         assert_eq!(zone(&scene, &claim), None);
         assert_eq!(tip(&view, &book, &progress, &Action::Stay).unwrap(), ["5 XP", "Claimed"]);
         // Claimed: a check on it, and on the done task.
-        let checks = view.scene(&screen(&book, &progress, NOWHERE)).draws.iter().filter(|d| matches!(d, Draw::Fill { colour, .. } if *colour == 0xFF6C_E04A)).count();
+        let checks = view.scene(&screen(&book, &progress, NOWHERE)).draws.iter().filter(|d| matches!(d, Draw::Fill { colour, .. } if *colour == 0xFF5C_E83C)).count();
         assert!(checks >= 2, "{checks}");
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
 
@@ -2533,16 +2654,22 @@ mod tests {
         // The checkmark waits for the bread, and nothing is claimed before the quest is done.
         assert_eq!(zone(&scene, &check), None);
         assert_eq!((zone(&scene, &claim), zone(&scene, &pick(0))), (None, None));
-        // A random reward's tooltip lists what it can give; a choice shows each entry.
-        let icons: Vec<&str> = scene
-            .draws
-            .iter()
-            .filter_map(|d| match d {
-                Draw::Item { item, size, .. } if *size == 16.0 => Some(item.as_str()),
-                _ => None,
-            })
-            .collect();
-        assert!(icons.contains(&"minecraft:chest") && icons.contains(&"minecraft:iron_ingot"), "{icons:?}");
+        // A choice is one icon whose window shows the entries, not to take yet.
+        let open = Action::OpenChoice("g/bake/pick".into());
+        let said = tip(&view, &book, &progress, &open).unwrap();
+        assert_eq!(said.first().map(String::as_str), Some("Your choice: Picks"));
+        assert_eq!(said.last().map(String::as_str), Some("Click to see the choices"));
+        click(&mut view, &book, &progress, &open);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let shown = texts(&scene);
+        for text in ["Choose one reward", "Finish the quest, then pick one.", "4x Iron ingot", "2 levels"] {
+            assert!(shown.contains(&text), "{text} in {shown:?}");
+        }
+        assert_eq!(zone(&scene, &pick(0)), None);
+        // A click outside it closes it.
+        assert_eq!(scene.action_at([RECT[0] + 1.0, RECT[1] + 1.0]), Some(&Action::CloseChoice));
+        click(&mut view, &book, &progress, &Action::CloseChoice);
+        assert_eq!(view.choosing, None);
 
         // The bread is baked: the checkmark can be ticked.
         progress = progress_after(&book, &[QuestEvent::Crafted { task: "g/bake/bread".into(), count: 3 }]);
@@ -2562,7 +2689,14 @@ mod tests {
         assert_eq!(random[..4], ["Random: Loot", "One of:", " 4x Cookie", " A cake!"], "{random:?}");
         assert_eq!(random.last().map(String::as_str), Some("Click to claim"));
         assert_eq!(click(&mut view, &book, &progress, &claim), Reaction::Send(ToServer::Claim { reward: "g/bake/loot".into(), choice: None }));
+        // Done: the choice window takes a click on an entry, and closes.
+        assert_eq!(tip(&view, &book, &progress, &open).unwrap().last().map(String::as_str), Some("Click to choose"));
+        click(&mut view, &book, &progress, &open);
+        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"Click the one you want."));
         assert_eq!(click(&mut view, &book, &progress, &pick(1)), Reaction::Send(ToServer::Claim { reward: "g/bake/pick".into(), choice: Some(1) }));
+        assert_eq!(view.choosing, None);
+        // Levels count as a number alone.
+        assert_eq!(reward_item(&RewardKind::XpLevels { levels: 2 }).1, "2");
 
         // Started over: the window says how often it was done.
         let mut again = Progress::default();

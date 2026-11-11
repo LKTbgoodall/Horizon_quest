@@ -460,13 +460,13 @@ pub(super) fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i3
     }
 }
 
-/// A key over the book: Escape closes the recipe view first, then the book
-/// as usual.
+/// A key over the book: Escape closes the recipe view or the choice window
+/// first, then the book as usual.
 pub(super) fn screen_key(game: &Game<'_>, key: &str, canceled: &mut bool) {
     if !ours(game) || key != "key.keyboard.escape" {
         return;
     }
-    if with(|s| s.view.recipe.take().is_some()) {
+    if with(|s| s.view.recipe.take().is_some() || s.view.choosing.take().is_some()) {
         *canceled = true;
     }
 }

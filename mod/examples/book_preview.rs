@@ -15,7 +15,7 @@ use horizon_mod_horizon_quests::hq_book::{Action, BookView, Draw, Scene, Screen}
 use horizon_mod_horizon_quests::hq_logic::Book;
 use horizon_mod_horizon_quests::hq_model::Progress;
 use horizon_mod_horizon_quests::hq_progress::{Actor, QuestEvent, apply};
-use horizon_mod_horizon_quests::hq_validate::{load, load_dir};
+use horizon_mod_horizon_quests::hq_validate::{load, load_dir, load_pack};
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -322,6 +322,44 @@ fn main() {
     pictures.push((
         "book-5-shapes-and-groups",
         "Another pack: chapter groups in the list, the five node shapes, a big node and a small one.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+
+    // 6. A quest done: checks on its tasks and on the claimed reward, a "!"
+    // on the choice to make; then the choice window.
+    let chapter = r#"{ "id": "c", "title": "Rewards", "quests": [ { "id": "q", "title": "Seasoned",
+        "description": ["Pick what you like best."], "icon": "experience_bottle",
+        "tasks": [ { "id": "t", "type": "checkmark" }, { "id": "w", "type": "item", "item": "oak_log", "count": 8 } ],
+        "rewards": [ { "id": "xp", "type": "xp_levels", "levels": 2 }, { "id": "pick", "type": "choice", "table": "picks" } ] } ] }"#;
+    let table = r#"{ "id": "picks", "entries": [ { "type": "item", "item": "iron_ingot", "count": 4 },
+        { "type": "item", "item": "golden_apple" }, { "type": "xp_levels", "levels": 5 } ] }"#;
+    let loaded = load_pack(None, &[("c.json", chapter)], &[("picks.json", table)]);
+    assert!(loaded.problems.is_empty(), "{:?}", loaded.problems);
+    let book = Book::new(loaded.file);
+    let mut progress = Progress::default();
+    play(
+        &book,
+        &mut progress,
+        &[
+            QuestEvent::Check { task: "c/q/t".into() },
+            QuestEvent::ItemCount { task: "c/q/w".into(), count: 8 },
+            QuestEvent::Claim { reward: "c/q/xp".into(), choice: None },
+        ],
+    );
+    let mut view = BookView::default();
+    view.open(&screen(&book, &progress, AWAY));
+    click(&mut view, &book, &progress, &Action::Quest(0));
+    let mouse = pointing_at(&view, &book, &progress, &Action::OpenChoice("c/q/pick".into()));
+    pictures.push((
+        "book-6-done-and-a-choice",
+        "A quest done: a check on each task and on the reward claimed, a red ! on the choice still to make. The pointer is on it.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+    click(&mut view, &book, &progress, &Action::OpenChoice("c/q/pick".into()));
+    let mouse = pointing_at(&view, &book, &progress, &Action::Choose("c/q/pick".into(), 1));
+    pictures.push((
+        "book-7-choice-window",
+        "A click on the choice opens a window with each reward to pick from.",
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 
