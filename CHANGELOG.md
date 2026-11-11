@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.9.4
+- Lines redone again: a thin line (2.5 canvas units) with a fine dark outline, and smooth chevrons from a texture (`horizon_quests:gui/chevrons`, drawn by `tools/make-line-textures.py`: 32 directions in each line colour, outlined, lighter at the tip) every 12 units, pointing to the quest the line opens. No glow, no thick band, no gleam. On the lines of the quest in focus the chevrons slide along.
+
 ## 0.9.3
 - Lines redrawn: 7 canvas units thick (was 5) with a dark border, chevrons across the whole band every 8 units. The lines of the quest in focus also glow (a soft band round them) and a light gleam runs along them every 1.5 s, on top of the flowing chevrons. Other lines stay still.
 

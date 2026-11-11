@@ -2,7 +2,7 @@
 //! into one `horizon_quests.hmod`: same mod, same version, and the Quest
 //! Book's model and texture where the game looks for them.
 
-use horizon_mod_horizon_quests::hq_book::{DIGIT_CELL, DIGIT_CELLS, DIGIT_SPRITE, MARK_CELL, MARK_CELLS, MARK_SPRITE, NODE_SPRITE};
+use horizon_mod_horizon_quests::hq_book::{CHEVRON_CELL, CHEVRON_SPRITE, DIGIT_CELL, DIGIT_CELLS, DIGIT_SPRITE, MARK_CELL, MARK_CELLS, MARK_SPRITE, NODE_SPRITE};
 use horizon_mod_horizon_quests::hq_meta::{BOOK_ITEM, ID, NAME, VERSION};
 use std::path::Path;
 
@@ -81,4 +81,15 @@ fn the_registry_icon_is_a_small_square_png() {
     assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
     assert_eq!(&png[16..24], &[0, 0, 1, 0, 0, 0, 1, 0]);
     assert!(png.len() <= 256 * 1024);
+}
+
+#[test]
+fn the_line_chevrons_are_where_the_book_draws_them_from() {
+    let (namespace, path) = CHEVRON_SPRITE.split_once(':').unwrap();
+    let png = std::fs::read(content().join("assets").join(namespace).join("textures").join(format!("{path}.png"))).unwrap();
+    assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+    // IHDR: 8 directions across, 4 rows of them for each of the 4 line colours.
+    let (w, h) = (8 * CHEVRON_CELL as u32, 16 * CHEVRON_CELL as u32);
+    assert_eq!(&png[16..24], [w.to_be_bytes(), h.to_be_bytes()].concat().as_slice());
+    assert_eq!(&png[24..26], &[8, 6]);
 }

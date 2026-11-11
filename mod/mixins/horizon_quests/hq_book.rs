@@ -54,20 +54,25 @@ const LINE_DONE: u32 = 0xFF40_A050;
 const LINE_NEEDS: u32 = 0xFF38_C8E8;
 /// A line out of the quest under the pointer: what it opens.
 const LINE_OPENS: u32 = 0xFFE8_C838;
-/// A dependency line's thickness and the step between its chevrons, in
-/// canvas units (a node is `canvas::NODE`).
-const LINE_WIDTH: f32 = 7.0;
-const CHEVRON_STEP: f32 = 8.0;
-/// A line's dark border, and how much wider than the band it is (pixels).
-const LINE_EDGE: u32 = 0xD010_1016;
-const LINE_EDGE_WIDTH: f32 = 2.0;
-/// Ticks for the gleam to run the length of a line in focus, and its
-/// length in chevron steps.
-const GLEAM_TICKS: u32 = 30;
-const GLEAM_STEPS: f32 = 2.0;
-/// Ticks for the chevrons of the lines in focus to slide one step: they
-/// flow from the quest needed to the quest it opens.
-const FLOW_TICKS: u32 = 12;
+/// A dependency line's thickness, in canvas units (a node is
+/// `canvas::NODE`), and its thin dark outline (pixels each side).
+const LINE_WIDTH: f32 = 2.5;
+const LINE_EDGE: u32 = 0xA010_1016;
+const LINE_EDGE_WIDTH: f32 = 1.0;
+/// Chevrons along a line, pointing to the quest it opens: one every
+/// `CHEVRON_STEP` canvas units, `CHEVRON_SIZE` across. On the lines in
+/// focus they slide one step every `FLOW_TICKS` ticks.
+const CHEVRON_STEP: f32 = 12.0;
+const CHEVRON_SIZE: f32 = 9.0;
+const FLOW_TICKS: u32 = 14;
+/// The chevrons' sprite sheet (`tools/make-line-textures.py`): each line
+/// colour (`CHEVRON_COLOURS` order) is a block of 8 x 4 cells, one per
+/// direction.
+pub const CHEVRON_SPRITE: &str = "horizon_quests:gui/chevrons";
+pub const CHEVRON_CELL: f32 = 32.0;
+const CHEVRON_DIRECTIONS: usize = 32;
+const CHEVRON_COLUMNS: usize = 8;
+const CHEVRON_COLOURS: [u32; 4] = [LINE, LINE_DONE, LINE_NEEDS, LINE_OPENS];
 const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0xA0_A0B0;
 const GOLD_INK: u32 = 0xFF_C040;
@@ -310,23 +315,15 @@ fn draw_strip(scene: &mut Scene, s: &Screen<'_>) {
     scene.draws.push(Draw::Quad { corners: arrow([cx - 3.0, cy], 7.0, false), colour: LIST_ARROW });
 }
 
-/// `colour` halfway to white, for the gleam on a line in focus.
-fn lighter(colour: u32) -> u32 {
-    let [a, r, g, b] = colour.to_be_bytes();
-    let lift = |c: u8| ((u32::from(c) + 255) / 2) as u8;
-    u32::from_be_bytes([a, lift(r), lift(g), lift(b)])
-}
-
-/// `colour` with its alpha replaced.
-fn with_alpha(colour: u32, alpha: u8) -> u32 {
-    (colour & 0x00FF_FFFF) | (u32::from(alpha) << 24)
-}
-
-/// `colour` darker, for the chevrons on a line of that colour.
-fn darker(colour: u32) -> u32 {
-    let [a, r, g, b] = colour.to_be_bytes();
-    let dim = |c: u8| (u32::from(c) * 3 / 5) as u8;
-    u32::from_be_bytes([a, dim(r), dim(g), dim(b)])
+/// The cell of the chevron sheet for a line of `colour` going in direction
+/// `dir` (a unit vector, y down): the nearest of the 32 drawn directions.
+pub fn chevron_cell(colour: u32, dir: [f32; 2]) -> [f32; 4] {
+    let block = CHEVRON_COLOURS.iter().position(|c| *c == colour).unwrap_or(0);
+    let turn = dir[1].atan2(dir[0]).rem_euclid(std::f32::consts::TAU) / std::f32::consts::TAU;
+    let k = (turn * CHEVRON_DIRECTIONS as f32).round() as usize % CHEVRON_DIRECTIONS;
+    let rows = CHEVRON_DIRECTIONS / CHEVRON_COLUMNS;
+    let (column, row) = (k % CHEVRON_COLUMNS, block * rows + k / CHEVRON_COLUMNS);
+    [column as f32 * CHEVRON_CELL, row as f32 * CHEVRON_CELL, CHEVRON_CELL, CHEVRON_CELL]
 }
 
 /// How a shape is drawn against a square of the same `size`: how much
@@ -876,16 +873,17 @@ impl BookView {
         let hovered = hovered.filter(|_| !over_popup);
         let focus = hovered.or(selected);
 
-        // Dependency lines first, under the nodes: a band with a dark border
-        // and full-width chevrons pointing from the dependency to the quest
-        // it opens, green once both ends are done. The lines of the quest in
-        // focus glow, their chevrons flow and a gleam runs along them; the
-        // others stay still. Those to another chapter's quests are not drawn.
-        let width = (LINE_WIDTH * self.view.zoom).max(4.0);
-        let spacing = (CHEVRON_STEP * self.view.zoom).max(7.0);
+        // Dependency lines first, under the nodes: a thin line with a dark
+        // outline and smooth chevrons pointing from the dependency to the
+        // quest it opens, green once both its quests are done. The chevrons
+        // of the quest in focus (cyan: what it needs, yellow: what it opens)
+        // flow; the others stay still. Those to another chapter's quests are
+        // not drawn.
+        let width = (LINE_WIDTH * self.view.zoom).max(2.0);
+        let step = (CHEVRON_STEP * self.view.zoom).max(10.0);
+        let size = (CHEVRON_SIZE * self.view.zoom).max(6.0);
         let partial = self.partial_tick.clamp(0.0, 1.0);
-        let flow = ((self.clock % FLOW_TICKS) as f32 + partial) / FLOW_TICKS as f32 * spacing;
-        let gleam = ((self.clock % GLEAM_TICKS) as f32 + partial) / GLEAM_TICKS as f32;
+        let flow = ((self.clock % FLOW_TICKS) as f32 + partial) / FLOW_TICKS as f32 * step;
         let mut lines = Vec::new();
         for &n in &shown {
             for &d in &book.nodes()[n].dependencies {
@@ -911,33 +909,22 @@ impl BookView {
             let Some(corners) = canvas::line_quad(from, to, width) else {
                 continue;
             };
-            if !canvas::overlaps(area, canvas::quad_bounds(&canvas::line_quad(from, to, width * 2.0).unwrap_or(corners))) {
+            if !canvas::overlaps(area, canvas::quad_bounds(&corners)) {
                 continue;
             }
-            let lit = [LINE_NEEDS, LINE_OPENS].contains(&colour);
-            if lit {
-                // A soft glow round it.
-                if let Some(glow) = canvas::line_quad(from, to, width * 2.2) {
-                    scene.draws.push(Draw::Quad { corners: glow, colour: with_alpha(colour, 0x38) });
-                }
-            }
-            if let Some(edge) = canvas::line_quad(from, to, width + LINE_EDGE_WIDTH) {
+            if let Some(edge) = canvas::line_quad(from, to, width + 2.0 * LINE_EDGE_WIDTH) {
                 scene.draws.push(Draw::Quad { corners: edge, colour: LINE_EDGE });
             }
             scene.draws.push(Draw::Quad { corners, colour });
-            let mark = darker(colour);
-            let phase = if lit { flow } else { 0.0 };
-            for corners in canvas::chevrons(from, to, width, spacing, phase) {
-                scene.draws.push(Draw::Quad { corners, colour: mark });
-            }
-            if lit {
-                // A gleam running from the quest needed to the quest it opens.
-                let len = ((to[0] - from[0]).powi(2) + (to[1] - from[1]).powi(2)).sqrt();
-                let long = spacing * GLEAM_STEPS;
-                let head = gleam * (len + long);
-                if let Some(part) = canvas::line_part(from, to, width, head - long, head) {
-                    scene.draws.push(Draw::Quad { corners: part, colour: with_alpha(lighter(colour), 0x70) });
-                }
+            let len = ((to[0] - from[0]).powi(2) + (to[1] - from[1]).powi(2)).sqrt();
+            let (ux, uy) = ((to[0] - from[0]) / len, (to[1] - from[1]) / len);
+            let src = chevron_cell(colour, [ux, uy]);
+            let phase = if [LINE_NEEDS, LINE_OPENS].contains(&colour) { flow } else { 0.0 };
+            let mut at = (step / 2.0 + phase) % step;
+            while at < len {
+                let dst = [from[0] + ux * at - size / 2.0, from[1] + uy * at - size / 2.0, size, size];
+                scene.draws.push(Draw::Sprite { name: CHEVRON_SPRITE.to_owned(), src, dst, fallback: Vec::new() });
+                at += step;
             }
         }
 
@@ -2756,7 +2743,7 @@ mod tests {
     fn lines_carry_chevrons_and_light_up_round_the_quest_under_the_pointer() {
         let (book, progress) = (book(), Progress::default());
         let view = opened(&book, &progress);
-        // The bands: quads of a line colour, each followed by its darker chevrons.
+        // The lines: quads of a line colour, over their dark outline.
         let colours = |mouse: [f32; 2]| -> Vec<u32> {
             view.scene(&screen(&book, &progress, mouse))
                 .draws
@@ -2767,14 +2754,9 @@ mod tests {
                 })
                 .collect()
         };
-        let chevrons = view
-            .scene(&screen(&book, &progress, NOWHERE))
-            .draws
-            .iter()
-            .filter(|d| matches!(d, Draw::Quad { colour, .. } if *colour == darker(LINE)))
-            .count();
         assert_eq!(colours(NOWHERE), [LINE]);
-        assert!(chevrons >= 2 && chevrons % 2 == 0, "{chevrons} chevron arms");
+        let still = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(still.draws.iter().any(|d| matches!(d, Draw::Quad { colour: LINE_EDGE, .. })));
         // Over the first quest: the line to the quest it opens is yellow.
         let first = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(0)).unwrap();
         assert_eq!(colours(first), [LINE_OPENS]);
@@ -2791,25 +2773,32 @@ mod tests {
         assert!(!green(&progress_after(&book, std::slice::from_ref(&start))));
         let planks = QuestEvent::Submitted { task: "a/next/planks".into(), count: 4 };
         assert!(green(&progress_after(&book, &[start, planks])));
-        assert_eq!(darker(0xFF64_C8FF), 0xFF3C_7899);
 
-        // The chevrons of the lines in focus slide with time; the others stay.
-        let marks = |view: &BookView, mouse: [f32; 2], colour: u32| -> Vec<[[f32; 2]; 4]> {
-            let mark = darker(colour);
+        // Chevrons along every line, in the line's colour; those of the lines
+        // in focus move with time, the others stay.
+        let chevrons = |view: &BookView, mouse: [f32; 2]| -> Vec<([f32; 4], [f32; 4])> {
             view.scene(&screen(&book, &progress, mouse))
                 .draws
                 .iter()
                 .filter_map(|d| match d {
-                    Draw::Quad { corners, colour } if *colour == mark => Some(*corners),
+                    Draw::Sprite { name, src, dst, .. } if name == CHEVRON_SPRITE => Some((*src, *dst)),
                     _ => None,
                 })
                 .collect()
         };
+        let resting = chevrons(&view, NOWHERE);
+        assert!(!resting.is_empty() && resting.iter().all(|(src, _)| *src == chevron_cell(LINE, [1.0, 0.0])));
         let mut later = view.clone();
         later.clock += 3;
         later.partial_tick = 0.5;
-        assert_ne!(marks(&view, first, LINE_OPENS), marks(&later, first, LINE_OPENS));
-        assert_eq!(marks(&view, NOWHERE, LINE), marks(&later, NOWHERE, LINE));
+        assert_eq!(resting, chevrons(&later, NOWHERE));
+        assert_ne!(chevrons(&view, first), chevrons(&later, first));
+        assert!(chevrons(&view, first).iter().all(|(src, _)| *src == chevron_cell(LINE_OPENS, [1.0, 0.0])));
+        // The nearest of the drawn directions, in its colour's block.
+        assert_eq!(chevron_cell(LINE, [1.0, 0.0]), [0.0, 0.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE, [0.0, 1.0]), [0.0, 32.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE_OPENS, [-1.0, 0.0]), [0.0, 448.0, 32.0, 32.0]);
+        assert_eq!(chevron_cell(LINE_DONE, [0.7071, -0.7071]), [128.0, 128.0 + 96.0, 32.0, 32.0]);
     }
 
     #[test]
