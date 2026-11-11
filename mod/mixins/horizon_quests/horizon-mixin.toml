@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.8.9"
+version = "0.8.10"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).

@@ -11,8 +11,7 @@ pub const MIN_ZOOM: f32 = 0.25;
 pub const MAX_ZOOM: f32 = 4.0;
 /// How much one wheel notch zooms.
 pub const ZOOM_STEP: f32 = 1.15;
-/// The header and footer bands of the book, in GUI pixels.
-pub const HEADER: f32 = 24.0;
+/// The book's band at the bottom, in GUI pixels (no band at the top).
 pub const FOOTER: f32 = 14.0;
 
 /// How the canvas is looked at: `pan` is the world point at the canvas's

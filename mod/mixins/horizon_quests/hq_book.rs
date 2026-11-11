@@ -28,7 +28,7 @@ const LIST_HOVER: u32 = 0xFF36_3A44;
 const LIST_CURRENT: u32 = 0xFF3A_3E48;
 const LIST_OUTLINE: u32 = 0xFF9A_9EA8;
 const LIST_ARROW: u32 = 0xFFC8_C8D0;
-const STRIP_BACK: u32 = 0xD024_2830;
+const STRIP_BACK: u32 = 0x9024_2830;
 /// Text colours (no alpha): a group heading, a chapter's name, a chapter
 /// all done, a chapter with rewards to claim.
 const GROUP_INK: u32 = 0xD0_D0D8;
@@ -38,7 +38,7 @@ const CHAPTER_WAITING: u32 = 0x40_D8E0;
 /// A row of the chapter list, its chapter icons, and the closed list's strip.
 const LIST_ROW: f32 = 16.0;
 const LIST_ICON: f32 = 12.0;
-pub const STRIP: f32 = 10.0;
+pub const STRIP: f32 = 18.0;
 const PANEL: u32 = 0xFF1C_1C28;
 const ROW_HOVER: u32 = 0xFF2A_2A3A;
 const BUTTON: u32 = 0xFF3A_5A8A;
@@ -48,7 +48,6 @@ const TOOLTIP: u32 = 0xF010_0418;
 const TOOLTIP_EDGE_TOP: u32 = 0xFF5A_2AB8;
 const TOOLTIP_EDGE_BOTTOM: u32 = 0xFF2C_1460;
 const NODE_FILL: u32 = 0xFF26_2632;
-const BRACKET: u32 = 0xFFFF_FFFF;
 const LINE: u32 = 0xFF8C_7C88;
 const LINE_DONE: u32 = 0xFF40_A050;
 /// A line into the quest under the pointer: what it needs.
@@ -136,7 +135,6 @@ pub enum Reaction {
 /// The book's parts on screen, as `[x, y, w, h]`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Regions {
-    pub header: [f32; 4],
     /// The chapter list when open, over the canvas's left side.
     pub sidebar: [f32; 4],
     /// The closed list's strip, left of the canvas.
@@ -149,12 +147,11 @@ pub struct Regions {
 /// canvas (`Scene::popup`).
 pub fn regions(rect: [f32; 4]) -> Regions {
     let [x, y, w, h] = rect;
-    let body_y = y + canvas::HEADER;
-    let body_h = (h - canvas::HEADER - canvas::FOOTER).max(0.0);
+    let body_y = y;
+    let body_h = (h - canvas::FOOTER).max(0.0);
     let sidebar_w = (w * 0.3).clamp(110.0, 170.0).min(w.max(0.0));
     let strip_w = STRIP.min(w.max(0.0));
     Regions {
-        header: [x, y, w, canvas::HEADER],
         sidebar: [x, body_y, sidebar_w, body_h],
         strip: [x, body_y, strip_w, body_h],
         canvas: [x + strip_w, body_y, (w - strip_w).max(0.0), body_h],
@@ -786,9 +783,11 @@ impl BookView {
         };
         scene.fill(s.rect, SHADE);
         let hovered = self.draw_canvas(&mut scene, s, &statuses, selected).filter(|_| !self.over_list(s));
-        draw_strip(&mut scene, s);
+        // The open list replaces its strip (the panel is see-through).
         if self.sidebar_open {
             self.draw_sidebar(&mut scene, s, &statuses);
+        } else {
+            draw_strip(&mut scene, s);
         }
         self.draw_bands(&mut scene, s, &statuses);
         let mut tip = hovered.map(|n| {
@@ -898,8 +897,9 @@ impl BookView {
             let Some(part) = intersect(at_rest, area) else {
                 continue;
             };
-            // The node under the pointer stands out a little.
-            let b = if hovered == Some(n) { grow(at_rest, HOVER_GROW) } else { at_rest };
+            // The node under the pointer, and the selected one, stand out a little.
+            let raised = hovered == Some(n) || selected == Some(n);
+            let b = if raised { grow(at_rest, HOVER_GROW) } else { at_rest };
             let centre = canvas::centre(b);
             let radius = b[2] / 2.0;
             // The frame's texture, or the same shape as polygons without it.
@@ -936,10 +936,6 @@ impl BookView {
                 {
                     scene.draws.push(badge);
                 }
-            }
-            // The selected quest: white corners round it, as a viewfinder.
-            if selected == Some(n) {
-                scene.draws.extend(brackets(b));
             }
             scene.zones.push((part, Action::Quest(n)));
         }
@@ -1078,38 +1074,26 @@ impl BookView {
     /// The header (chapter title, tally, close) and the footer (claim all,
     /// notice, help), over anything under them.
     fn draw_bands(&self, scene: &mut Scene, s: &Screen<'_>, statuses: &[Status]) {
-        let header = scene.regions.header;
-        let [x, y, w, _] = header;
-        scene.fill(header, BAND);
-        let mut right = scene.button(s, "x", x + w - 6.0, y + 7.0, Action::Close) - 6.0;
-        if let Some(party) = &self.party {
-            let label = format!("Party {party}");
-            let width = (s.measure)(&label);
-            // Only when the chapter's name keeps some room.
-            if width < w / 3.0 {
-                right -= width;
-                scene.text(label, [right, y + 8.0], GOLD_INK);
-                right -= 10.0;
-            }
-        }
-        if let Some(chapter) = s.book.file().chapters.get(self.chapter) {
-            let (done, total) = s.book.chapter_tally(self.chapter, s.progress);
-            let tally = format!("{done}/{total}");
-            right -= (s.measure)(&tally);
-            scene.text(tally, [right, y + 8.0], DIM_INK);
-            let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
-            let title = fit_text(name, right - 6.0 - (x + 6.0), s.measure);
-            let after = x + 6.0 + (s.measure)(&title) + 8.0;
-            scene.text(title, [x + 6.0, y + 8.0], INK);
-            if let Some(subtitle) = &chapter.subtitle {
-                scene.text(fit_text(subtitle, right - 6.0 - after, s.measure), [after, y + 8.0], DIM_INK);
-            }
-        }
-
+        // One band at the bottom: the chapter's name and tally, "Claim all"
+        // and the last notice on the left; close, the party and the help on
+        // the right.
         let footer = scene.regions.footer;
         let [x, y, w, _] = footer;
         scene.fill(footer, BAND);
+        let mut right = scene.button(s, "x", x + w - 4.0, y + 2.0, Action::Close) - 6.0;
         let mut left = x + 6.0;
+        if let Some(chapter) = s.book.file().chapters.get(self.chapter) {
+            let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
+            let title = fit_text(name, w / 3.0, s.measure);
+            let title_w = (s.measure)(&title);
+            scene.text(title, [left, y + 3.0], INK);
+            left += title_w + 6.0;
+            let (done, total) = s.book.chapter_tally(self.chapter, s.progress);
+            let tally = format!("{done}/{total}");
+            let tally_w = (s.measure)(&tally);
+            scene.text(tally, [left, y + 3.0], DIM_INK);
+            left += tally_w + 10.0;
+        }
         let waiting = statuses.iter().filter(|status| status.state == QuestState::RewardsWaiting).count();
         if waiting > 0 {
             let label = format!("Claim all ({waiting})");
@@ -1117,13 +1101,23 @@ impl BookView {
             scene.button(s, &label, left + width, y + 2.0, Action::ClaimAll);
             left += width + 6.0;
         }
-        let help = "drag: move | wheel: zoom | Esc: close";
+        if let Some(party) = &self.party {
+            let label = format!("Party {party}");
+            let width = (s.measure)(&label);
+            // Only when the rest keeps some room.
+            if width < (right - left) / 3.0 {
+                right -= width;
+                scene.text(label, [right, y + 3.0], GOLD_INK);
+                right -= 10.0;
+            }
+        }
+        let help = "drag: move | wheel: zoom";
         let help_w = (s.measure)(help);
-        let notice = fit_text(&self.notice, x + w - 6.0 - left, s.measure);
+        let notice = fit_text(&self.notice, (right - left).max(0.0), s.measure);
         let notice_end = left + (s.measure)(&notice);
         scene.text(notice, [left, y + 3.0], GOLD_INK);
-        if x + w - 6.0 - help_w >= notice_end + 6.0 {
-            scene.text(help, [x + w - 6.0 - help_w, y + 3.0], DIM_INK);
+        if right - help_w >= notice_end + 6.0 {
+            scene.text(help, [right - help_w, y + 3.0], DIM_INK);
         }
     }
 }
@@ -2123,28 +2117,6 @@ fn grow(b: [f32; 4], factor: f32) -> [f32; 4] {
     [cx - w / 2.0, cy - h / 2.0, w, h]
 }
 
-/// White corners round box `b`, a little outside it: the selected quest.
-fn brackets(b: [f32; 4]) -> Vec<Draw> {
-    let thick = (b[2] * 0.07).max(1.5);
-    let gap = thick + 1.5;
-    let len = (b[2] * 0.3).max(4.0);
-    let [x, y, w, h] = [b[0] - gap, b[1] - gap, b[2] + 2.0 * gap, b[3] + 2.0 * gap];
-    let (right, bottom) = (x + w, y + h);
-    [
-        [x, y, len, thick],
-        [x, y, thick, len],
-        [right - len, y, len, thick],
-        [right - thick, y, thick, len],
-        [x, bottom - thick, len, thick],
-        [x, bottom - len, thick, len],
-        [right - len, bottom - thick, len, thick],
-        [right - thick, bottom - len, thick, len],
-    ]
-    .into_iter()
-    .map(|rect| Draw::Fill { rect, colour: BRACKET })
-    .collect()
-}
-
 /// Lines by the pointer (an item's tooltip, a quest's title), in a dark box
 /// with a violet frame, kept on screen.
 fn draw_tooltip(scene: &mut Scene, s: &Screen<'_>, lines: &[(String, u32)]) {
@@ -2363,19 +2335,19 @@ mod tests {
     #[test]
     fn regions_split_the_window() {
         let closed = regions(RECT);
-        assert_eq!(closed.header, [0.0, 0.0, 480.0, canvas::HEADER]);
         assert_eq!(closed.footer, [0.0, 270.0 - canvas::FOOTER, 480.0, canvas::FOOTER]);
         assert_eq!(closed.strip[2] + closed.canvas[2], 480.0);
         // The open chapter list goes over the canvas's left side.
         assert_eq!(closed.sidebar[0], closed.strip[0]);
         assert!(closed.sidebar[2] > closed.strip[2] && closed.sidebar[2] < closed.canvas[2]);
-        assert_eq!(closed.canvas[1], canvas::HEADER);
-        assert_eq!(closed.canvas[3], 270.0 - canvas::HEADER - canvas::FOOTER);
+        // No band at the top: the canvas starts at the window's top.
+        assert_eq!(closed.canvas[1], 0.0);
+        assert_eq!(closed.canvas[3], 270.0 - canvas::FOOTER);
 
         // A window too small for anything: nothing goes negative.
         for rect in [[0.0, 0.0, 40.0, 20.0], [0.0, 0.0, 0.0, 0.0]] {
             let tiny = regions(rect);
-            for part in [tiny.header, tiny.sidebar, tiny.canvas, tiny.footer] {
+            for part in [tiny.sidebar, tiny.strip, tiny.canvas, tiny.footer] {
                 assert!(part[2] >= 0.0 && part[3] >= 0.0, "{part:?}");
             }
         }
@@ -2484,7 +2456,9 @@ mod tests {
         assert!(zone(&scene, &Action::Close).is_some());
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
         let shown = texts(&scene);
-        for text in ["Alpha", "The first one", "0/3"] {
+        // The chapter's name and tally in the bottom band, no subtitle.
+        assert!(!shown.contains(&"The first one"));
+        for text in ["Alpha", "0/3"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
 
@@ -2557,10 +2531,9 @@ mod tests {
         // The click zone does not grow with it.
         assert_eq!(zone(&over, &Action::Quest(0)), Some(at));
 
-        let corners = |scene: &Scene| scene.draws.iter().filter(|d| matches!(d, Draw::Fill { colour, .. } if *colour == BRACKET)).count();
-        assert_eq!(corners(&rest), 0);
+        // Selected, it stays raised with the pointer away.
         click(&mut view, &book, &progress, &Action::Quest(0));
-        assert_eq!(corners(&view.scene(&screen(&book, &progress, NOWHERE))), 8);
+        assert_eq!(frame(&view.scene(&screen(&book, &progress, NOWHERE)), 0)[2], frame(&over, 0)[2]);
     }
 
     /// How many signs of the sheet's `cell` a scene draws.
@@ -3075,7 +3048,7 @@ mod tests {
 
         // A short window: the quest window's text does not all fit, and
         // scrolls as far as its last line; the canvas does not zoom under it.
-        let short = |mouse| Screen { rect: [0.0, 0.0, 480.0, 150.0], ..screen(&book, &progress, mouse) };
+        let short = |mouse| Screen { rect: [0.0, 0.0, 480.0, 120.0], ..screen(&book, &progress, mouse) };
         view.show_chapter(&short(NOWHERE), 0);
         let at = zone(&view.scene(&short(NOWHERE)), &Action::Quest(0)).unwrap();
         view.click(&short(at));
@@ -3195,7 +3168,7 @@ mod tests {
         view.notice = "That quest is not open yet.".into();
         let shown = view.scene(&screen(&book, &progress, NOWHERE));
         assert!(texts(&shown).contains(&"That quest is not open yet."));
-        assert!(texts(&shown).contains(&"drag: move | wheel: zoom | Esc: close"));
+        assert!(texts(&shown).contains(&"drag: move | wheel: zoom"));
     }
 
     #[test]

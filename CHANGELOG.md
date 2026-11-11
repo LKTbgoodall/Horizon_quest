@@ -4,6 +4,11 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.10
+- No band at the top: the canvas starts at the window's top. The bottom band holds the chapter's name and tally, "Claim all", the last notice, the party, the help ("drag: move | wheel: zoom") and the close button. The chapter subtitle is no longer shown.
+- The closed chapter list's strip is 18 pixels wide (was 10) and more see-through, and is not drawn while the list is open (it showed through the panel).
+- The selected quest has no white corners: it stays drawn raised, like the quest under the pointer.
+
 ## 0.8.9
 - The chapter list is closed by default, a thin strip with an arrow on the book's left; the pointer on it opens the list over the canvas without a click, and leaving the list closes it. The canvas takes the whole width.
 - The list's new look: a grey panel with a light edge, grey group headings with a triangle (the old gold one was drawn without alpha and never showed), 12-pixel chapter icons, chapters indented under their group, the current chapter outlined, no progress bars; a chapter's name is green when all its quests are done, cyan when it has rewards to claim.
