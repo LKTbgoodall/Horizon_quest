@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.8.2
+- A locked node's veil covers the frame's whole face in its shape, instead of a square over the icon.
+
 ## 0.8.1
 - A random or choice reward, once claimed, shows only the entry it gave (icon and tooltip). The progress file remembers it (`picked`); rewards claimed before keep the old look.
 - The padlock is a third of the node at any zoom (it stayed big when zoomed out).

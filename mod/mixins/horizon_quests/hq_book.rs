@@ -254,6 +254,20 @@ fn darker(colour: u32) -> u32 {
 }
 
 /// A shape filled with `colour`, as quads.
+/// The share of a node's radius that is the frame's face, inside its ring
+/// (`tools/make-node-textures.py`: the face starts 3.5 pixels in from the
+/// edge of a 32-pixel cell, measured square to each side).
+fn face_share(shape: Shape) -> f32 {
+    // The ratio of each shape's apothem to the radius `shape_points` takes.
+    let apothem = match shape {
+        Shape::Square | Shape::Circle => 1.0,
+        Shape::Diamond => std::f32::consts::FRAC_1_SQRT_2,
+        Shape::Hexagon => 0.866,
+        Shape::Octagon => 0.924,
+    };
+    1.0 - (3.5 / 16.0) / apothem
+}
+
 fn polygon_draws(shape: Shape, centre: [f32; 2], radius: f32, colour: u32) -> Vec<Draw> {
     polygon_quads(&shape_points(shape, centre, radius)).into_iter().map(|corners| Draw::Quad { corners, colour }).collect()
 }
@@ -787,9 +801,10 @@ impl BookView {
             let at = [centre[0] - icon / 2.0, centre[1] - icon / 2.0];
             if contains(area, [at[0], at[1], icon, icon]) {
                 scene.draws.push(Draw::Item { item: quest_icon(quest).to_owned(), at, size: icon });
-                // A locked quest: its icon greyed out under a veil.
+                // A locked quest: its icon and the frame's face greyed out
+                // under a veil of the face's own shape (no square in it).
                 if state == QuestState::Locked {
-                    scene.fill([at[0], at[1], icon, icon], LOCKED_VEIL);
+                    scene.draws.extend(polygon_draws(node.shape, centre, radius * face_share(node.shape), LOCKED_VEIL));
                 }
             }
             // And a small padlock on its bottom-right corner.
@@ -2793,7 +2808,9 @@ mod tests {
 
     #[test]
     fn a_locked_node_is_greyed_and_padlocked() {
-        let has_veil = |scene: &Scene| scene.draws.iter().any(|d| matches!(d, Draw::Fill { colour: LOCKED_VEIL, .. }));
+        let has_veil = |scene: &Scene| scene.draws.iter().any(|d| matches!(d, Draw::Quad { colour: LOCKED_VEIL, .. }));
+        // The veil is the face's shape, not a square over the icon.
+        assert!((face_share(Shape::Square) - 0.781).abs() < 0.01 && face_share(Shape::Diamond) < face_share(Shape::Square));
         let lock_src = MarkCell::Lock as u8 as f32 * MARK_CELL;
         let has_lock = |scene: &Scene| scene.draws.iter().any(|d| matches!(d, Draw::Sprite { name, src, .. } if name == MARK_SPRITE && src[0] == lock_src));
         let (book, progress) = (book(), Progress::default());
