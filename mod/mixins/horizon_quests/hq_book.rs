@@ -1269,6 +1269,11 @@ impl BookView {
                 let value = inline::subject_value(s.book, &subject, "advancement");
                 self.typing = Some((Typed::Panel("advancement"), TextField::new(&value, 300)));
             }
+            // A drawn reward's table: a menu of the pack's tables.
+            PanelAction::Pick("table") => {
+                let entries: Vec<(String, Action)> = inline::table_choices(s.book, &subject).into_iter().map(|(label, edit)| (label, Action::Edit(edit))).collect();
+                self.menu = Some(Menu { at: s.mouse, title: Some("Draw from".to_owned()), entries, icons: Vec::new() });
+            }
             PanelAction::Pick("advancement") => {
                 self.picker = Some((Picker::advancements(self.advancements.clone()), Purpose::Panel("advancement")));
             }
@@ -2087,14 +2092,10 @@ fn draw_menu(scene: &mut Scene, s: &Screen<'_>, menu: &Menu) {
         match menu.icons.get(i).map(String::as_str) {
             // As big as the items' 12 pixels look (an item rarely fills its square).
             Some(inline::CHECK_ICON) => scene.draws.extend(check_task_draws([x + PAD + 0.5, row_y + 2.0], 11.0, false)),
+            // The book's own "?" sign, as on a random reward.
             Some(inline::QUESTION_ICON) => {
-                let map = outlined(&QUESTION_PIXELS, 'y', 'k');
-                let rows: Vec<&str> = map.iter().map(String::as_str).collect();
-                scene.draws.extend(pixel_art(&rows, [x + PAD + 2.0, row_y + 2.5], 1.0, &|c| match c {
-                    'y' => Some(0xFFFF_D040),
-                    'k' => Some(0xFF2A_1C04),
-                    _ => None,
-                }));
+                let dst = [x + PAD, row_y + 1.0, 12.0, 12.0];
+                scene.draws.push(mark_sprite(MarkCell::Question, dst, mark_pixel_draws(Mark::Question, [dst[0] - 10.0, dst[1] + 3.5])));
             }
             Some(icon) => scene.draws.push(Draw::Item { item: icon.to_owned(), at: [x + PAD, row_y + 1.5], size: 12.0 }),
             None => {}
@@ -3786,8 +3787,9 @@ mod tests {
         assert_eq!(labels[1..], ["+ Add an entry".to_owned(), "Delete this table".to_owned()]);
         assert!(labels[0].ends_with("(weight 2)"), "{labels:?}");
         click(&mut view, &book, &progress, &Action::OpenPanel(Subject::Entry("loot".into(), 0)));
-        let reaction = click(&mut view, &book, &progress, &Action::Panel(PanelAction::Step("weight", 1.0)));
-        assert!(matches!(&reaction, Reaction::Edit(Edit::SaveEntry { index: Some(0), entry, .. }) if entry.weight == 3), "{reaction:?}");
+        // The only entry of a random table: no chance to set.
+        let (_, controls) = inline::subject_panel(&book, &Subject::Entry("loot".into(), 0)).unwrap();
+        assert!(!controls.iter().any(|c| matches!(c, inline::Control::Number { key: "chance" | "weight", .. })));
         view.panel = None;
         view.menu = Some(Menu { at: [10.0, 10.0], title: None, entries: vec![("Pack settings...".into(), Action::OpenPanel(Subject::Settings))], icons: Vec::new() });
         click(&mut view, &book, &progress, &Action::OpenPanel(Subject::Settings));

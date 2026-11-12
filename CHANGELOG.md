@@ -4,6 +4,12 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.16.1
+- Bastien's remarks on 0.16.0:
+  - Chances in percent: a random table's entry has "Chance %" instead of a weight; setting it makes the weights percentages, the other entries sharing the rest as they did (`Edit::SetChance`). A choice table's entries, and the only entry of a table, show no odds.
+  - The "Random item" entry of the + menu uses the book's own "?" sign.
+  - Tables: the reward's panel shows its table's name; a click lists the pack's tables (with their item counts) instead of a row of chips. A table that loses its last reward (reward, quest or chapter deleted, or the reward moved to another table) is deleted with it.
+
 ## 0.16.0
 - Bastien's remarks on 0.15.1:
   - **Links by right-dragging**: hold the right button on a quest and move; the link is drawn in the book's line style, sliding, up to the pointer (yellow over a quest it can go to, grey over nothing); let go on a quest and it needs the first one (again to undo). A right click without moving opens the menu. The yellow dot and arrow are gone. Picked from a preview page of six ways (`build/link-drag.html`).

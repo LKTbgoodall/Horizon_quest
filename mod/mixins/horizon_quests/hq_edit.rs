@@ -76,6 +76,10 @@ pub enum Edit {
     /// Replaces entry `index` of the table, or adds `entry` at the end.
     SaveEntry { table: String, index: Option<usize>, entry: TableEntry },
     RemoveEntry { table: String, index: usize },
+    /// Gives entry `index` of a random table a `percent` chance: the
+    /// weights become percentages, the other entries keeping their shares
+    /// of the rest.
+    SetChance { table: String, index: usize, percent: u32 },
     DeleteTable { table: String },
 }
 
@@ -282,6 +286,66 @@ fn remove_child<T>(list: &mut Vec<T>, old: &str, id: fn(&mut T) -> &mut String, 
 /// Applies `edit` to `file`. Returns the full id of the quest it made, if
 /// any. The result is not checked yet: see `check`.
 pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String> {
+    // A table no reward uses any more after a reward, quest or chapter goes
+    // (or a reward changes table) goes with it: each drawn reward has its own.
+    let prunes = matches!(
+        edit,
+        Edit::RemoveReward { .. } | Edit::SaveReward { .. } | Edit::DeleteQuest { .. } | Edit::DeleteChapter { .. }
+    );
+    let before = if prunes { used_tables(file) } else { Vec::new() };
+    let made = apply_one(file, edit)?;
+    if prunes {
+        let after = used_tables(file);
+        file.reward_tables.retain(|t| !before.contains(&t.id) || after.contains(&t.id));
+    }
+    Ok(made)
+}
+
+/// The tables the pack's rewards draw from.
+fn used_tables(file: &QuestFile) -> Vec<String> {
+    file.chapters
+        .iter()
+        .flat_map(|c| &c.quests)
+        .flat_map(|q| &q.rewards)
+        .filter_map(|r| match &r.kind {
+            RewardKind::Random { table } | RewardKind::Choice { table } => Some(table.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Weights giving entry `index` `percent` of 100, the others sharing the
+/// rest as their `weights` did (equally when they were all 0).
+pub fn chances(weights: &[u32], index: usize, percent: u32) -> Vec<u32> {
+    if weights.len() <= 1 {
+        return vec![100; weights.len()];
+    }
+    let percent = percent.clamp(1, 99);
+    let rest = 100 - percent;
+    let others: u32 = weights.iter().enumerate().filter(|(i, _)| *i != index).map(|(_, w)| *w).sum();
+    let count = weights.len() as u32 - 1;
+    let mut out: Vec<u32> = weights
+        .iter()
+        .enumerate()
+        .map(|(i, w)| {
+            if i == index {
+                percent
+            } else if others == 0 {
+                rest / count
+            } else {
+                ((u64::from(*w) * u64::from(rest) + u64::from(others) / 2) / u64::from(others)) as u32
+            }
+        })
+        .collect();
+    // Rounding: the largest other entry takes what is missing or over.
+    let sum: u32 = out.iter().sum();
+    if let Some(big) = (0..out.len()).filter(|&i| i != index).max_by_key(|&i| out[i]) {
+        out[big] = (out[big] + 100).saturating_sub(sum).max(if sum > 100 { 0 } else { 1 });
+    }
+    out
+}
+
+fn apply_one(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String> {
     let missing = |id: &str| format!("There is no quest {id} any more.");
     match edit {
         Edit::NewQuest { chapter, x, y } => {
@@ -477,6 +541,18 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
             entries.remove(*index);
             Ok(None)
         }
+        Edit::SetChance { table, index, percent } => {
+            let t = table_at(file, table)?;
+            let entries = &mut file.reward_tables[t].entries;
+            if *index >= entries.len() {
+                return Err("That entry is not there any more.".to_owned());
+            }
+            let weights: Vec<u32> = entries.iter().map(|e| e.weight).collect();
+            for (entry, weight) in entries.iter_mut().zip(chances(&weights, *index, *percent)) {
+                entry.weight = weight;
+            }
+            Ok(None)
+        }
         Edit::DeleteTable { table } => {
             let t = table_at(file, table)?;
             file.reward_tables.remove(t);
@@ -554,6 +630,25 @@ mod tests {
         let one = Chapter { id: "one".to_owned(), title: "One".to_owned(), quests: vec![quest("a", &[]), quest("b", &["a"])], ..Chapter::default() };
         let two = Chapter { id: "two".to_owned(), title: "Two".to_owned(), order: 1, quests: vec![quest("c", &["one/b"])], ..Chapter::default() };
         QuestFile { chapters: vec![one, two], ..QuestFile::default() }
+    }
+
+    #[test]
+    fn chances_are_percentages_and_unused_tables_go() {
+        assert_eq!(chances(&[1, 1, 2], 0, 50), [50, 17, 33]);
+        assert_eq!(chances(&[1, 1, 2], 0, 50).iter().sum::<u32>(), 100);
+        assert_eq!(chances(&[5], 0, 30), [100]);
+        assert_eq!(chances(&[0, 0, 0], 2, 40), [30, 30, 40]);
+        assert_eq!(chances(&[3, 1], 1, 100), [1, 99]);
+        let mut file = pack();
+        apply(&mut file, &Edit::NewTableReward { quest: "one/a".into(), choice: false, item: "minecraft:apple".into() }).unwrap();
+        let entry = TableEntry { weight: 1, title: None, kind: RewardKind::Xp { points: 5 } };
+        apply(&mut file, &Edit::SaveEntry { table: "a_loot".into(), index: None, entry }).unwrap();
+        apply(&mut file, &Edit::SetChance { table: "a_loot".into(), index: 1, percent: 25 }).unwrap();
+        let weights: Vec<u32> = file.reward_tables.iter().find(|t| t.id == "a_loot").unwrap().entries.iter().map(|e| e.weight).collect();
+        assert_eq!(weights, [75, 25]);
+        // The reward goes: its table, used by nothing else, goes too.
+        apply(&mut file, &Edit::RemoveReward { quest: "one/a".into(), reward: "random".into() }).unwrap();
+        assert!(file.reward_tables.iter().all(|t| t.id != "a_loot"));
     }
 
     #[test]

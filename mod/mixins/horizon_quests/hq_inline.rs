@@ -394,7 +394,7 @@ fn given_at_once(auto: AutoClaim, pack: bool) -> bool {
 }
 
 /// What a reward (or a table entry) gives, as controls.
-fn kind_controls(kind: &RewardKind, tables: &[String]) -> Vec<Control> {
+fn kind_controls(kind: &RewardKind) -> Vec<Control> {
     let number = |key, label, value: u32, max: f32| Control::Number { key, label, value: value as f32, step: 1.0, min: 1.0, max, zero: None };
     match kind {
         RewardKind::Item { item, count, max_count } => vec![
@@ -431,15 +431,15 @@ fn kind_controls(kind: &RewardKind, tables: &[String]) -> Vec<Control> {
             vec![Control::Text { key: "command", label: "Command", value: command.clone(), hint: "give {player} diamond" }]
         }
         RewardKind::Toast { text } => vec![Control::Text { key: "text", label: "Message", value: text.clone(), hint: "Well done!" }],
-        // The table's entries are listed by the reward's panel; another
-        // table can be picked when the pack has more than one.
-        RewardKind::Random { table } | RewardKind::Choice { table } if tables.len() > 1 => vec![Control::Segments {
+        // The table's entries are listed by the reward's panel; a click on
+        // its name picks another table from a menu.
+        RewardKind::Random { table } | RewardKind::Choice { table } => vec![Control::Choose {
             key: "table",
             label: "Table",
-            options: tables.to_vec(),
-            at: tables.iter().position(|t| t == table),
+            value: table.clone(),
+            icon: "minecraft:barrel".to_owned(),
+            name: table.clone(),
         }],
-        RewardKind::Random { .. } | RewardKind::Choice { .. } => Vec::new(),
     }
 }
 
@@ -448,8 +448,8 @@ const XP_POINTS: u32 = 50;
 const XP_LEVELS: u32 = 1;
 
 /// `kind` after `action` on its controls.
-fn kind_change(kind: &mut RewardKind, tables: &[String], action: &PanelAction) {
-    let controls = kind_controls(kind, tables);
+fn kind_change(kind: &mut RewardKind, action: &PanelAction) {
+    let controls = kind_controls(kind);
     let number = new_number(&controls, action);
     match (kind, number, action) {
         (RewardKind::Item { count, max_count, .. }, Some(("count", v)), _) => {
@@ -466,11 +466,6 @@ fn kind_change(kind: &mut RewardKind, tables: &[String], action: &PanelAction) {
         }
         (kind @ RewardKind::XpLevels { .. }, _, PanelAction::Segment("unit", 0)) => {
             *kind = RewardKind::Xp { points: XP_POINTS };
-        }
-        (RewardKind::Random { table } | RewardKind::Choice { table }, _, PanelAction::Segment(_, i)) => {
-            if let Some(found) = tables.get(*i) {
-                *table = found.clone();
-            }
         }
         _ => {}
     }
@@ -494,8 +489,8 @@ fn kind_text(kind: &mut RewardKind, key: &str, text: &str) -> Result<(), String>
 
 /// A reward's controls: what it gives, its title, when it is claimed, for whom.
 /// `pack` is the pack's "rewards claimed by themselves" setting.
-pub fn reward_controls(title: Option<&str>, auto: AutoClaim, team: bool, kind: &RewardKind, tables: &[String], pack: bool) -> Vec<Control> {
-    let mut controls = kind_controls(kind, tables);
+pub fn reward_controls(title: Option<&str>, auto: AutoClaim, team: bool, kind: &RewardKind, pack: bool) -> Vec<Control> {
+    let mut controls = kind_controls(kind);
     controls.push(Control::Text { key: "title", label: "Title", value: title.unwrap_or("").to_owned(), hint: "automatic" });
     // A choice is always picked by a click.
     if !matches!(kind, RewardKind::Choice { .. }) {
@@ -507,12 +502,12 @@ pub fn reward_controls(title: Option<&str>, auto: AutoClaim, team: bool, kind: &
 }
 
 /// A reward's parts after `action`; false when nothing changed.
-pub fn reward_change(auto: &mut AutoClaim, team: &mut bool, kind: &mut RewardKind, tables: &[String], pack: bool, action: &PanelAction) -> bool {
+pub fn reward_change(auto: &mut AutoClaim, team: &mut bool, kind: &mut RewardKind, pack: bool, action: &PanelAction) -> bool {
     let before = (*auto, *team, kind.clone());
     match action {
         PanelAction::Toggle("auto") => *auto = if given_at_once(*auto, pack) { AutoClaim::Disabled } else { AutoClaim::Enabled },
         PanelAction::Toggle("team") => *team = !*team,
-        _ => kind_change(kind, tables, action),
+        _ => kind_change(kind, action),
     }
     (*auto, *team, kind.clone()) != before
 }
@@ -535,22 +530,63 @@ pub fn reward_pick(kind: &mut RewardKind, id: &str) {
     }
 }
 
-/// A reward table entry's controls: what it gives, its title, its weight.
-pub fn entry_controls(title: Option<&str>, weight: u32, kind: &RewardKind) -> Vec<Control> {
-    let mut controls = kind_controls(kind, &[]);
+/// How the rewards use a table: drawn at random (with this entry's chance,
+/// in percent), with no odds to set, or not at all.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TableUse {
+    Random(f32),
+    /// Chosen from, or the only entry of a random table: no odds to set.
+    NoOdds,
+    Unused,
+}
+
+/// A reward table entry's controls: what it gives, its title, its chance
+/// (a random table) or its weight (a table no reward uses).
+pub fn entry_controls(title: Option<&str>, weight: u32, kind: &RewardKind, used: TableUse) -> Vec<Control> {
+    let mut controls = kind_controls(kind);
     controls.push(Control::Text { key: "title", label: "Title", value: title.unwrap_or("").to_owned(), hint: "automatic" });
-    controls.push(Control::Number { key: "weight", label: "Weight", value: weight as f32, step: 1.0, min: 0.0, max: 1000.0, zero: None });
+    match used {
+        TableUse::Random(percent) => {
+            controls.push(Control::Number { key: "chance", label: "Chance %", value: percent.round(), step: 5.0, min: 1.0, max: 99.0, zero: None });
+        }
+        TableUse::NoOdds => {}
+        TableUse::Unused => {
+            controls.push(Control::Number { key: "weight", label: "Weight", value: weight as f32, step: 1.0, min: 0.0, max: 1000.0, zero: None });
+        }
+    }
     controls.push(Control::Danger { key: "delete", label: "Delete this entry" });
     controls
+}
+
+/// How the pack's rewards use table `table`, for its entry `index`.
+fn table_use(book: &Book, table: &str, index: usize) -> TableUse {
+    let kinds = book.file().chapters.iter().flat_map(|c| &c.quests).flat_map(|q| &q.rewards).map(|r| &r.kind);
+    let (mut random, mut choice) = (false, false);
+    for kind in kinds {
+        match kind {
+            RewardKind::Random { table: t } if t == table => random = true,
+            RewardKind::Choice { table: t } if t == table => choice = true,
+            _ => {}
+        }
+    }
+    let entries = book.table(table).map_or(&[][..], |t| &t.entries[..]);
+    let total: u32 = entries.iter().map(|e| e.weight).sum();
+    let weight = entries.get(index).map_or(0, |e| e.weight);
+    match (random, choice) {
+        (true, _) if entries.len() <= 1 => TableUse::NoOdds,
+        (true, _) => TableUse::Random(if total == 0 { 0.0 } else { weight as f32 * 100.0 / total as f32 }),
+        (false, true) => TableUse::NoOdds,
+        (false, false) => TableUse::Unused,
+    }
 }
 
 /// An entry's parts after `action`; false when nothing changed.
 pub fn entry_change(weight: &mut u32, kind: &mut RewardKind, action: &PanelAction) -> bool {
     let before = (*weight, kind.clone());
-    let controls = entry_controls(None, *weight, kind);
+    let controls = entry_controls(None, *weight, kind, TableUse::Unused);
     match new_number(&controls, action) {
         Some(("weight", v)) => *weight = v as u32,
-        _ => kind_change(kind, &[], action),
+        _ => kind_change(kind, action),
     }
     (*weight, kind.clone()) != before
 }
@@ -723,10 +759,6 @@ fn quest_auto(book: &Book, n: usize) -> Shape {
     chapter.default_shape.unwrap_or(book.settings().default_shape)
 }
 
-fn table_ids(book: &Book) -> Vec<String> {
-    book.file().reward_tables.iter().map(|t| t.id.clone()).collect()
-}
-
 /// Whether `subject` is still in `book`.
 pub fn subject_exists(book: &Book, subject: &Subject) -> bool {
     match subject {
@@ -764,10 +796,10 @@ pub fn subject_panel(book: &Book, subject: &Subject) -> Option<(String, Vec<Cont
             let (n, i) = book.find_reward(r)?;
             let reward = &book.quest(n).rewards[i];
             let pack = book.settings().auto_claim_rewards;
-            let mut controls = reward_controls(reward.title.as_deref(), reward.auto_claim, reward.team, &reward.kind, &table_ids(book), pack);
+            let mut controls = reward_controls(reward.title.as_deref(), reward.auto_claim, reward.team, &reward.kind, pack);
             if let RewardKind::Random { table } | RewardKind::Choice { table } = &reward.kind {
                 let choice = matches!(reward.kind, RewardKind::Choice { .. });
-                let at = controls.iter().position(|c| matches!(c, Control::Segments { key: "table", .. })).map_or(0, |i| i + 1);
+                let at = controls.iter().position(|c| matches!(c, Control::Choose { key: "table", .. })).map_or(0, |i| i + 1);
                 controls.insert(at, table_rows(book, table, choice));
             }
             ("Reward".to_owned(), controls)
@@ -783,7 +815,7 @@ pub fn subject_panel(book: &Book, subject: &Subject) -> Option<(String, Vec<Cont
         Subject::Settings => ("Pack settings".to_owned(), settings_controls(&PackSettings::of(book.settings()))),
         Subject::Entry(t, i) => {
             let entry = book.table(t)?.entries.get(*i)?;
-            (format!("Table {t}, entry {}", i + 1), entry_controls(entry.title.as_deref(), entry.weight, &entry.kind))
+            (format!("Table {t}, entry {}", i + 1), entry_controls(entry.title.as_deref(), entry.weight, &entry.kind, table_use(book, t, *i)))
         }
     })
 }
@@ -812,6 +844,26 @@ pub fn subject_table(book: &Book, subject: &Subject) -> Option<String> {
         RewardKind::Random { table } | RewardKind::Choice { table } => Some(table.clone()),
         _ => None,
     }
+}
+
+/// The tables a drawn reward's panel offers (id, how many entries), and the
+/// edit that makes the reward draw from each.
+pub fn table_choices(book: &Book, subject: &Subject) -> Vec<(String, Edit)> {
+    let Subject::Reward(r) = subject else { return Vec::new() };
+    let Some((quest, reward)) = reward_of(book, r) else { return Vec::new() };
+    book.file()
+        .reward_tables
+        .iter()
+        .filter_map(|t| {
+            let mut reward = reward.clone();
+            match &mut reward.kind {
+                RewardKind::Random { table } | RewardKind::Choice { table } => *table = t.id.clone(),
+                _ => return None,
+            }
+            let label = format!("{} ({} {})", t.id, t.entries.len(), if t.entries.len() == 1 { "item" } else { "items" });
+            Some((label, Edit::SaveReward { quest: quest.clone(), old: Some(reward.id.clone()), reward }))
+        })
+        .collect()
 }
 
 /// The task, reward or entry of `subject` as it is, to change.
@@ -856,7 +908,7 @@ pub fn subject_action(book: &Book, subject: &Subject, action: &PanelAction) -> O
                 return Some(Edit::RemoveReward { quest, reward: reward.id });
             }
             let pack = book.settings().auto_claim_rewards;
-            let changed = reward_change(&mut reward.auto_claim, &mut reward.team, &mut reward.kind, &table_ids(book), pack, action);
+            let changed = reward_change(&mut reward.auto_claim, &mut reward.team, &mut reward.kind, pack, action);
             let old = Some(reward.id.clone());
             changed.then_some(Edit::SaveReward { quest, old, reward })
         }
@@ -873,6 +925,12 @@ pub fn subject_action(book: &Book, subject: &Subject, action: &PanelAction) -> O
         Subject::Entry(t, i) => {
             if delete {
                 return Some(Edit::RemoveEntry { table: t.clone(), index: *i });
+            }
+            // A chance changes every weight of the table.
+            let entry = book.table(t)?.entries.get(*i)?;
+            let controls = entry_controls(None, entry.weight, &entry.kind, table_use(book, t, *i));
+            if let Some(("chance", percent)) = new_number(&controls, action) {
+                return Some(Edit::SetChance { table: t.clone(), index: *i, percent: percent.round() as u32 });
             }
             let mut entry = entry_of(book, t, *i)?;
             let changed = entry_change(&mut entry.weight, &mut entry.kind, action);
@@ -1500,31 +1558,29 @@ mod tests {
 
     #[test]
     fn rewards_and_entries_change() {
-        let tables = vec!["a".to_owned(), "b".to_owned()];
         let (mut auto, mut team) = (AutoClaim::Default, false);
         let mut kind = RewardKind::Item { item: "minecraft:bread".into(), count: 2, max_count: None };
         // "Up to" starts at the count: one step up is a range 2-3.
-        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Step("max", 1.0));
+        reward_change(&mut auto, &mut team, &mut kind, false, &PanelAction::Step("max", 1.0));
         assert_eq!(kind, RewardKind::Item { item: "minecraft:bread".into(), count: 2, max_count: Some(3) });
         // A count that reaches the top ends the range.
-        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Set("count", 5.0));
+        reward_change(&mut auto, &mut team, &mut kind, false, &PanelAction::Set("count", 5.0));
         assert_eq!(kind, RewardKind::Item { item: "minecraft:bread".into(), count: 5, max_count: None });
         // "Given at once": with the pack's setting off, a click turns it on.
-        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Toggle("auto"));
-        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Toggle("team"));
+        reward_change(&mut auto, &mut team, &mut kind, false, &PanelAction::Toggle("auto"));
+        reward_change(&mut auto, &mut team, &mut kind, false, &PanelAction::Toggle("team"));
         assert_eq!((auto, team), (AutoClaim::Enabled, true));
-        reward_change(&mut auto, &mut team, &mut kind, &tables, true, &PanelAction::Toggle("auto"));
+        reward_change(&mut auto, &mut team, &mut kind, true, &PanelAction::Toggle("auto"));
         assert_eq!(auto, AutoClaim::Disabled);
         // Experience: points and levels are one reward with a unit.
         let mut xp = RewardKind::Xp { points: 30 };
-        reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Segment("unit", 1));
+        reward_change(&mut auto, &mut team, &mut xp, false, &PanelAction::Segment("unit", 1));
         assert_eq!(xp, RewardKind::XpLevels { levels: 1 });
-        reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Set("amount", 3.0));
-        reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Segment("unit", 0));
+        reward_change(&mut auto, &mut team, &mut xp, false, &PanelAction::Set("amount", 3.0));
+        reward_change(&mut auto, &mut team, &mut xp, false, &PanelAction::Segment("unit", 0));
         assert_eq!(xp, RewardKind::Xp { points: 50 });
-        let mut draw = RewardKind::Random { table: "a".into() };
-        reward_change(&mut auto, &mut team, &mut draw, &tables, false, &PanelAction::Segment("table", 1));
-        assert_eq!(draw, RewardKind::Random { table: "b".into() });
+        let draw = RewardKind::Random { table: "a".into() };
+        assert!(matches!(&kind_controls(&draw)[0], Control::Choose { key: "table", value, .. } if value == "a"));
         let mut title = None;
         let mut command = RewardKind::Command { command: "say hi".into() };
         assert!(reward_text(&mut title, &mut command, "command", "  ").is_err());
