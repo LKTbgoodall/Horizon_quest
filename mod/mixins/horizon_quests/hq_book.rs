@@ -191,6 +191,8 @@ pub enum Typed {
     Description(String),
     /// A text control of the open panel.
     Panel(&'static str),
+    /// The chance of row `1` of the open panel's list `0`.
+    Row(&'static str, usize),
 }
 
 /// What the glue does after a click.
@@ -979,6 +981,8 @@ impl BookView {
                         Some(subject) => TextField::new(&inline::subject_value(s.book, subject, key), 300),
                         None => return Reaction::Nothing,
                     },
+                    // A chance is typed from its panel's click (`RowStep`).
+                    Typed::Row(_, _) => return Reaction::Nothing,
                 };
                 self.typing = Some((target, field));
             }
@@ -1249,6 +1253,24 @@ impl BookView {
                     self.panel_back = Some(subject);
                 }
             }
+            PanelAction::RowStep(key, i, by) if by == 0.0 => {
+                if let Some(table) = inline::subject_table(s.book, &subject) {
+                    let value = inline::row_chance(s.book, &table, i).to_string();
+                    self.typing = Some((Typed::Row(key, i), TextField::new(&value, 5)));
+                }
+            }
+            PanelAction::RowStep(_, i, by) => {
+                match inline::row_chance_edit(s.book, &subject, i, by, None) {
+                    Ok(Some(change)) => return Reaction::Edit(change),
+                    Ok(None) => {}
+                    Err(e) => self.notice = e,
+                }
+            }
+            PanelAction::Even(_) => {
+                if let Some(table) = inline::subject_table(s.book, &subject) {
+                    return Reaction::Edit(Edit::EvenChances { table });
+                }
+            }
             PanelAction::AddRow(_) => {
                 if let Some(table) = inline::subject_table(s.book, &subject) {
                     self.picker = Some((Picker::new(false, false), Purpose::NewEntry(table)));
@@ -1316,6 +1338,10 @@ impl BookView {
             }
             Typed::Panel(key) => match &self.panel {
                 Some(subject) => inline::subject_text(s.book, subject, key, &text),
+                None => Ok(None),
+            },
+            Typed::Row(_, i) => match &self.panel {
+                Some(subject) => inline::row_chance_edit(s.book, subject, *i, 0.0, Some(&text)),
                 None => Ok(None),
             },
         };
@@ -1461,6 +1487,10 @@ impl BookView {
         if let Some(Action::Panel(PanelAction::Step(key, _))) = scene.action_at(s.mouse).cloned() {
             return self.panel_click(s, PanelAction::Step(key, steps.signum() as f32));
         }
+        // Over a chance in a list: the wheel moves it by one percent.
+        if let Some(Action::Panel(PanelAction::RowStep(key, i, _))) = scene.action_at(s.mouse).cloned() {
+            return self.panel_click(s, PanelAction::RowStep(key, i, steps.signum() as f32));
+        }
         if scene.action_at(s.mouse).is_some_and(|a| matches!(a, Action::Panel(_))) {
         } else if !steps.is_finite() || self.recipe.is_some() || self.choosing.is_some() {
         } else if self.over_list(s) {
@@ -1509,8 +1539,13 @@ impl BookView {
             && let Some((title, controls)) = inline::subject_panel(s.book, subject)
         {
             let anchor = popup.unwrap_or([regions.canvas[0], regions.canvas[1] + PAD, 0.0, 0.0]);
+            let row_key = match &self.typing {
+                Some((Typed::Row(key, i), _)) => format!("{key}#{i}"),
+                _ => String::new(),
+            };
             let typing = match &self.typing {
                 Some((Typed::Panel(key), field)) => Some((*key, field)),
+                Some((Typed::Row(_, _), field)) => Some((row_key.as_str(), field)),
                 _ => None,
             };
             let (rect, draws, zones) = inline::panel(&title, &controls, anchor, regions.canvas, typing, s.mouse, self.clock, s.measure);
@@ -3803,7 +3838,7 @@ mod tests {
             inline::Control::Rows { rows, .. } => Some(rows.clone()),
             _ => None,
         });
-        assert_eq!(rows, Some(vec![("minecraft:experience_bottle".to_owned(), "5 XP 100%".to_owned())]));
+        assert_eq!(rows, Some(vec![("minecraft:experience_bottle".to_owned(), "5 XP".to_owned(), Some(100))]));
         click(&mut view, &book, &progress, &Action::Panel(PanelAction::Row("entries", 0)));
         assert_eq!(view.panel, Some(Subject::Entry("loot".into(), 0)));
         click(&mut view, &book, &progress, &Action::Panel(PanelAction::Close));

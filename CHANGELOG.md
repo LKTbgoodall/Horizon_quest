@@ -4,6 +4,11 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.16.2
+- Bastien's remarks on 0.16.1:
+  - A drawn reward's list spans the panel, and each row of a random table ends with its chance as "- 25% +": always visible (the name is cut before it), - / + by 5, the wheel by 1, a click types it. "Even" gives every entry the same chance.
+  - Tables can be named: "Table name" in the reward's panel renames the table (`Edit::RenameTable`), the rewards that draw from it follow.
+
 ## 0.16.1
 - Bastien's remarks on 0.16.0:
   - Chances in percent: a random table's entry has "Chance %" instead of a weight; setting it makes the weights percentages, the other entries sharing the rest as they did (`Edit::SetChance`). A choice table's entries, and the only entry of a table, show no odds.

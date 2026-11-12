@@ -80,6 +80,11 @@ pub enum Edit {
     /// weights become percentages, the other entries keeping their shares
     /// of the rest.
     SetChance { table: String, index: usize, percent: u32 },
+    /// Every entry of the table the same chance.
+    EvenChances { table: String },
+    /// Gives the table an id made from `name`; the rewards that draw from
+    /// it follow.
+    RenameTable { table: String, name: String },
     DeleteTable { table: String },
 }
 
@@ -553,6 +558,33 @@ fn apply_one(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
             }
             Ok(None)
         }
+        Edit::EvenChances { table } => {
+            let t = table_at(file, table)?;
+            file.reward_tables[t].entries.iter_mut().for_each(|e| e.weight = 1);
+            Ok(None)
+        }
+        Edit::RenameTable { table, name } => {
+            let t = table_at(file, table)?;
+            if !name.chars().any(|c| c.is_ascii_alphanumeric()) {
+                return Err("Give the table a name (letters or digits).".to_owned());
+            }
+            let id = slug(name);
+            if id == *table {
+                return Ok(None);
+            }
+            if file.reward_tables.iter().any(|other| other.id == id) {
+                return Err(format!("A table is already called {id}."));
+            }
+            file.reward_tables[t].id = id.clone();
+            for reward in file.chapters.iter_mut().flat_map(|c| &mut c.quests).flat_map(|q| &mut q.rewards) {
+                if let RewardKind::Random { table: used } | RewardKind::Choice { table: used } = &mut reward.kind
+                    && used == table
+                {
+                    *used = id.clone();
+                }
+            }
+            Ok(None)
+        }
         Edit::DeleteTable { table } => {
             let t = table_at(file, table)?;
             file.reward_tables.remove(t);
@@ -646,6 +678,14 @@ mod tests {
         apply(&mut file, &Edit::SetChance { table: "a_loot".into(), index: 1, percent: 25 }).unwrap();
         let weights: Vec<u32> = file.reward_tables.iter().find(|t| t.id == "a_loot").unwrap().entries.iter().map(|e| e.weight).collect();
         assert_eq!(weights, [75, 25]);
+        apply(&mut file, &Edit::EvenChances { table: "a_loot".into() }).unwrap();
+        assert!(file.reward_tables.iter().find(|t| t.id == "a_loot").unwrap().entries.iter().all(|e| e.weight == 1));
+        // Renamed: the reward follows; a name taken or empty is refused.
+        apply(&mut file, &Edit::RenameTable { table: "a_loot".into(), name: "Smith Loot".into() }).unwrap();
+        assert!(apply(&mut file, &Edit::RenameTable { table: "smith_loot".into(), name: " ".into() }).is_err());
+        assert!(matches!(&file.chapters[0].quests[0].rewards.last().unwrap().kind, RewardKind::Random { table } if table == "smith_loot"));
+        check(&file).unwrap();
+        apply(&mut file, &Edit::RenameTable { table: "smith_loot".into(), name: "a_loot".into() }).unwrap();
         // The reward goes: its table, used by nothing else, goes too.
         apply(&mut file, &Edit::RemoveReward { quest: "one/a".into(), reward: "random".into() }).unwrap();
         assert!(file.reward_tables.iter().all(|t| t.id != "a_loot"));

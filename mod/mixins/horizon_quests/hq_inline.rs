@@ -38,9 +38,11 @@ pub enum Control {
     /// Something chosen from a list (an advancement), shown by `icon` and
     /// `name`; `value` is its id. A click opens the picker.
     Choose { key: &'static str, label: &'static str, value: String, icon: String, name: String },
-    /// A list: one row per entry, (icon, text), a click edits that entry;
-    /// a last row adds one. A reward table's entries in a reward's panel.
-    Rows { key: &'static str, label: &'static str, rows: Vec<(String, String)>, add: &'static str },
+    /// A list across the panel under its label: one row per entry, (icon,
+    /// text, chance in percent), a click edits that entry; a chance has
+    /// - / + and is typed after a click. A last row adds one (and, with
+    /// chances, evens them). A reward table's entries in a reward's panel.
+    Rows { key: &'static str, label: &'static str, rows: Vec<(String, String, Option<u32>)>, add: &'static str },
     /// A red button across the panel.
     Danger { key: &'static str, label: &'static str },
 }
@@ -63,6 +65,10 @@ pub enum PanelAction {
     /// Row `1` of list `0`, and its "add" row.
     Row(&'static str, usize),
     AddRow(&'static str),
+    /// Row `1`'s chance moved by `2` percent; 0: typed after a click.
+    RowStep(&'static str, usize, f32),
+    /// Every row the same chance.
+    Even(&'static str),
     Close,
     Stay,
 }
@@ -108,6 +114,7 @@ const DIM_INK: u32 = 0x90_90A0;
 const LABEL_INK: u32 = 0xB8_B8C4;
 const CURSOR: u32 = 0xFFE0_E0E8;
 const ADD_INK: u32 = 0x80_E080;
+const CHANCE_INK: u32 = 0xFF_D860;
 /// The picker's grid.
 const CELL: f32 = 18.0;
 const COLUMNS: usize = 9;
@@ -800,7 +807,8 @@ pub fn subject_panel(book: &Book, subject: &Subject) -> Option<(String, Vec<Cont
             if let RewardKind::Random { table } | RewardKind::Choice { table } = &reward.kind {
                 let choice = matches!(reward.kind, RewardKind::Choice { .. });
                 let at = controls.iter().position(|c| matches!(c, Control::Choose { key: "table", .. })).map_or(0, |i| i + 1);
-                controls.insert(at, table_rows(book, table, choice));
+                controls.insert(at, Control::Text { key: "table_name", label: "Table name", value: table.clone(), hint: "" });
+                controls.insert(at + 1, table_rows(book, table, choice));
             }
             ("Reward".to_owned(), controls)
         }
@@ -824,16 +832,37 @@ pub fn subject_panel(book: &Book, subject: &Subject) -> Option<(String, Vec<Cont
 /// random draw, its chance.
 fn table_rows(book: &Book, table: &str, choice: bool) -> Control {
     let entries = book.table(table).map_or(&[][..], |t| &t.entries[..]);
-    let total: u32 = entries.iter().map(|e| e.weight).sum();
     let rows = entries
         .iter()
-        .map(|e| {
-            let label = entry_label(e);
-            let text = if choice || total == 0 { label } else { format!("{label} {}%", (e.weight * 100 + total / 2) / total) };
-            (reward_item(&e.kind).0, text)
-        })
+        .enumerate()
+        .map(|(i, e)| (reward_item(&e.kind).0, entry_label(e), (!choice).then(|| row_chance(book, table, i))))
         .collect();
     Control::Rows { key: "entries", label: if choice { "Choose from" } else { "Draws from" }, rows, add: "+ Add an item" }
+}
+
+/// Entry `index` of table `table`'s chance, in whole percent.
+pub fn row_chance(book: &Book, table: &str, index: usize) -> u32 {
+    let entries = book.table(table).map_or(&[][..], |t| &t.entries[..]);
+    let total: u32 = entries.iter().map(|e| e.weight).sum();
+    match entries.get(index) {
+        Some(e) if total > 0 => (e.weight * 100 + total / 2) / total,
+        _ => 0,
+    }
+}
+
+/// The edit a step on, or a value typed into, a chance of a reward's
+/// table asks for: the new percent from `step` (added) or `typed`.
+pub fn row_chance_edit(book: &Book, subject: &Subject, index: usize, step: f32, typed: Option<&str>) -> Result<Option<Edit>, String> {
+    let Some(table) = subject_table(book, subject) else { return Ok(None) };
+    if book.table(&table).is_none_or(|t| t.entries.len() < 2 || index >= t.entries.len()) {
+        return Ok(None);
+    }
+    let percent = match typed {
+        Some(text) => text.trim().trim_end_matches('%').trim().replace(',', ".").parse::<f32>().map_err(|_| "Chance: a number from 1 to 99.".to_owned())?,
+        None => row_chance(book, &table, index) as f32 + step,
+    };
+    let percent = percent.round().clamp(1.0, 99.0) as u32;
+    Ok((percent != row_chance(book, &table, index)).then_some(Edit::SetChance { table, index, percent }))
 }
 
 /// The reward table a reward's panel lists, when it draws from one.
@@ -956,6 +985,9 @@ pub fn subject_text(book: &Book, subject: &Subject, key: &str, text: &str) -> Re
             task_text(&mut task, key, text)?;
             Ok(Edit::SaveTask { quest, old: Some(task.id.clone()), task })
         }).transpose()?,
+        Subject::Reward(_) if key == "table_name" => {
+            subject_table(book, subject).map(|table| Edit::RenameTable { table, name: text.trim().to_owned() })
+        }
         Subject::Reward(r) => reward_of(book, r).map(|(quest, mut reward)| -> Result<Edit, String> {
             reward_text(&mut reward.title, &mut reward.kind, key, text)?;
             Ok(Edit::SaveReward { quest, old: Some(reward.id.clone()), reward })
@@ -1147,7 +1179,7 @@ fn control_h(c: &Control, field_w: f32, measure: &dyn Fn(&str) -> f32) -> f32 {
         }
         Control::Item { .. } | Control::Choose { .. } => 20.0,
         Control::Shapes { .. } => 20.0,
-        Control::Rows { rows, .. } => (rows.len() + 1) as f32 * ROW,
+        Control::Rows { rows, .. } => (rows.len() + 2) as f32 * ROW,
         Control::Danger { .. } => ROW + 4.0,
         _ => ROW,
     }
@@ -1339,17 +1371,65 @@ pub fn panel(
                 zones.push(([field_x, row_y, field_w, 19.0], PanelAction::Pick(key)));
             }
             Control::Rows { key, rows, add, .. } => {
-                for (i, (icon, line)) in rows.iter().enumerate() {
-                    let row = [field_x, row_y + i as f32 * ROW, field_w, ROW - 1.0];
+                // Under the label, across the whole panel.
+                let (left, width) = (x + PAD, w - 2.0 * PAD);
+                let top = row_y + ROW;
+                for (i, (icon, line, chance)) in rows.iter().enumerate() {
+                    let row = [left, top + i as f32 * ROW, width, ROW - 1.0];
                     fill(&mut draws, row, if canvas::inside(row, mouse) { CHIP_HOVER } else { SLOT });
-                    draws.push(Draw::Item { item: icon.clone(), at: [row[0] + 1.0, row[1] + 0.5], size: 12.0 });
-                    text(&mut draws, fit_text(line, field_w - 18.0, measure), [row[0] + 15.0, row[1] + 3.0], INK);
                     zones.push((row, PanelAction::Row(key, i)));
+                    draws.push(Draw::Item { item: icon.clone(), at: [row[0] + 1.0, row[1] + 0.5], size: 12.0 });
+                    // The chance on the right, always shown: - value +.
+                    let mut name_w = width - 18.0;
+                    if let Some(percent) = chance {
+                        let plus = [row[0] + row[2] - 11.0, row[1], 11.0, row[3]];
+                        let value = [plus[0] - 27.0, row[1], 26.0, row[3]];
+                        let minus = [value[0] - 12.0, row[1], 11.0, row[3]];
+                        name_w = minus[0] - row[0] - 18.0;
+                        for (button, sign, by) in [(minus, "-", -5.0), (plus, "+", 5.0)] {
+                            fill(&mut draws, button, if canvas::inside(button, mouse) { CHIP_HOVER } else { CHIP });
+                            text(&mut draws, sign.to_owned(), [button[0] + 3.0, button[1] + 2.5], INK);
+                            zones.push((button, PanelAction::RowStep(key, i, by)));
+                        }
+                        fill(&mut draws, value, SLOT);
+                        let typed_key = format!("{key}#{i}");
+                        match typing.filter(|(k, _)| *k == typed_key).map(|(_, f)| f) {
+                            Some(f) => {
+                                frame(&mut draws, value, FOCUS_EDGE);
+                                let (shown, _, cursor) = f.shown(0, value[2] - 4.0, measure);
+                                let at = [value[0] + 2.0, value[1] + 3.0];
+                                text(&mut draws, shown, at, INK);
+                                if let Some(cx) = cursor.filter(|_| (clock / 10) % 2 == 0) {
+                                    fill(&mut draws, [at[0] + cx, at[1] - 1.0, 1.0, 9.0], CURSOR);
+                                }
+                            }
+                            None => {
+                                if canvas::inside(value, mouse) {
+                                    frame(&mut draws, value, SLOT_EDGE);
+                                }
+                                let shown = format!("{percent}%");
+                                let tw = measure(&shown);
+                                text(&mut draws, shown, [value[0] + ((value[2] - tw) / 2.0).max(1.0), value[1] + 3.0], CHANCE_INK);
+                            }
+                        }
+                        // A click types it; the wheel over it moves it by one.
+                        zones.push((value, PanelAction::RowStep(key, i, 0.0)));
+                    }
+                    text(&mut draws, fit_text(line, name_w.max(0.0), measure), [row[0] + 15.0, row[1] + 3.0], INK);
                 }
-                let more = [field_x, row_y + rows.len() as f32 * ROW, field_w, ROW - 1.0];
+                let foot = top + rows.len() as f32 * ROW;
+                let has_chances = rows.iter().filter(|r| r.2.is_some()).count() > 1;
+                let even_w = if has_chances { measure("Even") + 8.0 } else { 0.0 };
+                let more = [left, foot, width - if has_chances { even_w + 2.0 } else { 0.0 }, ROW - 1.0];
                 fill(&mut draws, more, if canvas::inside(more, mouse) { CHIP_HOVER } else { CHIP });
                 text(&mut draws, (*add).to_owned(), [more[0] + 4.0, more[1] + 3.0], ADD_INK);
                 zones.push((more, PanelAction::AddRow(key)));
+                if has_chances {
+                    let even = [left + width - even_w, foot, even_w, ROW - 1.0];
+                    fill(&mut draws, even, if canvas::inside(even, mouse) { CHIP_HOVER } else { CHIP });
+                    text(&mut draws, "Even".to_owned(), [even[0] + 4.0, even[1] + 3.0], LABEL_INK);
+                    zones.push((even, PanelAction::Even(key)));
+                }
             }
             Control::Danger { key, label } => {
                 let button = [x + PAD, row_y + 2.0, w - 2.0 * PAD, ROW];
