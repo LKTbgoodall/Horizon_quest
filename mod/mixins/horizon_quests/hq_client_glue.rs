@@ -5,6 +5,7 @@
 
 use super::hq_book::{self as book_ui, BookView, Draw, Reaction, Screen};
 use super::hq_config::{self as config, ClientConfig};
+use super::hq_edit::{self as edit, Edit};
 use super::hq_logic::Book;
 use super::hq_meta as meta;
 use super::hq_model::Progress;
@@ -362,7 +363,13 @@ pub(super) fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
                 measure: &measure,
             };
             s.view.open(&screen);
+            s.view.pack_changed(s.book.as_ref(), &book, None);
             s.book = Some(book);
+        }
+        ToClient::Editor { allowed, source } => {
+            s.view.editor = allowed;
+            s.view.editing &= allowed;
+            s.view.source = source;
         }
         ToClient::Progress { player, progress } => {
             s.player = player;
@@ -429,17 +436,37 @@ pub(super) fn render(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScree
     paint(game, batch, draws);
 }
 
-/// A click on the book activates buttons, chapters, quests or actions.
+/// A click on the book activates buttons, chapters, quests or actions; in
+/// edit mode a right click opens the edit menu.
 pub(super) fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
     if !ours(game) {
         return;
     }
     *canceled = true;
-    if button != 0 {
+    if button != 0 && button != 1 {
         return;
     }
+    let reaction = on_book(game, screen, |view, scr| if button == 0 { view.click(scr) } else { view.right_click(scr) });
+    react(game, reaction);
+}
+
+/// The left button came up over the book: a quest dragged in edit mode is
+/// dropped.
+pub(super) fn released(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
+    if !ours(game) {
+        return;
+    }
+    *canceled = true;
+    if button == 0 {
+        let reaction = on_book(game, screen, |view, scr| view.release(scr));
+        react(game, reaction);
+    }
+}
+
+/// `f` on the book as it is under the pointer; requests it returns are sent.
+fn on_book(game: &Game<'_>, screen: &NativeScreenView<'_>, f: impl FnOnce(&mut BookView, &Screen<'_>) -> Reaction) -> Reaction {
     let measure = |text: &str| game.native_text_width(text);
-    let reaction = with(|s| {
+    with(|s| {
         let Some(book) = &s.book else {
             return Reaction::Nothing;
         };
@@ -451,16 +478,44 @@ pub(super) fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i3
             mouse: screen.mouse,
             measure: &measure,
         };
-        let reaction = s.view.click(&scr);
-        if let Reaction::Send(ref to_server) = reaction {
-            let _ = s.sender.send(to_server);
+        let reaction = f(&mut s.view, &scr);
+        match &reaction {
+            Reaction::Send(to_server) => {
+                let _ = s.sender.send(to_server);
+            }
+            Reaction::Edit(change) => {
+                let _ = s.sender.send(&ToServer::Edit { edit: change.clone() });
+                edit_here(s, change);
+            }
+            Reaction::Nothing | Reaction::Close | Reaction::Tracked(_) => {}
         }
         reaction
-    });
+    })
+}
+
+/// What the glue does after the book reacted.
+fn react(game: &Game<'_>, reaction: Reaction) {
     match reaction {
         Reaction::Close => with(|s| s.close_requested = true),
         Reaction::Tracked(quest) => game.native_set_setting(meta::ID, TRACKED_SETTING, quest.as_deref().unwrap_or("")),
-        Reaction::Nothing | Reaction::Send(_) => {}
+        Reaction::Nothing | Reaction::Send(_) | Reaction::Edit(_) => {}
+    }
+}
+
+/// An edit sent to the server, shown at once on the book's own copy of the
+/// pack when it checks out (the server's answer replaces it); else why not.
+fn edit_here(s: &mut ClientState, change: &Edit) {
+    let Some(book) = &s.book else {
+        return;
+    };
+    let mut file = book.file().clone();
+    match edit::apply(&mut file, change).and_then(|made| Ok((edit::check(&file)?, made))) {
+        Ok((file, made)) => {
+            let book = Book::new(file);
+            s.view.pack_changed(s.book.as_ref(), &book, made.as_deref());
+            s.book = Some(book);
+        }
+        Err(e) => s.view.notice = e,
     }
 }
 
@@ -474,7 +529,7 @@ pub(super) fn screen_key(game: &Game<'_>, key: &str, canceled: &mut bool) {
     // One window at a time, the one on top first: the recipe view or the
     // choice window, then the quest window. With none open, Escape closes
     // the book as usual.
-    if with(|s| s.view.recipe.take().is_some() || s.view.choosing.take().is_some() || s.view.close_quest()) {
+    if with(|s| s.view.close_menu() || s.view.recipe.take().is_some() || s.view.choosing.take().is_some() || s.view.close_quest()) {
         *canceled = true;
     }
 }

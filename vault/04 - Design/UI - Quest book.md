@@ -88,11 +88,15 @@ Another pack: chapter groups, the five shapes, sizes:
 ## Notifications (MVP)
 - Chat message and sound on quest completion. Client toasts (`native_add_toast`, ⏳) when available.
 
-## In-game editor (phase 5)
-- Edit mode for ops (level 2+, later a permission node).
-- Create, move (drag), link dependencies (shift-click), edit fields (text input via `screen_char_typed_pre`).
-- Every change becomes a net message → the server validates, saves the chapter file and rebroadcasts.
-- Until then: edit the JSON files by hand and run `/quests reload`.
+## In-game editor (edit mode, since v0.11.0)
+→ [[ADR-016 Edit mode in the book]]
+- **Pencil** (`pencil_button`, pixel art `PENCIL_PIXELS`) left of the "x" in the bottom band, only when the server said `ToClient::Editor { allowed: true }`. It toggles `BookView.editing`: orange band (`EDIT_BAND`), "Editing (<source>)" on the left, a dot per grid cell (`draw_grid`), help "right-click: menu | drag a quest: move it".
+- **Drag a quest**: a press on a node starts `Moving` (no selection yet); `drag` moves it (`place_of` draws it on its snapped half cell); `release` (hook `native_screen_mouse_button_released_pre`, API 80) sends `Edit::MoveQuest`, or opens the quest when it did not move (2 px).
+- **Right click** (`right_click`, button 1 of the pressed hook) opens a `Menu` (`draw_menu`: a dim title and rows, a click elsewhere closes it, Escape too):
+  - empty spot: New quest here, Save these quests for the modpack, Use the modpack's quests (when the world has its own: asks first);
+  - quest: Duplicate (one cell right), Pick what this quest needs... / opens... (link picking: `linking`, each quest clicked toggles the link, Escape or a click elsewhere ends it), Delete (asks first).
+- The glue sends each `Reaction::Edit` and applies it to its own pack at once (`edit_here`: `hq_edit::apply` + `check`); `pack_changed` keeps the open quest and link picking across packs by id.
+- To come: text fields through `native_screen_char_typed_pre` (API 104) for the quest form (v0.12), tasks and rewards (v0.13), chapters, groups, tables (v0.14).
 
 ## Optional fallback: chest-menu book (not planned)
 If vanilla-client support is ever wanted: pure pages in `hq_book_menu` (`layout()` / `click()`, like `smp_market_menu`), opened with `native_open_menu` (6 rows), the bottom row for navigation (`BACK=45`, `PREV=47`, `NEXT=51`, `CLOSE=53`), and the tracked quest in `native_sidebar`. See [[Example - smp mod (patterns to reuse)]] §4.

@@ -22,5 +22,6 @@ Every important technical decision has its own note (template: `99 - Templates/T
 | 013 | [[ADR-013 Version numbers]] | ✅ accepted | 2026-11-10 |
 | 014 | [[ADR-014 Publish one hmod with content and code]] | ✅ accepted | 2026-11-11 |
 | 015 | [[ADR-015 Embed the content pack in the native mod]] | 🟡 on hold: fallback if Friday's Nightly does not read native content | 2026-11-11 |
+| 016 | [[ADR-016 Edit mode in the book]] | ✅ accepted (coded in v0.11.0) | 2026-11-12 |
 
 > 🟡 = proposed, waiting for Bastien. Set `status: accepted` in the frontmatter and update this table.

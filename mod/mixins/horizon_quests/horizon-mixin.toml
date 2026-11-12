@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.10.7"
+version = "0.11.0"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
@@ -33,6 +33,12 @@ id = "validate"
 file = "crates/horizon-client/src/game.rs"
 name = "hq_validate"
 source = "hq_validate.rs"
+
+[[module]]
+id = "edit"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_edit"
+source = "hq_edit.rs"
 
 [[module]]
 id = "logic"
@@ -170,6 +176,18 @@ id = "pressed"
 kind = "HEAD"
 target = "horizon_client::game::native_hooks::Game<'_>::native_screen_mouse_button_pressed_pre"
 helper = "pressed.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "screen", ty = "&horizon_client::mod_api::NativeScreenView<'_>", value = "screen" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "released"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_mouse_button_released_pre"
+helper = "released.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "screen", ty = "&horizon_client::mod_api::NativeScreenView<'_>", value = "screen" },

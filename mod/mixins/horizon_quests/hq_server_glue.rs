@@ -15,9 +15,10 @@
 
 use super::hq_commands::{self as commands, Command, TeamCommand};
 use super::hq_config::{self as config, ServerConfig};
+use super::hq_edit::{self as edit, Edit};
 use super::hq_logic::Book;
 use super::hq_meta as meta;
-use super::hq_model::{ItemMatch, Progress, RewardKind};
+use super::hq_model::{ItemMatch, Progress, QuestFile, RewardKind};
 use super::hq_net::{self as net, ToClient, ToServer};
 use super::hq_progress::{self as engine, Effect, QuestEvent, Wanted};
 use super::hq_session::{self as session, Rules, Session, Verb};
@@ -55,6 +56,15 @@ struct State {
     dir: Option<PathBuf>,
     /// What `/quests validate` answers for the pack in use.
     report: Vec<String>,
+    /// Where the pack in use comes from (`hq_edit::SOURCE_*`).
+    source: &'static str,
+    /// The modpack's pack folder, `config/horizon_quests/quests/`, used by
+    /// every world without quests of its own; None without a config folder.
+    modpack: Option<PathBuf>,
+    /// Whether each player's book was told it may edit (`ToClient::Editor`).
+    editors: HashMap<u128, bool>,
+    /// Players `/quests edit` gave the pencil to, whatever their level.
+    granted: HashSet<u128>,
     /// Effects decided outside the tick (an admin command), carried out on
     /// the next one, where every player is in reach.
     pending: Vec<(u128, Effect)>,
@@ -86,22 +96,26 @@ fn server_config() -> ServerConfig {
 }
 
 /// The pack: `<world>/horizon-quests/quests/` when the world has one, else
-/// the chapters of the world's data packs (`data/<namespace>/horizon_quests/`),
-/// else the example pack compiled into the bundle, unless the server's config
-/// turned it off.
-fn load_pack(dir: Option<&Path>) -> (Loaded, &'static str) {
-    if let Some(quests) = dir.map(|d| d.join("quests"))
+/// the modpack's (`config/horizon_quests/quests/`), else the chapters of the
+/// world's data packs (`data/<namespace>/horizon_quests/`), else the example
+/// pack compiled into the bundle, unless the server's config turned it off.
+/// With where it came from, for the log and for the book (`hq_edit::SOURCE_*`).
+fn load_pack(dir: Option<&Path>, modpack: Option<&Path>) -> (Loaded, &'static str, &'static str) {
+    if let Some(quests) = dir.map(|d| d.join(store::PACK_FOLDER))
         && quests.join("quests.json").is_file()
     {
-        return (validate::load_dir(&quests), "the world's quests folder");
+        return (validate::load_dir(&quests), "the world's quests folder", edit::SOURCE_WORLD);
+    }
+    if let Some(quests) = modpack.filter(|m| m.join("quests.json").is_file()) {
+        return (validate::load_dir(quests), "the modpack's quests folder (config/horizon_quests/quests/)", edit::SOURCE_MODPACK);
     }
     let data = validate::load_data(&DATA.lock().unwrap_or_else(|poisoned| poisoned.into_inner()));
     if let Some(loaded) = data {
-        return (loaded, "the data packs (data/<namespace>/horizon_quests/)");
+        return (loaded, "the data packs (data/<namespace>/horizon_quests/)", edit::SOURCE_DATA_PACKS);
     }
     if !server_config().example_chapter {
         let empty = validate::load_pack(None, &[], &[]);
-        return (empty, "nowhere: the example chapters are turned off (example_chapter = false)");
+        return (empty, "nowhere: the example chapters are turned off (example_chapter = false)", edit::SOURCE_NONE);
     }
     let text = |bytes: &'static [u8]| std::str::from_utf8(bytes).unwrap_or("");
     let settings = text(horizon_client::native_data!("horizon_quests", "quests/quests.json"));
@@ -129,7 +143,7 @@ fn load_pack(dir: Option<&Path>) -> (Loaded, &'static str) {
             text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/seasoned_choice.json")),
         ),
     ];
-    (validate::load_pack(Some(settings), &chapters, &tables), "the built-in example pack")
+    (validate::load_pack(Some(settings), &chapters, &tables), "the built-in example pack", edit::SOURCE_BUILT_IN)
 }
 
 /// What the server's settings ask of the session.
@@ -140,9 +154,10 @@ fn rules(config: &ServerConfig) -> Rules {
 /// A new state for the open world, its pack loaded and reported in the log.
 fn open(game: &Game<'_>) -> State {
     let dir = game.native_world_dir().map(|w| w.join(store::FOLDER));
-    let (loaded, source) = load_pack(dir.as_deref());
+    let modpack = Game::native_config_dir().ok().map(|c| c.join(meta::ID).join(store::PACK_FOLDER));
+    let (loaded, from, source) = load_pack(dir.as_deref(), modpack.as_deref());
     let report = commands::report(&loaded, REPORT_LIMIT);
-    log::info!("{}: quests from {source}: {}", meta::NAME, report.join(" | "));
+    log::info!("{}: quests from {from}: {}", meta::NAME, report.join(" | "));
     let mut session = Session::new(Book::new(loaded.file));
     let parties = dir.as_deref().map_or_else(|| Ok(Default::default()), store::load_teams);
     if let Err(e) = &parties {
@@ -154,6 +169,10 @@ fn open(game: &Game<'_>) -> State {
         session,
         dir,
         report,
+        source,
+        modpack,
+        editors: HashMap::new(),
+        granted: HashSet::new(),
         pending: Vec::new(),
         senders: HashMap::new(),
         receivers: HashMap::new(),
@@ -237,6 +256,7 @@ pub(super) fn logged_out(game: &mut Game<'_>, player: u128) {
     if let Some(s) = state().as_mut() {
         s.senders.remove(&player);
         s.receivers.remove(&player);
+        s.editors.remove(&player);
         s.greeting.remove(&player);
         if let Some((team, progress)) = s.session.leave(player)
             && let Some(dir) = &s.dir
@@ -530,6 +550,10 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
         }
     };
 
+    // Whether this player may edit: an operator among the hub's guests, the
+    // world's owner (not among them), or one `/quests edit` let in.
+    let level = game.native_server_players().iter().find(|guest| guest.uuid == player).map(|guest| guest.permission);
+    let may_edit = |s: &State| s.granted.contains(&player) || level.is_none_or(|level| level >= edit::EDIT_LEVEL);
     match to_server {
         ToServer::Hello { protocol, version: _ } => {
             let mut guard = state();
@@ -541,6 +565,7 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
             if !s.greeting.insert(player) {
                 return;
             }
+            let allowed = may_edit(s);
             let sender = s.senders.entry(player).or_default();
             let reply = net::greet(protocol, meta::VERSION);
             let _ = sender.send(&reply);
@@ -550,6 +575,29 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
                     let _ = sender.send(&ToClient::Progress { player: session::player_id(player), progress: progress.clone() });
                 }
                 let _ = sender.send(&ToClient::Party { name: s.session.party_of(player) });
+                let _ = sender.send(&ToClient::Editor { allowed, source: s.source.to_owned() });
+                s.editors.insert(player, allowed);
+            }
+        }
+        ToServer::Edit { .. } | ToServer::SaveToModpack | ToServer::UseModpack => {
+            let mut guard = state();
+            let Some(s) = guard.as_mut() else {
+                return;
+            };
+            let line = if !may_edit(s) {
+                "Only operators can edit the quests.".to_owned()
+            } else {
+                match to_server {
+                    ToServer::Edit { edit } => match apply_edit(s, &edit) {
+                        Ok(()) => String::new(),
+                        Err(e) => e,
+                    },
+                    ToServer::SaveToModpack => save_to_modpack(s),
+                    _ => use_modpack(s),
+                }
+            };
+            if !line.is_empty() {
+                let _ = s.senders.entry(player).or_default().send(&ToClient::Notice { text: line });
             }
         }
         ToServer::Check { .. } | ToServer::Claim { .. } | ToServer::ClaimAll => {
@@ -574,6 +622,66 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
             }
         }
     }
+}
+
+/// An operator's edit: applied to the pack in use, checked, saved as the
+/// world's own pack and sent to every book.
+fn apply_edit(s: &mut State, change: &Edit) -> Result<(), String> {
+    let mut file = s.session.book().file().clone();
+    edit::apply(&mut file, change)?;
+    let file = edit::check(&file)?;
+    let dir = s.dir.as_deref().ok_or_else(|| "This world has no folder to save quests in.".to_owned())?;
+    store::save_pack(&dir.join(store::PACK_FOLDER), &file).map_err(|e| {
+        log::error!("{}: could not save the edited quests: {e}", meta::NAME);
+        "The quests could not be saved: see the log.".to_owned()
+    })?;
+    s.source = edit::SOURCE_WORLD;
+    set_pack(s, file);
+    Ok(())
+}
+
+/// Puts `file` in use and sends it, and where it comes from, to every book.
+fn set_pack(s: &mut State, file: QuestFile) {
+    let loaded = Loaded { file: file.clone(), problems: Vec::new() };
+    s.report = commands::report(&loaded, REPORT_LIMIT);
+    s.session.set_book(Book::new(file.clone()));
+    for (player, sender) in &mut s.senders {
+        let _ = sender.send(&ToClient::Book { file: file.clone() });
+        let allowed = s.editors.get(player).copied().unwrap_or(false);
+        let _ = sender.send(&ToClient::Editor { allowed, source: s.source.to_owned() });
+    }
+}
+
+/// Copies the pack in use to the modpack's folder: worlds without quests
+/// of their own use it from then on.
+fn save_to_modpack(s: &State) -> String {
+    let Some(folder) = &s.modpack else {
+        return "There is no config folder to save the modpack's quests in.".to_owned();
+    };
+    match store::save_pack(folder, s.session.book().file()) {
+        Ok(()) => "Saved for the modpack (config/horizon_quests/quests/): every world without quests of its own uses them.".to_owned(),
+        Err(e) => {
+            log::error!("{}: could not save the modpack's quests: {e}", meta::NAME);
+            "The modpack's quests could not be saved: see the log.".to_owned()
+        }
+    }
+}
+
+/// Puts the world's own quests aside (renamed, never deleted) and loads
+/// the modpack's, or whatever comes next.
+fn use_modpack(s: &mut State) -> String {
+    let Some(own) = s.dir.as_ref().map(|d| d.join(store::PACK_FOLDER)).filter(|own| own.is_dir()) else {
+        return "This world has no quests of its own.".to_owned();
+    };
+    let aside = own.with_file_name(format!("{}-aside-{}", store::PACK_FOLDER, session::now()));
+    if let Err(e) = std::fs::rename(&own, &aside) {
+        log::error!("{}: could not put {} aside: {e}", meta::NAME, own.display());
+        return "This world's quests could not be put aside: see the log.".to_owned();
+    }
+    let (loaded, from, source) = load_pack(s.dir.as_deref(), s.modpack.as_deref());
+    s.source = source;
+    set_pack(s, loaded.file);
+    format!("Now using {from}. This world's quests were kept in {}.", aside.file_name().unwrap_or_default().to_string_lossy())
 }
 
 /// The mod's config file: `config/horizon_quests-server.toml`, or the
@@ -714,6 +822,12 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
             Vec::new()
         }
         Command::Validate => s.report.clone(),
+        Command::Edit => {
+            s.granted.insert(me);
+            s.editors.insert(me, true);
+            let _ = s.senders.entry(me).or_default().send(&ToClient::Editor { allowed: true, source: s.source.to_owned() });
+            vec!["The pencil is in your quest book (bottom right): it turns edit mode on.".to_owned()]
+        }
         Command::Complete { player, quest } => match target(&s.session, &player).and_then(|uuid| {
             let effects = s.session.force_complete(uuid, &quest, session::now())?;
             s.pending.extend(effects.into_iter().map(|e| (uuid, e)));
@@ -876,20 +990,17 @@ fn reload() -> Vec<String> {
     let Some(s) = guard.as_mut() else {
         return vec!["Horizon Quests is not running in this world.".to_owned()];
     };
-    let (loaded, source) = load_pack(s.dir.as_deref());
+    let (loaded, from, source) = load_pack(s.dir.as_deref(), s.modpack.as_deref());
     let report = commands::report(&loaded, REPORT_LIMIT);
     let refused = loaded.file.chapters.is_empty() && loaded.errors() > 0;
-    let mut lines = vec![format!("Read the quests from {source}.")];
+    let mut lines = vec![format!("Read the quests from {from}.")];
     lines.extend(report.iter().cloned());
     if refused {
         lines.push("Nothing was changed: the quests in use stay.".to_owned());
     } else {
-        let file = loaded.file.clone();
-        s.session.set_book(Book::new(loaded.file));
+        s.source = source;
+        set_pack(s, loaded.file);
         s.report = report;
-        for sender in s.senders.values_mut() {
-            let _ = sender.send(&ToClient::Book { file: file.clone() });
-        }
     }
     lines
 }

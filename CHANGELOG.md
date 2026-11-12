@@ -4,6 +4,17 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.11.0
+- **Edit mode**, as in FTB Quests: an operator's book has a pencil button (bottom right). It turns edit mode on (orange band, a dot on each grid cell). There:
+  - drag a quest to move it (it lands on the nearest half cell); a click without moving still opens it;
+  - right-click an empty spot: **New quest here** (a quest with one checkmark task), **Save these quests for the modpack**, **Use the modpack's quests** (when the world has its own);
+  - right-click a quest: **Duplicate**, **Pick what this quest needs...** / **Pick what this quest opens...** (then click quests to link or unlink them, Escape when done), **Delete** (asks first; other quests' links to it go too).
+- Every edit is checked as the loader would (no cycles, no unknown dependencies) and saved by the server as the world's own pack, `<world>/horizon-quests/quests/`; every player's book gets it at once.
+- **Modpack quests**: `config/horizon_quests/quests/` is used by every world without quests of its own (before the data packs and the built-in pack). "Save these quests for the modpack" copies the pack in use there; "Use the modpack's quests" puts the world's own folder aside (renamed `quests-aside-<time>`, never deleted).
+- Who may edit: an operator (level 2) among the players, and the world's owner. `/quests edit` (level 2) shows the pencil to the player who runs it, in case the book does not.
+- Protocol 4 (`ToServer::Edit`, `SaveToModpack`, `UseModpack`, `ToClient::Editor`): books and servers before 0.11.0 do not talk to it.
+- `tools/check-glue.sh`: the glue type-check on Linux.
+
 ## 0.10.7
 - The "Choose one reward" window is opaque: the quest window's text no longer shows through it.
 

@@ -1,7 +1,7 @@
 ---
 tags: [horizon, reference, api, hooks]
 source: horizon/docs/native-mods.md (NM, 5523 lines), native-hooks.json (434 hooks, 177 helpers), mods.md, native-hooks-neoforge.md, api/stability.md, api/server.md
-verified_on: 2026-11-11
+verified_on: 2026-11-12
 ---
 # Horizon hooks and API ("quest mod" view)
 
@@ -66,7 +66,10 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 - `NativeServerPlayer { uuid, name, permission, dimension, position, game_mode, health, yaw, pitch, entity_id, address, … }`.
 - Paths used in helpers: `crate::game::Game<'_>`, `crate::game::native_server::{NativeCommand, NativeServerPlayer}`, `crate::game::native_hooks::NativeMod`, `horizon_client::hud::HudBatch`, `horizon_client::extras_hud::Corners`, `horizon_client::extras::Corner`, `horizon_client::mod_api::NativeScreenView<'_>`.
 - A target function's body has no `cfg` and no macros (horizon-mixins refuses them); helpers and modules may use them.
-- Other files: `crates/horizon-client/src/game/native_text_field.rs` (a text field helper, to look at for the editor) and `native_permissions.rs`.
+- Other files: `crates/horizon-client/src/game/native_text_field.rs` and `native_permissions.rs`.
+- (2026-11-12) `native_text_field.rs` only lends the game's own focused text boxes (chat, creative search...), not a mod screen's: the editor's text fields are ours, fed by `native_screen_char_typed_pre` (API 104: printable characters, also on a mod screen) and `native_screen_key_pressed_pre` (Backspace, Enter, arrows are keys).
+- (2026-11-12) `native_player_permission(player)` exists in the source but is ⏳ (`@API:player_permission@`). Usable today: `NativeServerPlayer.permission` from `native_server_players()` (the hub's guests) and inside `native_perform_command`. The single-player owner's mod commands run at level 4 (`integrated.rs`: `perform_native_command(conn, 4, ..)`); the owner's own level is 4 with Allow Commands on, 0 off (`owner_permission`).
+- (2026-11-12) `Game::native_config_dir()` is an associated function (no `self`), API 26: `config/` of the instance.
 
 ## 1. Network and client ↔ server sync
 | Need | API | Status |

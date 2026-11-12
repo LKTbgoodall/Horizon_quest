@@ -108,3 +108,6 @@ Home PC:
 ## One .hmod (since v0.1.2)
 - `build-mod.ps1` / `build-mod.sh` pack `build/horizon_quests.hmod` (content from `mod/content` + native bundle), the one file of the mod, reproducible (fixed dates, sorted). Install cuts it in two (`build/install/`): `.hnmod` to `horizon-native-mods/` (the only place the pinned launcher builds from), content `.hmod` to `horizon-mods/`. `-Uninstall` removes both.
 - No `include_str!` / `#[path]` / external `mod` in a bundle module, even under `#[cfg(test)]`: `horizon-mixins apply` fails with `E_MODULE`. Tests that read repo files go in `mod/tests/`.
+
+## Glue type-check on Linux (2026-11-12)
+- `tools/check-glue.sh`: the twin of `check-glue.ps1`, reading the launcher's copy of the pinned source and its `horizon-mixins` under `~/.local/share/horizon-launcher/native/`. Ends with "The glue type-checks". First run: a few minutes (crates fetched into `build/check/`).

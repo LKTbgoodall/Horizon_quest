@@ -7,6 +7,7 @@
 //
 // A frame is `transfer (u32) | index (u16) | count (u16) | bytes`, little
 // endian: part `index` of the `count` parts of message number `transfer`.
+use super::hq_edit::Edit;
 use super::hq_model::{Progress, QuestFile};
 use super::hq_progress::QuestEvent;
 use serde::de::DeserializeOwned;
@@ -18,7 +19,7 @@ use std::fmt;
 pub const CHANNEL: &str = "horizon_quests:book";
 /// The version of these messages. A book and a server of different versions
 /// do not talk.
-pub const PROTOCOL: u32 = 3;
+pub const PROTOCOL: u32 = 4;
 
 /// The most bytes one mod message carries.
 pub const MAX_FRAME: usize = 30_000;
@@ -33,7 +34,7 @@ pub const CLIENT_MAX_PARTS: u16 = 512;
 pub const SERVER_MAX_PARTS: u16 = 1;
 
 /// What the book sends.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ToServer {
     /// First message on joining: the server answers `Welcome`, then the
@@ -51,6 +52,14 @@ pub enum ToServer {
         choice: Option<u32>,
     },
     ClaimAll,
+    /// An operator's change to the pack, from the book's edit mode.
+    Edit { edit: Edit },
+    /// Copy the pack in use to the modpack's folder, for every world that
+    /// has no quests of its own.
+    SaveToModpack,
+    /// Put this world's own quests aside: the world uses the modpack's (or
+    /// the data packs', or the built-in ones) again.
+    UseModpack,
 }
 
 /// What the server sends.
@@ -78,6 +87,9 @@ pub enum ToClient {
     /// The player's party, for the book's header: on joining and whenever
     /// it changes. None: they play on their own.
     Party { name: Option<String> },
+    /// Whether this player may edit the quests (an operator), and where the
+    /// pack in use comes from, for the book's edit mode.
+    Editor { allowed: bool, source: String },
 }
 
 /// The server's answer to a book's `Hello`.
@@ -97,7 +109,11 @@ pub fn request_event(message: &ToServer) -> Option<QuestEvent> {
         ToServer::Check { task } => Some(QuestEvent::Check { task: task.clone() }),
         ToServer::Claim { reward, choice } => Some(QuestEvent::Claim { reward: reward.clone(), choice: *choice }),
         ToServer::ClaimAll => Some(QuestEvent::ClaimAll),
-        ToServer::Hello { .. } | ToServer::Submit { .. } => None,
+        ToServer::Hello { .. }
+        | ToServer::Submit { .. }
+        | ToServer::Edit { .. }
+        | ToServer::SaveToModpack
+        | ToServer::UseModpack => None,
     }
 }
 

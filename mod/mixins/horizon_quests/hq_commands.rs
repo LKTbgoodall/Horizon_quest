@@ -14,7 +14,7 @@ pub const NAME: &str = "quests";
 /// Every form of the command, as Horizon registers them, with the op level
 /// it needs (0: everyone) and what it does. Ids are full ids and contain
 /// `/`, so they are `text` arguments, which take the rest of the line.
-pub const USAGES: [(&str, u8, &str); 19] = [
+pub const USAGES: [(&str, u8, &str); 20] = [
     ("quests", 0, "show this help"),
     ("quests progress", 0, "list your open quests and how far they are"),
     ("quests claim", 0, "claim every reward waiting for you"),
@@ -31,6 +31,7 @@ pub const USAGES: [(&str, u8, &str); 19] = [
     ("quests team kick <player:word>", 0, "remove a member from your party (owner)"),
     ("quests reload", 2, "read the quest files again"),
     ("quests validate", 2, "list the problems in the quest files"),
+    ("quests edit", 2, "show the pencil in your quest book: it turns edit mode on"),
     ("quests complete <player:word> <quest:text>", 2, "complete a quest for a player"),
     ("quests reset <player:word> <quest:text>", 2, "reset a quest for a player"),
     ("quests reset_all <player:word>", 3, "reset all of a player's progress"),
@@ -47,6 +48,7 @@ pub enum Command {
     Team(TeamCommand),
     Reload,
     Validate,
+    Edit,
     Complete { player: String, quest: String },
     Reset { player: String, quest: String },
     ResetAll { player: String },
@@ -74,7 +76,7 @@ impl Command {
             | Command::Check { .. }
             | Command::Submit { .. }
             | Command::Team(_) => 0,
-            Command::Reload | Command::Validate | Command::Complete { .. } | Command::Reset { .. } => 2,
+            Command::Reload | Command::Validate | Command::Edit | Command::Complete { .. } | Command::Reset { .. } => 2,
             Command::ResetAll { .. } => 3,
         }
     }
@@ -106,6 +108,7 @@ pub fn parse(line: &str) -> Option<Result<Command, String>> {
         ["team", "kick", player] => Command::Team(TeamCommand::Kick { player: (*player).to_owned() }),
         ["reload"] => Command::Reload,
         ["validate"] => Command::Validate,
+        ["edit"] => Command::Edit,
         ["complete", player, quest] => Command::Complete { player: (*player).to_owned(), quest: (*quest).to_owned() },
         ["reset", player, quest] => Command::Reset { player: (*player).to_owned(), quest: (*quest).to_owned() },
         ["reset_all", player] => Command::ResetAll { player: (*player).to_owned() },
@@ -233,6 +236,7 @@ mod tests {
         assert_eq!(ok("quests check a/q/t"), Command::Check { task: "a/q/t".into() });
         assert_eq!(ok("quests submit a/q/t"), Command::Submit { task: "a/q/t".into() });
         assert_eq!(ok("quests reload"), Command::Reload);
+        assert_eq!(ok("quests edit"), Command::Edit);
         assert_eq!(ok("quests validate"), Command::Validate);
         assert_eq!(ok("quests complete Steve a/q"), Command::Complete { player: "Steve".into(), quest: "a/q".into() });
         assert_eq!(ok("quests reset Steve a/q"), Command::Reset { player: "Steve".into(), quest: "a/q".into() });
@@ -309,7 +313,7 @@ mod tests {
                 "/quests team kick <player>: remove a member from your party (owner)",
             ]
         );
-        assert_eq!(help(2).len(), 18);
+        assert_eq!(help(2).len(), 19);
         assert_eq!(help(4).len(), USAGES.len());
         assert_eq!(help(4).last().unwrap(), "/quests reset_all <player>: reset all of a player's progress");
     }

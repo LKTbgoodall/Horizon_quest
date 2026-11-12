@@ -13,6 +13,7 @@
 // same pass as the fills.
 use std::collections::HashMap;
 use super::hq_canvas::{self as canvas, View};
+use super::hq_edit::{self as edit, Edit};
 use super::hq_logic::{Book, QuestState, Status};
 use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind};
 use super::hq_net::ToServer;
@@ -111,7 +112,7 @@ pub enum Draw {
 }
 
 /// What a click does. Nodes are `Book` node indexes; ids are full ids.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Action {
     Chapter(usize),
     /// Fold or unfold a group of the chapter list (its id).
@@ -141,16 +142,52 @@ pub enum Action {
     /// A click on a window (the quest window, the recipe view) that does
     /// nothing: it stays.
     Stay,
+    /// Edit mode (operators): turn it on or off.
+    ToggleEdit,
+    /// Ask the server for this change to the pack.
+    Edit(Edit),
+    /// Ask whether to delete this quest (full id).
+    AskDelete(String),
+    /// Pick, by clicking them, the quests quest `0` needs (`true`) or opens
+    /// (`false`).
+    Link(usize, bool),
+    SaveToModpack,
+    AskUseModpack,
+    UseModpack,
+    CloseMenu,
 }
 
 /// What the glue does after a click.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Reaction {
     Nothing,
     Send(ToServer),
     Close,
     /// The tracked quest changed: keep it in the player's settings.
     Tracked(Option<String>),
+    /// An edit: the glue sends it and applies it to its own copy of the
+    /// pack at once (`hq_edit::apply`).
+    Edit(Edit),
+}
+
+/// Edit mode's menu (a right click on the canvas): a title, then entries.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Menu {
+    pub at: [f32; 2],
+    pub title: Option<String>,
+    pub entries: Vec<(String, Action)>,
+}
+
+/// A quest dragged in edit mode: where the pointer took it (grid cells from
+/// its centre), where it is now (grid cells), and whether it moved yet: a
+/// press and release in place opens the quest instead.
+#[derive(Clone, Debug, PartialEq)]
+struct Moving {
+    node: usize,
+    grab: [f32; 2],
+    at: [f32; 2],
+    pressed: [f32; 2],
+    moved: bool,
 }
 
 /// The book's parts on screen, as `[x, y, w, h]`.
@@ -600,8 +637,8 @@ pub fn state_look(state: QuestState) -> (u32, &'static str) {
 }
 
 /// A node's box on screen.
-fn node_box(view: &View, origin: [f32; 2], quest: &Quest, shape: Shape, size: f32) -> [f32; 4] {
-    let [sx, sy] = view.to_screen(origin, canvas::cell_centre([quest.x, quest.y]));
+fn node_box(view: &View, origin: [f32; 2], place: [f32; 2], shape: Shape, size: f32) -> [f32; 4] {
+    let [sx, sy] = view.to_screen(origin, canvas::cell_centre(place));
     let side = canvas::NODE * size * shape_look(shape).0 * view.zoom;
     [sx - side / 2.0, sy - side / 2.0, side, side]
 }
@@ -681,6 +718,18 @@ pub struct BookView {
     /// How far into the next tick this frame is (0 to 1), from the game:
     /// the lines in focus move smoothly between ticks.
     pub partial_tick: f32,
+    /// Edit mode: whether the server lets this player edit, where the pack
+    /// in use comes from (`ToClient::Editor`), and whether the mode is on.
+    pub editor: bool,
+    pub source: String,
+    pub editing: bool,
+    /// Edit mode's menu, while open.
+    pub menu: Option<Menu>,
+    /// The quest being dragged in edit mode.
+    moving: Option<Moving>,
+    /// Edit mode's link picking: a click on a quest makes quest `0` need it
+    /// (`true`) or need quest `0` (`false`), or stops doing so.
+    linking: Option<(usize, bool)>,
     /// Whether a chapter was fitted to the canvas yet.
     fitted: bool,
 }
@@ -739,6 +788,10 @@ impl BookView {
     /// A left click at the pointer.
     pub fn click(&mut self, s: &Screen<'_>) -> Reaction {
         let action = self.scene(s).action_at(s.mouse).cloned();
+        // Link picking lasts while quests are clicked.
+        if !matches!(action, Some(Action::Quest(_))) {
+            self.linking = None;
+        }
         match action {
             Some(Action::Chapter(c)) => self.show_chapter(s, c),
             Some(Action::Group(id)) => {
@@ -747,6 +800,23 @@ impl BookView {
                 } else {
                     self.folded.push(id);
                 }
+            }
+            Some(Action::Quest(n)) if self.linking.is_some_and(|(from, _)| from != n) => {
+                let Some((from, needs)) = self.linking else {
+                    return Reaction::Nothing;
+                };
+                let (quest, other) = if needs { (from, n) } else { (n, from) };
+                let on = !s.book.nodes()[quest].dependencies.contains(&other);
+                let (quest, needs) = (s.book.nodes()[quest].id.clone(), s.book.nodes()[other].id.clone());
+                return Reaction::Edit(Edit::Link { quest, needs, on });
+            }
+            Some(Action::Quest(_)) if self.linking.is_some() => {}
+            Some(Action::Quest(n)) if self.editing => {
+                // Taken by the pointer: a drag moves it, a release in place opens it.
+                let quest = s.book.quest(n);
+                let at = self.cell_under(s);
+                let grab = [at[0] - quest.x, at[1] - quest.y];
+                self.moving = Some(Moving { node: n, grab, at: [quest.x, quest.y], pressed: s.mouse, moved: false });
             }
             Some(Action::Quest(n)) => self.select(Some(n)),
             Some(Action::Deselect) => self.select(None),
@@ -776,9 +846,146 @@ impl BookView {
                 }
             }
             Some(Action::CloseRecipe) => self.recipe = None,
+            Some(Action::ToggleEdit) => {
+                self.editing = self.editor && !self.editing;
+                self.menu = None;
+                self.moving = None;
+                self.linking = None;
+            }
+            Some(Action::Link(n, needs)) => {
+                self.menu = None;
+                self.select(None);
+                self.linking = Some((n, needs));
+            }
+            Some(Action::Edit(change)) => {
+                self.menu = None;
+                return Reaction::Edit(change);
+            }
+            Some(Action::AskDelete(quest)) => {
+                let title = s.book.find(&quest).map_or_else(|| quest.clone(), |n| quest_title(s.book.quest(n)).to_owned());
+                let entries = vec![("Delete".to_owned(), Action::Edit(Edit::DeleteQuest { quest })), ("Cancel".to_owned(), Action::CloseMenu)];
+                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete \"{title}\"?")), entries });
+            }
+            Some(Action::SaveToModpack) => {
+                self.menu = None;
+                return Reaction::Send(ToServer::SaveToModpack);
+            }
+            Some(Action::AskUseModpack) => {
+                let entries = vec![("Use the modpack's quests".to_owned(), Action::UseModpack), ("Cancel".to_owned(), Action::CloseMenu)];
+                let title = "Put this world's quests aside?".to_owned();
+                self.menu = Some(Menu { at: s.mouse, title: Some(title), entries });
+            }
+            Some(Action::UseModpack) => {
+                self.menu = None;
+                return Reaction::Send(ToServer::UseModpack);
+            }
+            Some(Action::CloseMenu) => self.menu = None,
             Some(Action::Stay) | None => {}
         }
         Reaction::Nothing
+    }
+
+    /// The left button came up: a quest dragged in edit mode is dropped on
+    /// the nearest half cell, one pressed and released in place opens.
+    pub fn release(&mut self, s: &Screen<'_>) -> Reaction {
+        let Some(moving) = self.moving.take() else {
+            return Reaction::Nothing;
+        };
+        if moving.node >= s.book.nodes().len() {
+            return Reaction::Nothing;
+        }
+        if !moving.moved {
+            self.select(Some(moving.node));
+            return Reaction::Nothing;
+        }
+        let quest = s.book.quest(moving.node);
+        let [x, y] = edit::snap(moving.at);
+        if (x, y) == (quest.x, quest.y) {
+            return Reaction::Nothing;
+        }
+        Reaction::Edit(Edit::MoveQuest { quest: s.book.nodes()[moving.node].id.clone(), x, y })
+    }
+
+    /// A right click: in edit mode, the menu for the quest under the
+    /// pointer, or for the empty spot of the canvas.
+    pub fn right_click(&mut self, s: &Screen<'_>) -> Reaction {
+        if !self.editing || self.menu.take().is_some() || self.recipe.is_some() || self.choosing.is_some() {
+            return Reaction::Nothing;
+        }
+        let scene = self.scene(s);
+        let on_canvas = canvas::inside(scene.regions.canvas, s.mouse) && !self.over_list(s);
+        let Some(chapter) = s.book.file().chapters.get(self.chapter).filter(|_| on_canvas) else {
+            return Reaction::Nothing;
+        };
+        let menu = match scene.action_at(s.mouse) {
+            Some(Action::Quest(n)) => {
+                let (n, quest) = (*n, s.book.quest(*n));
+                let id = s.book.nodes()[n].id.clone();
+                let mut entries = vec![(
+                    "Duplicate".to_owned(),
+                    Action::Edit(Edit::DuplicateQuest { quest: id.clone(), x: quest.x + 1.0, y: quest.y }),
+                )];
+                entries.push(("Pick what this quest needs...".to_owned(), Action::Link(n, true)));
+                entries.push(("Pick what this quest opens...".to_owned(), Action::Link(n, false)));
+                entries.push(("Delete".to_owned(), Action::AskDelete(id)));
+                Menu { at: s.mouse, title: Some(quest_title(quest).to_owned()), entries }
+            }
+            Some(Action::Deselect) | None => {
+                let [x, y] = edit::snap(self.cell_under(s));
+                let mut entries = vec![("New quest here".to_owned(), Action::Edit(Edit::NewQuest { chapter: chapter.id.clone(), x, y }))];
+                entries.push(("Save these quests for the modpack".to_owned(), Action::SaveToModpack));
+                if self.source == edit::SOURCE_WORLD {
+                    entries.push(("Use the modpack's quests".to_owned(), Action::AskUseModpack));
+                }
+                Menu { at: s.mouse, title: None, entries }
+            }
+            Some(_) => return Reaction::Nothing,
+        };
+        self.menu = Some(menu);
+        Reaction::Nothing
+    }
+
+    /// The grid place (cells) under the pointer, on the canvas shown.
+    fn cell_under(&self, s: &Screen<'_>) -> [f32; 2] {
+        let world = self.view.to_world(canvas::centre(regions(s.rect).canvas), s.mouse);
+        [world[0] / canvas::GRID, world[1] / canvas::GRID]
+    }
+
+    /// Where quest `n` is drawn: where it is being dragged to, else its place.
+    fn place_of(&self, book: &Book, n: usize) -> [f32; 2] {
+        match &self.moving {
+            Some(moving) if moving.node == n && moving.moved => edit::snap(moving.at),
+            _ => {
+                let quest = book.quest(n);
+                [quest.x, quest.y]
+            }
+        }
+    }
+
+    /// A new pack replaced `old`: node numbers may have changed. The open
+    /// quest stays open if it is still there, and link picking goes on;
+    /// `select` (a full id) opens that quest instead. A drag and the menu stop.
+    pub fn pack_changed(&mut self, old: Option<&Book>, book: &Book, select: Option<&str>) {
+        self.moving = None;
+        self.menu = None;
+        let again = |n: usize| old.and_then(|old| old.nodes().get(n)).and_then(|node| book.find(&node.id));
+        self.linking = self.linking.and_then(|(n, needs)| Some((again(n)?, needs)));
+        let open = self.selected.and_then(|n| old?.nodes().get(n)).map(|node| node.id.clone());
+        let wanted = select.map(str::to_owned).or(open);
+        match wanted.and_then(|id| book.find(&id)) {
+            Some(n) => {
+                self.chapter = book.nodes()[n].chapter;
+                self.select(Some(n));
+            }
+            None => self.select(None),
+        }
+    }
+
+    /// Escape closes the edit menu, or ends link picking, first: whether
+    /// one of them was on.
+    pub fn close_menu(&mut self) -> bool {
+        self.moving = None;
+        self.menu.take().is_some() || self.linking.take().is_some()
     }
 
     /// The pointer dragged by `delta`: over the canvas, it pans.
@@ -800,6 +1007,15 @@ impl BookView {
     }
 
     pub fn drag(&mut self, s: &Screen<'_>, delta: [f32; 2]) {
+        if self.moving.is_some() {
+            let at = self.cell_under(s);
+            if let Some(moving) = &mut self.moving {
+                let far = (s.mouse[0] - moving.pressed[0]).abs().max((s.mouse[1] - moving.pressed[1]).abs());
+                moving.moved |= far > 2.0;
+                moving.at = [at[0] - moving.grab[0], at[1] - moving.grab[1]];
+            }
+            return;
+        }
         let scene = self.scene(s);
         let over_popup = scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse));
         if self.recipe.is_none()
@@ -852,10 +1068,7 @@ impl BookView {
             draw_strip(&mut scene, s);
         }
         self.draw_bands(&mut scene, s, &statuses);
-        let mut tip = hovered.map(|n| {
-            let quest = s.book.quest(n);
-            vec![(if quest.title.is_empty() { quest.id.clone() } else { quest.title.clone() }, INK)]
-        });
+        let mut tip = hovered.map(|n| vec![(quest_title(s.book.quest(n)).to_owned(), INK)]);
         if let (Some(n), Some(popup)) = (selected, popup) {
             tip = self.draw_popup(&mut scene, s, &statuses, n, popup);
         }
@@ -864,7 +1077,9 @@ impl BookView {
         }
         if let Some(recipe) = &self.recipe {
             draw_recipe(&mut scene, s, recipe);
-        } else if let Some(lines) = tip {
+        } else if let Some(menu) = &self.menu {
+            draw_menu(&mut scene, s, menu);
+        } else if let Some(lines) = tip.filter(|_| self.moving.as_ref().is_none_or(|m| !m.moved)) {
             draw_tooltip(&mut scene, s, &lines);
         }
         scene
@@ -893,10 +1108,10 @@ impl BookView {
         let area = scene.regions.canvas;
         let origin = canvas::centre(area);
         let shown: Vec<usize> = book.chapter_nodes(self.chapter).filter(|&n| statuses[n].visible).collect();
-        let centre_of = |n: usize| {
-            let quest = book.quest(n);
-            self.view.to_screen(origin, canvas::cell_centre([quest.x, quest.y]))
-        };
+        let centre_of = |n: usize| self.view.to_screen(origin, canvas::cell_centre(self.place_of(book, n)));
+        if self.editing {
+            draw_grid(scene, &self.view, origin, area);
+        }
 
         // The quest the lines are about: the one under the pointer, else
         // the selected one. What it needs comes in cyan, what it opens goes
@@ -905,13 +1120,13 @@ impl BookView {
             .iter()
             .copied()
             .filter(|&n| {
-                let b = node_box(&self.view, origin, book.quest(n), book.nodes()[n].shape, book.nodes()[n].size);
+                let b = node_box(&self.view, origin, self.place_of(book, n), book.nodes()[n].shape, book.nodes()[n].size);
                 intersect(b, area).is_some_and(|part| canvas::inside(part, s.mouse))
             })
             .last();
         let over_popup = selected.is_some_and(|n| canvas::inside(popup_layout(s, &self.item_names, self.clock, statuses, n, area).0, s.mouse));
         let hovered = hovered.filter(|_| !over_popup);
-        let focus = hovered.or(selected);
+        let focus = self.linking.map(|(n, _)| n).or(hovered).or(selected);
 
         // Dependency lines first, under the nodes: thin chevrons pointing
         // from the quest needed to the quest it opens, a bead between each
@@ -969,13 +1184,13 @@ impl BookView {
         for &n in &shown {
             let node = &book.nodes()[n];
             let quest = book.quest(n);
-            let at_rest = node_box(&self.view, origin, quest, node.shape, node.size);
+            let at_rest = node_box(&self.view, origin, self.place_of(book, n), node.shape, node.size);
             // Only the part of the node inside the canvas takes clicks.
             let Some(part) = intersect(at_rest, area) else {
                 continue;
             };
             // The node under the pointer, and the selected one, stand out a little.
-            let raised = hovered == Some(n) || selected == Some(n);
+            let raised = hovered == Some(n) || selected == Some(n) || self.linking.is_some_and(|(from, _)| from == n);
             let b = if raised { grow(at_rest, HOVER_GROW) } else { at_rest };
             let centre = canvas::centre(b);
             let radius = b[2] / 2.0;
@@ -1155,9 +1370,17 @@ impl BookView {
         // the right.
         let footer = scene.regions.footer;
         let [x, y, w, _] = footer;
-        scene.fill(footer, BAND);
+        scene.fill(footer, if self.editing { EDIT_BAND } else { BAND });
         let mut right = scene.button(s, "x", x + w - 4.0, y + 2.0, Action::Close) - 6.0;
+        if self.editor {
+            right = pencil_button(scene, s, right, y + 2.0, self.editing) - 6.0;
+        }
         let mut left = x + 6.0;
+        if self.editing {
+            let label = format!("Editing ({})", source_name(&self.source));
+            scene.text(label.clone(), [left, y + 3.0], EDIT_INK);
+            left += (s.measure)(&label) + 10.0;
+        }
         if let Some(chapter) = s.book.file().chapters.get(self.chapter) {
             let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
             let title = fit_text(name, w / 3.0, s.measure);
@@ -1187,7 +1410,12 @@ impl BookView {
                 right -= 10.0;
             }
         }
-        let help = "drag: move | wheel: zoom";
+        let help = match self.linking {
+            Some((_, true)) => "click the quests this one needs | Esc: done",
+            Some((_, false)) => "click the quests this one opens | Esc: done",
+            None if self.editing => "right-click: menu | drag a quest: move it",
+            None => "drag: move | wheel: zoom",
+        };
         let help_w = (s.measure)(help);
         let notice = fit_text(&self.notice, (right - left).max(0.0), s.measure);
         let notice_end = left + (s.measure)(&notice);
@@ -1195,6 +1423,100 @@ impl BookView {
         if right - help_w >= notice_end + 6.0 {
             scene.text(help, [right - help_w, y + 3.0], DIM_INK);
         }
+    }
+}
+
+/// Edit mode's band, the "Editing" line, the menu's look.
+const EDIT_BAND: u32 = 0xFF3C_2C14;
+const EDIT_INK: u32 = 0xFF_B040;
+const DANGER_INK: u32 = 0xFF_6A5A;
+const MENU_BACK: u32 = 0xF814_1820;
+const MENU_ROW: f32 = 12.0;
+/// A dot on each grid cell in edit mode.
+const GRID_DOT: u32 = 0x40FF_FFFF;
+
+/// `source` for the player.
+fn source_name(source: &str) -> &'static str {
+    match source {
+        edit::SOURCE_WORLD => "this world's quests",
+        edit::SOURCE_MODPACK => "the modpack's quests",
+        edit::SOURCE_DATA_PACKS => "the data packs' quests",
+        edit::SOURCE_BUILT_IN => "the built-in quests",
+        _ => "no quests",
+    }
+}
+
+/// A quest's title, or its id when it has none.
+fn quest_title(quest: &Quest) -> &str {
+    if quest.title.is_empty() { &quest.id } else { &quest.title }
+}
+
+/// A pencil, point down-left: `w` its wood, `p` its eraser, `g` its lead.
+const PENCIL_PIXELS: [&str; 8] = ["......pp", ".....ppp", "....wwp.", "...www..", "..www...", ".www....", "gww.....", "gg......"];
+
+/// The pencil button that turns edit mode on and off, its right edge at
+/// `right`: lit while edit mode is on. Returns its left edge.
+fn pencil_button(scene: &mut Scene, s: &Screen<'_>, right: f32, y: f32, on: bool) -> f32 {
+    let rect = [right - 12.0, y, 12.0, TEXT];
+    let hovered = canvas::inside(rect, s.mouse);
+    scene.fill(rect, if on { 0xFFB0_7020 } else if hovered { BUTTON_HOVER } else { BUTTON });
+    let wood = if on || hovered { 0xFFFF_E080 } else { 0xFFE8_C050 };
+    scene.draws.extend(pixel_art(&PENCIL_PIXELS, [rect[0] + 2.0, y + 1.0], 1.0, &|c| match c {
+        'w' => Some(wood),
+        'p' => Some(0xFFF0_8090),
+        'g' => Some(0xFF40_4048),
+        _ => None,
+    }));
+    scene.zones.push((rect, Action::ToggleEdit));
+    rect[0]
+}
+
+/// A faint dot on every grid cell of the canvas shown, while the zoom
+/// leaves room between them.
+fn draw_grid(scene: &mut Scene, view: &View, origin: [f32; 2], area: [f32; 4]) {
+    let step = canvas::GRID * view.zoom;
+    if step < 8.0 {
+        return;
+    }
+    let first = view.to_world(origin, [area[0], area[1]]);
+    let last = view.to_world(origin, [area[0] + area[2], area[1] + area[3]]);
+    let (x0, x1) = ((first[0] / canvas::GRID).ceil() as i32, (last[0] / canvas::GRID).floor() as i32);
+    let (y0, y1) = ((first[1] / canvas::GRID).ceil() as i32, (last[1] / canvas::GRID).floor() as i32);
+    for cy in y0..=y1 {
+        for cx in x0..=x1 {
+            let [sx, sy] = view.to_screen(origin, canvas::cell_centre([cx as f32, cy as f32]));
+            scene.fill([sx.floor(), sy.floor(), 1.0, 1.0], GRID_DOT);
+        }
+    }
+}
+
+/// Edit mode's menu at its place, kept on screen: a dim title, then a row
+/// per entry. A click anywhere else closes it.
+fn draw_menu(scene: &mut Scene, s: &Screen<'_>, menu: &Menu) {
+    scene.zones.push((s.rect, Action::CloseMenu));
+    let rows = menu.entries.len() + usize::from(menu.title.is_some());
+    let widest = menu.title.iter().chain(menu.entries.iter().map(|(label, _)| label)).map(|text| (s.measure)(text)).fold(0.0, f32::max);
+    let (w, h) = (widest + 2.0 * PAD + 2.0, rows as f32 * MENU_ROW + 2.0);
+    let [rx, ry, rw, rh] = s.rect;
+    let x = menu.at[0].min(rx + rw - w).max(rx);
+    let y = menu.at[1].min(ry + rh - h).max(ry);
+    scene.fill([x, y, w, h], MENU_BACK);
+    outline(scene, [x, y, w, h], POPUP_EDGE);
+    let mut row_y = y + 1.0;
+    if let Some(title) = &menu.title {
+        scene.text(title.clone(), [x + PAD + 1.0, row_y + 2.0], DIM_INK);
+        scene.zones.push(([x, row_y, w, MENU_ROW], Action::Stay));
+        row_y += MENU_ROW;
+    }
+    for (label, action) in &menu.entries {
+        let rect = [x + 1.0, row_y, w - 2.0, MENU_ROW];
+        if canvas::inside(rect, s.mouse) {
+            scene.fill(rect, ROW_HOVER);
+        }
+        let danger = matches!(action, Action::Edit(Edit::DeleteQuest { .. }) | Action::UseModpack | Action::AskDelete(_));
+        scene.text(label.clone(), [x + PAD + 1.0, row_y + 2.0], if danger { DANGER_INK } else { INK });
+        scene.zones.push((rect, action.clone()));
+        row_y += MENU_ROW;
     }
 }
 
@@ -2431,6 +2753,127 @@ mod tests {
             apply(book, &mut progress, &Actor::new("steve", 1), event);
         }
         progress
+    }
+
+    /// The middle of quest `id`'s node on screen.
+    fn node_at(view: &BookView, book: &Book, progress: &Progress, id: &str) -> [f32; 2] {
+        let n = book.find(id).unwrap();
+        zone(&view.scene(&screen(book, progress, NOWHERE)), &Action::Quest(n)).unwrap()
+    }
+
+    #[test]
+    fn the_pencil_shows_for_editors_only_and_turns_edit_mode_on() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        assert!(zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::ToggleEdit).is_none());
+        // Not an editor: right clicks do nothing.
+        assert_eq!(view.right_click(&screen(&book, &progress, node_at(&view, &book, &progress, "a/start"))), Reaction::Nothing);
+        assert!(view.menu.is_none());
+        view.editor = true;
+        click(&mut view, &book, &progress, &Action::ToggleEdit);
+        assert!(view.editing);
+        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).iter().any(|t| t.starts_with("Editing")));
+        click(&mut view, &book, &progress, &Action::ToggleEdit);
+        assert!(!view.editing);
+    }
+
+    #[test]
+    fn a_right_click_on_the_canvas_offers_a_new_quest_there() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        (view.editor, view.editing, view.source) = (true, true, edit::SOURCE_WORLD.to_owned());
+        // Two cells right of the second quest, an empty spot.
+        let next = node_at(&view, &book, &progress, "a/next");
+        let spot = [next[0], next[1] + 2.0 * canvas::GRID * view.view.zoom];
+        view.right_click(&screen(&book, &progress, spot));
+        let menu = view.menu.clone().unwrap();
+        assert!(menu.entries.iter().any(|(_, a)| *a == Action::AskUseModpack));
+        let reaction = click(&mut view, &book, &progress, &menu.entries[0].1);
+        assert_eq!(reaction, Reaction::Edit(Edit::NewQuest { chapter: "a".into(), x: 2.0, y: 2.0 }));
+        assert!(view.menu.is_none());
+    }
+
+    #[test]
+    fn a_right_click_on_a_quest_offers_link_picking_and_asks_before_deleting() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        (view.editor, view.editing) = (true, true);
+        let (start, next) = (book.find("a/start").unwrap(), book.find("a/next").unwrap());
+        let at_next = node_at(&view, &book, &progress, "a/next");
+        view.right_click(&screen(&book, &progress, at_next));
+        let menu = view.menu.clone().unwrap();
+        assert_eq!(menu.title.as_deref(), Some("Then this"));
+        let labels: Vec<&str> = menu.entries.iter().map(|(l, _)| l.as_str()).collect();
+        assert_eq!(labels, ["Duplicate", "Pick what this quest needs...", "Pick what this quest opens...", "Delete"]);
+        // Picking what "next" needs: it needs "start" already, so a click unlinks it.
+        click(&mut view, &book, &progress, &Action::Link(next, true));
+        let reaction = click(&mut view, &book, &progress, &Action::Quest(start));
+        assert_eq!(reaction, Reaction::Edit(Edit::Link { quest: "a/next".into(), needs: "a/start".into(), on: false }));
+        // Picking what "far" opens: a click on "start" makes "start" need "far".
+        let far = book.find("a/far").unwrap();
+        view.linking = Some((far, false));
+        let reaction = click(&mut view, &book, &progress, &Action::Quest(start));
+        assert_eq!(reaction, Reaction::Edit(Edit::Link { quest: "a/start".into(), needs: "a/far".into(), on: true }));
+        // Escape ends the picking.
+        assert!(view.close_menu());
+        assert!(!view.close_menu());
+
+        view.right_click(&screen(&book, &progress, at_next));
+        click(&mut view, &book, &progress, &Action::AskDelete("a/next".into()));
+        let confirm = view.menu.clone().unwrap();
+        assert_eq!(confirm.title.as_deref(), Some("Delete \"Then this\"?"));
+        let reaction = click(&mut view, &book, &progress, &Action::Edit(Edit::DeleteQuest { quest: "a/next".into() }));
+        assert_eq!(reaction, Reaction::Edit(Edit::DeleteQuest { quest: "a/next".into() }));
+        // A second right click closes a menu instead of opening another.
+        view.right_click(&screen(&book, &progress, at_next));
+        view.right_click(&screen(&book, &progress, at_next));
+        assert!(view.menu.is_none());
+    }
+
+    #[test]
+    fn in_edit_mode_a_quest_drags_to_a_half_cell_and_a_click_still_opens_it() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        (view.editor, view.editing) = (true, true);
+        let start = node_at(&view, &book, &progress, "a/start");
+        let cell = canvas::GRID * view.view.zoom;
+        // Pressed and released in place: the window opens.
+        view.click(&screen(&book, &progress, start));
+        assert_eq!(view.selected, None);
+        assert_eq!(view.release(&screen(&book, &progress, start)), Reaction::Nothing);
+        assert_eq!(view.selected, book.find("a/start"));
+        view.selected = None;
+        // Dragged one and a half cells down (and a little more): dropped there.
+        view.click(&screen(&book, &progress, start));
+        let to = [start[0] + 0.1 * cell, start[1] + 1.6 * cell];
+        view.drag(&screen(&book, &progress, to), [0.1 * cell, 1.6 * cell]);
+        let before = view.view;
+        let reaction = view.release(&screen(&book, &progress, to));
+        assert_eq!(reaction, Reaction::Edit(Edit::MoveQuest { quest: "a/start".into(), x: 0.0, y: 1.5 }));
+        assert_eq!(view.view, before, "the canvas did not pan");
+        assert_eq!(view.selected, None);
+    }
+
+    #[test]
+    fn the_open_quest_stays_open_when_the_pack_changes_under_it() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        view.selected = book.find("a/next");
+        let mut file = book.file().clone();
+        edit::apply(&mut file, &Edit::DeleteQuest { quest: "a/start".into() }).unwrap();
+        let smaller = Book::new(file.clone());
+        view.pack_changed(Some(&book), &smaller, None);
+        assert_eq!(view.selected, smaller.find("a/next"));
+        edit::apply(&mut file, &Edit::DeleteQuest { quest: "a/next".into() }).unwrap();
+        let smallest = Book::new(file);
+        view.pack_changed(Some(&smaller), &smallest, None);
+        assert_eq!(view.selected, None);
+        view.pack_changed(Some(&smallest), &smallest, Some("a/far"));
+        assert_eq!(view.selected, smallest.find("a/far"));
+        // Link picking goes on in the new pack.
+        view.linking = Some((book.find("a/far").unwrap(), true));
+        view.pack_changed(Some(&book), &smallest, None);
+        assert_eq!(view.linking, Some((smallest.find("a/far").unwrap(), true)));
     }
 
     #[test]

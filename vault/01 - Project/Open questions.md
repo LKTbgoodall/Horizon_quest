@@ -82,3 +82,6 @@ updated: 2026-11-10
 - ❓ **The Quest Book's texture**: *done in v0.1.2* (content half in the same `.hmod`, `side = "client"` so the LAN check never compares it; organa already ran a content and a native mod with one id). To confirm in game: the texture shows, Options > Mods is fine with the two halves, the LAN guest joins.
 - ❓ **The Quest Book on a server without the mod / with the mod removed**: a code-declared item is in the content check; in a save, an item whose mod is gone is unknown. To watch.
 - [x] **Ship the GUI sheets through `native_mod_image` (API 355)** so 1.0.0 shows its textures on today's launchers, without waiting for native content? Which other registry mods upload into the shared `horizon/modimage` slot? (2026-11-11) → **No**: Bastien waits for the Nightly with native content support (2026-11-11); kept as a fallback if it takes too long
+
+## Found starting edit mode (2026-11-12)
+- ❓ **Who is an editor in single player**: is the world's owner among `native_server_players()` (then its level is the guest's, 4 or 0 depending on cheats?) or not (then always allowed)? The v0.11.0 test answers it: does the pencil show with cheats off? `/quests edit` is the fallback either way. `native_player_permission` (⏳ `@API:player_permission@`) would settle it once numbered. → [[ADR-016 Edit mode in the book]]

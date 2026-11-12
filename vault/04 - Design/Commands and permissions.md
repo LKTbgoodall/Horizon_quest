@@ -25,6 +25,7 @@ Reference: [[FTB commands]] · API: [[Horizon hooks and API]] §6 · Pattern: [[
 - Ids are **full ids** (`chapter/quest/task`), declared as `text` in case `word` refuses `/` (to test).
 - `parse_for(line, permission)` re-checks the op level; a wrong form answers its usage.
 - Since v0.2.0, parties (level 0): `quests team` (your party, your invitations), `team create <name:word>`, `team invite <player:word>` (owner, player on), `team join <name:word>` (needs an invitation), `team leave`, `team kick <player:word>` (owner, member on or away). A team form with wrong arguments answers its own usage line. → [[ADR-012 Parties share one progress]]
+- Since v0.11.0: `quests edit` (level 2) shows the pencil in the player's book ([[ADR-016 Edit mode in the book]]); operators (level 2) and the world's owner get it without the command.
 - Not coded: `open`, `track`, `claim <quest>` (the book does these), lock, edit, import, admin party commands (force-disband).
 
 The tables below are the first design, kept for the later phases.

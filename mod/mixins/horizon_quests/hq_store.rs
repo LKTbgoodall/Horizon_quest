@@ -3,7 +3,7 @@
 // cannot be read is an error and is never overwritten, so a player's
 // progress is not lost to a bad save or a newer version of the mod. Pure: no
 // game types.
-use super::hq_model::{FORMAT_VERSION, Progress};
+use super::hq_model::{FORMAT_VERSION, Progress, QuestFile};
 use super::hq_teams::Teams;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -96,6 +96,48 @@ pub fn save_teams(dir: &Path, teams: &Teams) -> Result<(), String> {
 /// The parties' file in the mod's folder.
 pub const TEAMS_FILE: &str = "teams.json";
 
+/// The pack folder the book's edits are saved in, under the mod's folder:
+/// `<world>/horizon-quests/quests/`.
+pub const PACK_FOLDER: &str = "quests";
+
+/// Writes `file` as a pack folder at `dir`: `quests.json`,
+/// `chapters/<nn>_<id>.json` (numbered in book order) and
+/// `reward_tables/<id>.json`. Other `.json` files left in those two folders
+/// are removed, so a deleted chapter does not come back on the next load.
+pub fn save_pack(dir: &Path, file: &QuestFile) -> Result<(), String> {
+    save_json(&dir.join("quests.json"), &file.settings)?;
+    let chapters = file.chapters.iter().enumerate().map(|(i, chapter)| (format!("{:02}_{}.json", i + 1, file_name(&chapter.id)), chapter));
+    save_folder(&dir.join("chapters"), chapters)?;
+    let tables = file.reward_tables.iter().map(|table| (format!("{}.json", file_name(&table.id)), table));
+    save_folder(&dir.join("reward_tables"), tables)
+}
+
+/// `id` as a file name: anything but letters, digits, `_` and `-` as `_`.
+fn file_name(id: &str) -> String {
+    let safe: String = id.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { c } else { '_' }).collect();
+    if safe.is_empty() { "unnamed".to_owned() } else { safe }
+}
+
+/// Writes each (file name, value) in `folder`, then removes the folder's
+/// other `.json` files.
+fn save_folder<'a, T: Serialize + 'a>(folder: &Path, files: impl Iterator<Item = (String, &'a T)>) -> Result<(), String> {
+    let mut written = Vec::new();
+    for (name, value) in files {
+        save_json(&folder.join(&name), value)?;
+        written.push(name);
+    }
+    let Ok(entries) = std::fs::read_dir(folder) else {
+        return Ok(());
+    };
+    for path in entries.filter_map(|entry| entry.ok()).map(|entry| entry.path()) {
+        let name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+        if name.ends_with(".json") && !written.contains(&name) {
+            std::fs::remove_file(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        }
+    }
+    Ok(())
+}
+
 /// A player's UUID as files and progress name it:
 /// `069a79f4-44e9-4726-a5be-fca90e38aaf5`.
 pub fn uuid_string(uuid: u128) -> String {
@@ -179,6 +221,27 @@ mod tests {
         assert!(load_teams(&dir).unwrap_err().contains("newer Horizon Quests"));
         std::fs::write(dir.join(TEAMS_FILE), "{ broken").unwrap();
         assert!(load_teams(&dir).is_err());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_saved_pack_loads_back_and_old_chapter_files_go() {
+        use super::super::hq_model::{Chapter, Quest};
+        use super::super::hq_validate as validate;
+        let dir = folder("pack");
+        std::fs::create_dir_all(dir.join("chapters")).unwrap();
+        std::fs::write(dir.join("chapters").join("old.json"), "{}").unwrap();
+        std::fs::write(dir.join("chapters").join("notes.txt"), "kept").unwrap();
+        let quest = Quest { id: "q".into(), title: "Q".into(), ..Quest::default() };
+        let chapter = |id: &str| Chapter { id: id.into(), title: id.into(), quests: vec![quest.clone()], ..Chapter::default() };
+        let file = QuestFile { chapters: vec![chapter("zeta"), chapter("alpha")], ..QuestFile::default() };
+        save_pack(&dir, &file).unwrap();
+        let loaded = validate::load_dir(&dir);
+        assert_eq!(loaded.errors(), 0, "{:?}", loaded.problems);
+        let ids: Vec<&str> = loaded.file.chapters.iter().map(|c| c.id.as_str()).collect();
+        assert_eq!(ids, ["zeta", "alpha"]);
+        assert!(!dir.join("chapters").join("old.json").exists());
+        assert!(dir.join("chapters").join("notes.txt").exists());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -1,6 +1,6 @@
 ---
 tags: [project, roadmap]
-updated: 2026-11-10
+updated: 2026-11-12
 ---
 # Roadmap
 
@@ -77,7 +77,11 @@ updated: 2026-11-10
 - [ ] Optional chest-menu fallback for vanilla clients (only if asked for)
 
 ## Phase 5: V3, editor and import
-- [ ] In-game editor (edit mode)
+- [ ] In-game editor (edit mode), started 2026-11-12 ahead of the phase order at Bastien's request ([[ADR-016 Edit mode in the book]]):
+  - [ ] v0.11.0 groundwork: pencil for operators, edit mode, drag to move, new / duplicate / delete quests, link picking, server-side save in the world, modpack folder: coded, to test in game
+  - [ ] v0.12: text fields (`native_screen_char_typed_pre`) and a quest form: title, subtitle, description, icon, shape, size, visibility, flags
+  - [ ] v0.13: tasks and rewards: add (the "+" of FTB), edit, remove, per type
+  - [ ] v0.14: chapters and groups (new, rename, order, delete), reward tables, settings
 - [ ] FTB Quests import (JSON5/SNBT)
 - [ ] API for other mods (custom tasks and rewards)
 - [ ] Structure task (if a hook appears)
