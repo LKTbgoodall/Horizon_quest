@@ -161,6 +161,18 @@ pub enum Action {
     /// Open the form for task `1` of quest `0` (full id), or for a new one.
     EditTask(String, Option<String>),
     EditReward(String, Option<String>),
+    /// Open the chapter form (chapter id), the group form (group id), the
+    /// pack settings form, a table entry's form.
+    EditChapter(String),
+    EditGroup(String),
+    EditSettings,
+    EditEntry(String, Option<usize>),
+    /// Ask whether to delete this chapter (id), this reward table (id).
+    AskDeleteChapter(String),
+    AskDeleteTable(String),
+    /// The menu of the pack's reward tables, of one table's entries.
+    Tables,
+    OpenTable(String),
     /// A click on the quest form.
     Form(FormAction),
 }
@@ -904,6 +916,62 @@ impl BookView {
                     self.form = Some(Form::task(&quest, found));
                 }
             }
+            Some(Action::EditChapter(id)) => {
+                self.menu = None;
+                if let Some(chapter) = s.book.file().chapters.iter().find(|c| c.id == id) {
+                    self.form = Some(Form::chapter(chapter, &s.book.file().settings.groups));
+                }
+            }
+            Some(Action::EditGroup(id)) => {
+                self.menu = None;
+                if let Some(group) = s.book.file().settings.groups.iter().find(|g| g.id == id) {
+                    self.form = Some(Form::group(group));
+                }
+            }
+            Some(Action::EditSettings) => {
+                self.menu = None;
+                self.form = Some(Form::settings(&s.book.file().settings));
+            }
+            Some(Action::EditEntry(table, index)) => {
+                self.menu = None;
+                if let Some(found) = s.book.table(&table) {
+                    let entry = index.and_then(|i| found.entries.get(i));
+                    self.form = Some(Form::entry(&table, index.filter(|_| entry.is_some()), entry));
+                }
+            }
+            Some(Action::AskDeleteChapter(id)) => {
+                let name = s.book.file().chapters.iter().find(|c| c.id == id).map_or(id.clone(), |c| c.title.clone());
+                let entries = vec![("Delete it and its quests".to_owned(), Action::Edit(Edit::DeleteChapter { chapter: id })), ("Cancel".to_owned(), Action::CloseMenu)];
+                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete \"{name}\"?")), entries });
+            }
+            Some(Action::AskDeleteTable(id)) => {
+                let entries = vec![("Delete the table".to_owned(), Action::Edit(Edit::DeleteTable { table: id.clone() })), ("Cancel".to_owned(), Action::CloseMenu)];
+                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete table {id}?")), entries });
+            }
+            Some(Action::Tables) => {
+                let mut entries: Vec<(String, Action)> = s
+                    .book
+                    .file()
+                    .reward_tables
+                    .iter()
+                    .map(|t| (format!("{} ({} entries)", t.id, t.entries.len()), Action::OpenTable(t.id.clone())))
+                    .collect();
+                entries.push(("+ New table".to_owned(), Action::Edit(Edit::NewTable)));
+                self.menu = Some(Menu { at: s.mouse, title: Some("Reward tables".to_owned()), entries });
+            }
+            Some(Action::OpenTable(id)) => {
+                if let Some(table) = s.book.table(&id) {
+                    let mut entries: Vec<(String, Action)> = table
+                        .entries
+                        .iter()
+                        .enumerate()
+                        .map(|(i, e)| (format!("{} (weight {})", entry_label(e), e.weight), Action::EditEntry(id.clone(), Some(i))))
+                        .collect();
+                    entries.push(("+ Add an entry".to_owned(), Action::EditEntry(id.clone(), None)));
+                    entries.push(("Delete this table".to_owned(), Action::AskDeleteTable(id.clone())));
+                    self.menu = Some(Menu { at: s.mouse, title: Some(format!("Table {id}")), entries });
+                }
+            }
             Some(Action::EditReward(quest, reward)) => {
                 if let Some(n) = s.book.find(&quest) {
                     let found = reward.and_then(|r| s.book.quest(n).rewards.iter().find(|x| x.id == r));
@@ -945,6 +1013,31 @@ impl BookView {
             return Reaction::Nothing;
         }
         let scene = self.scene(s);
+        if self.over_list(s) {
+            let menu = match scene.action_at(s.mouse) {
+                Some(Action::Chapter(c)) => {
+                    let chapter = s.book.chapter(*c);
+                    let id = chapter.id.clone();
+                    let entries = vec![
+                        ("Edit...".to_owned(), Action::EditChapter(id.clone())),
+                        ("Move up".to_owned(), Action::Edit(Edit::MoveChapter { chapter: id.clone(), by: -1 })),
+                        ("Move down".to_owned(), Action::Edit(Edit::MoveChapter { chapter: id.clone(), by: 1 })),
+                        ("Delete".to_owned(), Action::AskDeleteChapter(id)),
+                    ];
+                    Some(Menu { at: s.mouse, title: Some(if chapter.title.is_empty() { chapter.id.clone() } else { chapter.title.clone() }), entries })
+                }
+                Some(Action::Group(id)) => {
+                    let entries = vec![
+                        ("Rename...".to_owned(), Action::EditGroup(id.clone())),
+                        ("Delete the group (its chapters stay)".to_owned(), Action::Edit(Edit::DeleteGroup { group: id.clone() })),
+                    ];
+                    Some(Menu { at: s.mouse, title: None, entries })
+                }
+                _ => None,
+            };
+            self.menu = menu;
+            return Reaction::Nothing;
+        }
         let on_canvas = canvas::inside(scene.regions.canvas, s.mouse) && !self.over_list(s);
         let Some(chapter) = s.book.file().chapters.get(self.chapter).filter(|_| on_canvas) else {
             return Reaction::Nothing;
@@ -965,6 +1058,8 @@ impl BookView {
             Some(Action::Deselect) | None => {
                 let [x, y] = edit::snap(self.cell_under(s));
                 let mut entries = vec![("New quest here".to_owned(), Action::Edit(Edit::NewQuest { chapter: chapter.id.clone(), x, y }))];
+                entries.push(("Reward tables...".to_owned(), Action::Tables));
+                entries.push(("Pack settings...".to_owned(), Action::EditSettings));
                 entries.push(("Save these quests for the modpack".to_owned(), Action::SaveToModpack));
                 if self.source == edit::SOURCE_WORLD {
                     entries.push(("Use the modpack's quests".to_owned(), Action::AskUseModpack));
@@ -1000,12 +1095,27 @@ impl BookView {
     pub fn pack_changed(&mut self, old: Option<&Book>, book: &Book, select: Option<&str>) {
         self.moving = None;
         self.menu = None;
-        let quest_of = |form: &Form| match &form.target {
-            Target::Quest(quest) | Target::Task { quest, .. } | Target::Reward { quest, .. } => quest.clone(),
+        let file = book.file();
+        let still_there = |form: &Form| match &form.target {
+            Target::Quest(quest) | Target::Task { quest, .. } | Target::Reward { quest, .. } => book.find(quest).is_some(),
+            Target::Chapter(id) => file.chapters.iter().any(|c| c.id == *id),
+            Target::Group(id) => file.settings.groups.iter().any(|g| g.id == *id),
+            Target::Entry { table, .. } => book.table(table).is_some(),
+            Target::Settings => true,
         };
-        if self.form.as_ref().is_some_and(|form| book.find(&quest_of(form)).is_none()) {
+        if self.form.as_ref().is_some_and(|form| !still_there(form)) {
             self.form = None;
         }
+        // The chapter shown stays shown when chapters move; a new chapter is turned to.
+        let shown = old.and_then(|old| old.file().chapters.get(self.chapter)).map(|c| c.id.clone());
+        let at = |id: &str| file.chapters.iter().position(|c| c.id == id);
+        if let Some(c) = select.and_then(at) {
+            self.chapter = c;
+            self.view = View::default();
+            self.select(None);
+            return;
+        }
+        self.chapter = shown.as_deref().and_then(at).unwrap_or(if self.chapter < file.chapters.len() { self.chapter } else { 0 });
         let again = |n: usize| old.and_then(|old| old.nodes().get(n)).and_then(|node| book.find(&node.id));
         self.linking = self.linking.and_then(|(n, needs)| Some((again(n)?, needs)));
         let open = self.selected.and_then(|n| old?.nodes().get(n)).map(|node| node.id.clone());
@@ -1341,7 +1451,25 @@ impl BookView {
         // The list's background takes clicks: none fall through to the canvas.
         scene.zones.push((area, Action::Stay));
         let rows = sidebar_rows(s.book, &self.folded);
-        scene.sidebar_max_scroll = (rows.len() as f32 * LIST_ROW + 2.0 * PAD - area[3]).max(0.0);
+        // In edit mode, two more rows at the end make a chapter or a group.
+        let extra = if self.editing { 2 } else { 0 };
+        scene.sidebar_max_scroll = ((rows.len() + extra) as f32 * LIST_ROW + 2.0 * PAD - area[3]).max(0.0);
+        if self.editing {
+            let adds = [
+                ("+ New chapter", Edit::NewChapter { title: "New chapter".to_owned() }),
+                ("+ New group", Edit::NewGroup { title: "New group".to_owned() }),
+            ];
+            for (k, (label, change)) in adds.into_iter().enumerate() {
+                let rect = [area[0] + 2.0, area[1] + PAD + (rows.len() + k) as f32 * LIST_ROW - self.sidebar_scroll, area[2] - 5.0, LIST_ROW];
+                if contains(area, rect) {
+                    if canvas::inside(rect, s.mouse) {
+                        scene.fill(rect, LIST_HOVER);
+                    }
+                    scene.text(label, [rect[0] + 3.0, rect[1] + (LIST_ROW - 8.0) / 2.0], EDIT_INK);
+                    scene.zones.push((rect, Action::Edit(change)));
+                }
+            }
+        }
         let (x, w) = (area[0] + 2.0, area[2] - 5.0);
         let mut in_group = false;
         for (i, row) in rows.iter().enumerate() {
@@ -1609,7 +1737,14 @@ fn draw_menu(scene: &mut Scene, s: &Screen<'_>, menu: &Menu) {
         if canvas::inside(rect, s.mouse) {
             scene.fill(rect, ROW_HOVER);
         }
-        let danger = matches!(action, Action::Edit(Edit::DeleteQuest { .. }) | Action::UseModpack | Action::AskDelete(_));
+        let danger = matches!(
+            action,
+            Action::Edit(Edit::DeleteQuest { .. } | Edit::DeleteChapter { .. } | Edit::DeleteTable { .. })
+                | Action::UseModpack
+                | Action::AskDelete(_)
+                | Action::AskDeleteChapter(_)
+                | Action::AskDeleteTable(_)
+        );
         scene.text(label.clone(), [x + PAD + 1.0, row_y + 2.0], if danger { DANGER_INK } else { INK });
         scene.zones.push((rect, action.clone()));
         row_y += MENU_ROW;
@@ -3067,6 +3202,64 @@ mod tests {
             panic!("no task saved");
         };
         assert_eq!((quest.as_str(), old, task.id.as_str()), ("a/start", None, ""));
+    }
+
+    #[test]
+    fn in_edit_mode_the_chapter_list_makes_moves_and_deletes_chapters() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        view.sidebar_open = true;
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(zone(&scene, &Action::Edit(Edit::NewChapter { title: "New chapter".into() })).is_none());
+        (view.editor, view.editing) = (true, true);
+        let new_chapter = Action::Edit(Edit::NewChapter { title: "New chapter".into() });
+        let reaction = click(&mut view, &book, &progress, &new_chapter);
+        assert_eq!(reaction, Reaction::Edit(Edit::NewChapter { title: "New chapter".into() }));
+        // A right click on a chapter row: its menu.
+        view.sidebar_open = true;
+        let row = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Chapter(1)).unwrap();
+        view.right_click(&screen(&book, &progress, row));
+        let menu = view.menu.clone().unwrap();
+        assert_eq!(menu.title.as_deref(), Some("Beta"));
+        assert!(menu.entries.contains(&("Move up".to_owned(), Action::Edit(Edit::MoveChapter { chapter: "b".into(), by: -1 }))));
+        click(&mut view, &book, &progress, &Action::AskDeleteChapter("b".into()));
+        assert!(view.menu.as_ref().unwrap().entries[0].1 == Action::Edit(Edit::DeleteChapter { chapter: "b".into() }));
+
+        // A new chapter made: the book turns to it; a pack where chapters moved keeps the one shown.
+        let mut file = book.file().clone();
+        edit::apply(&mut file, &Edit::NewChapter { title: "Gamma".into() }).unwrap();
+        let bigger = Book::new(file.clone());
+        view.pack_changed(Some(&book), &bigger, Some("gamma"));
+        assert_eq!(bigger.file().chapters[view.chapter].id, "gamma");
+        edit::apply(&mut file, &Edit::DeleteChapter { chapter: "a".into() }).unwrap();
+        let smaller = Book::new(file);
+        view.pack_changed(Some(&bigger), &smaller, None);
+        assert_eq!(smaller.file().chapters[view.chapter].id, "gamma");
+    }
+
+    #[test]
+    fn the_canvas_menu_opens_tables_and_settings() {
+        let settings = r#"{ }"#;
+        let chapter = r#"{ "id": "c", "title": "C", "quests": [ { "id": "q", "title": "Q", "rewards": [ { "id": "r", "type": "random", "table": "loot" } ] } ] }"#;
+        let table = r#"{ "id": "loot", "entries": [ { "type": "xp", "points": 5, "weight": 2 } ] }"#;
+        let loaded = super::super::hq_validate::load_pack(Some(settings), &[("c.json", chapter)], &[("loot.json", table)]);
+        assert_eq!(loaded.problems, []);
+        let (book, progress) = (Book::new(loaded.file), Progress::default());
+        let mut view = opened(&book, &progress);
+        (view.editor, view.editing) = (true, true);
+        view.menu = Some(Menu { at: [10.0, 10.0], title: None, entries: vec![("Reward tables...".into(), Action::Tables)] });
+        click(&mut view, &book, &progress, &Action::Tables);
+        assert_eq!(view.menu.as_ref().unwrap().entries[0].1, Action::OpenTable("loot".into()));
+        click(&mut view, &book, &progress, &Action::OpenTable("loot".into()));
+        let labels: Vec<String> = view.menu.as_ref().unwrap().entries.iter().map(|(l, _)| l.clone()).collect();
+        assert_eq!(labels[1..], ["+ Add an entry".to_owned(), "Delete this table".to_owned()]);
+        assert!(labels[0].ends_with("(weight 2)"), "{labels:?}");
+        click(&mut view, &book, &progress, &Action::EditEntry("loot".into(), Some(0)));
+        let reaction = click(&mut view, &book, &progress, &Action::Form(FormAction::Save));
+        assert!(matches!(reaction, Reaction::Edit(Edit::SaveEntry { index: Some(0), .. })), "{reaction:?}");
+        view.menu = Some(Menu { at: [10.0, 10.0], title: None, entries: vec![("Pack settings...".into(), Action::EditSettings)] });
+        click(&mut view, &book, &progress, &Action::EditSettings);
+        assert!(view.form.is_some());
     }
 
     #[test]

@@ -4,6 +4,14 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.14.0
+- **Chapters and groups in edit mode**: the chapter list ends with **+ New chapter** (the book turns to it) and **+ New group**. Right-click a chapter: **Edit...** (title, subtitle, icon, group, hidden, progression, quest shape and size), **Move up** / **Move down** among the chapters of its group, **Delete** (asks first; other chapters' links to its quests go too; a pack keeps one chapter). Right-click a group: **Rename...**, **Delete the group** (its chapters stay, without a group).
+- **Reward tables**: right-click an empty spot, **Reward tables...**: the tables, each one's entries (click to edit: type, title, weight), **+ Add an entry**, **+ New table**, **Delete this table** (refused while a reward uses it). A table keeps at least one entry.
+- **Pack settings...** (quests.json): progression, default quest shape and size, rewards claimed by themselves, how often inventories are looked at.
+- The book keeps the chapter shown when chapters move or one is deleted before it.
+- `Edit::NewChapter`, `SetChapter`, `MoveChapter`, `DeleteChapter`, `NewGroup`, `SetGroup`, `DeleteGroup`, `SetSettings`, `NewTable`, `SaveEntry`, `RemoveEntry`, `DeleteTable`; forms `Form::chapter`, `group`, `settings`, `entry`.
+- Book preview 12. With this, everything a pack file holds can be edited in game.
+
 ## 0.13.0
 - **Tasks and rewards in edit mode**: in a quest's window, a click on a task or a reward opens its form, and a green **+** at the end of each column adds one. The form's **Type** cycles through the eight task types (item or `#tag` with "handed in", checkmark, kill, craft, level, dimension, place from / to, advancement) or the seven reward types (item with an optional random maximum, experience points, levels, command with `{player}`, a message on screen, a random draw or a choice from a reward table); the rows follow the type and keep what was typed when switching back and forth. Rewards also have a title, "claimed by itself" (as the pack says, never, always) and "for the whole party". **Delete** removes a task or reward.
 - New ids come from the type (`item`, `item_2`...); an edited task or reward keeps its id, so progress on it stays.

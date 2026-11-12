@@ -5,8 +5,11 @@
 // server. Pure: it lays itself out as hq_book draws and click zones.
 use super::hq_book::{Draw, fit_text};
 use super::hq_canvas as canvas;
-use super::hq_edit::{Edit, QuestInfo};
-use super::hq_model::{AutoClaim, ItemMatch, Quest, Reward, RewardKind, Shape, Task, TaskKind, resource_id};
+use super::hq_edit::{ChapterInfo, Edit, PackSettings, QuestInfo};
+use super::hq_model::{
+    AutoClaim, Chapter, Group, ItemMatch, Progression, Quest, Reward, RewardKind, Settings, Shape, TableEntry, Task, TaskKind,
+    resource_id,
+};
 #[cfg(test)]
 use super::hq_model::{DependencyMode, Visibility};
 use super::hq_text::{Key, TextField};
@@ -74,6 +77,13 @@ pub enum Target {
     /// A task of a quest: the one with id `old`, or a new one.
     Task { quest: String, old: Option<String> },
     Reward { quest: String, old: Option<String> },
+    /// A chapter (its id).
+    Chapter(String),
+    Group(String),
+    /// The pack's settings (quests.json).
+    Settings,
+    /// Entry `index` of a reward table, or a new one.
+    Entry { table: String, index: Option<usize> },
 }
 
 /// What a click on the form does.
@@ -126,6 +136,7 @@ const REWARD_TYPES: [(&str, &str); 7] = [
     ("random", "a random draw from a table"),
     ("choice", "a choice from a table"),
 ];
+const PROGRESSIONS: [(&str, &str); 2] = [("linear", "linear: quests open in order"), ("flexible", "flexible: tasks in any order")];
 const AUTO_CLAIMS: [(&str, &str); 3] = [("default", "as the pack says"), ("disabled", "never"), ("enabled", "always")];
 
 /// The form's size and look.
@@ -239,9 +250,63 @@ impl Form {
         form
     }
 
+    /// The form for chapter `chapter`; `groups` are the pack's.
+    pub fn chapter(chapter: &Chapter, groups: &[Group]) -> Self {
+        let info = ChapterInfo::of(chapter);
+        let mut group_options = vec![("", "none")];
+        group_options.extend(groups.iter().map(|g| (g.id.as_str(), if g.title.is_empty() { g.id.as_str() } else { g.title.as_str() })));
+        let mut progressions = vec![("", "the pack's")];
+        progressions.extend(PROGRESSIONS);
+        let mut shapes = SHAPES;
+        shapes[0].1 = "the pack's";
+        let rows = vec![
+            Row::text("title", "Title", &info.title, 100),
+            Row::text("subtitle", "Subtitle", info.subtitle.as_deref().unwrap_or(""), 100),
+            Row::item("icon", "Icon (item id)", info.icon.as_deref().unwrap_or("")),
+            Row::choice("group", "Group", &group_options, info.group.as_deref().unwrap_or("")),
+            Row::flag("hidden", "Hidden from the list", info.hidden),
+            Row::choice("progression", "Progression", &progressions, &info.progression.map(|p| enum_key(&p)).unwrap_or_default()),
+            Row::choice("default_shape", "Quest shape", &shapes, &info.default_shape.map(|s| enum_key(&s)).unwrap_or_default()),
+            Row::text("default_size", "Quest size", &info.default_size.map(|s| s.to_string()).unwrap_or_default(), 10),
+        ];
+        Self::new(Target::Chapter(chapter.id.clone()), "Edit chapter", rows)
+    }
+
+    /// The form to rename group `group`.
+    pub fn group(group: &Group) -> Self {
+        Self::new(Target::Group(group.id.clone()), "Rename group", vec![Row::text("title", "Title", &group.title, 100)])
+    }
+
+    /// The form for the pack's settings.
+    pub fn settings(settings: &Settings) -> Self {
+        let now = PackSettings::of(settings);
+        let rows = vec![
+            Row::choice("progression", "Progression", &PROGRESSIONS, &enum_key(&now.progression)),
+            Row::choice("default_shape", "Quest shape", &SHAPES[1..], &enum_key(&now.default_shape)),
+            Row::text("default_size", "Quest size", &now.default_size.to_string(), 10),
+            Row::flag("auto_claim_rewards", "Rewards claimed by themselves", now.auto_claim_rewards),
+            Row::number("detection_delay", "Look at inventories every (ticks)", Some(now.detection_delay)),
+        ];
+        Self::new(Target::Settings, "Pack settings", rows)
+    }
+
+    /// The form for entry `index` of reward table `table`: `entry`, or a
+    /// new one.
+    pub fn entry(table: &str, index: Option<usize>, entry: Option<&TableEntry>) -> Self {
+        let kind = entry.map_or(RewardKind::Item { item: "minecraft:bread".into(), count: 1, max_count: None }, |e| e.kind.clone());
+        let title = if entry.is_some() { "Edit table entry" } else { "New table entry" };
+        let mut form = Self::new(Target::Entry { table: table.to_owned(), index }, title, Vec::new());
+        form.rows = entry_rows(&kind, entry.and_then(|e| e.title.as_deref()), entry.map_or(1, |e| e.weight));
+        form.focus = form.rows.iter().position(|row| matches!(row.value, Value::Text(_)));
+        form
+    }
+
     /// Whether the form edits something that is there (it can be deleted).
     fn deletable(&self) -> bool {
-        matches!(&self.target, Target::Task { old: Some(_), .. } | Target::Reward { old: Some(_), .. })
+        matches!(
+            &self.target,
+            Target::Task { old: Some(_), .. } | Target::Reward { old: Some(_), .. } | Target::Entry { index: Some(_), .. }
+        )
     }
 
     fn find(&self, key: &str) -> Option<&Value> {
@@ -358,6 +423,52 @@ impl Form {
 
     /// The reward form's fields as a reward, or what is wrong.
     pub fn reward_value(&self) -> Result<Reward, String> {
+        let kind = self.reward_kind()?;
+        let id = match &self.target {
+            Target::Reward { old: Some(old), .. } => old.clone(),
+            _ => String::new(),
+        };
+        let auto_claim = self.enum_of("auto_claim").unwrap_or_default();
+        Ok(Reward { id, title: optional(&self.text("title")), auto_claim, team: self.flag("team"), kind })
+    }
+
+    /// The entry form's fields as a table entry.
+    pub fn entry_value(&self) -> Result<TableEntry, String> {
+        let weight = self.number("weight", "Weight")?.unwrap_or(1);
+        Ok(TableEntry { weight, title: optional(&self.text("title")), kind: self.reward_kind()? })
+    }
+
+    /// The chapter form's fields.
+    pub fn chapter_info(&self) -> Result<ChapterInfo, String> {
+        let size = optional(&self.text("default_size"))
+            .map(|t| t.parse::<f32>().ok().filter(|s| (0.25..=4.0).contains(s)).ok_or("Quest size: a number from 0.25 to 4, or nothing."))
+            .transpose()?;
+        Ok(ChapterInfo {
+            title: self.text("title"),
+            subtitle: optional(&self.text("subtitle")),
+            icon: optional(&self.text("icon")).map(|_| self.id("icon", "Icon")).transpose()?,
+            group: optional(&self.chosen("group")),
+            hidden: self.flag("hidden"),
+            progression: self.enum_of::<Progression>("progression"),
+            default_shape: self.enum_of::<Shape>("default_shape"),
+            default_size: size,
+        })
+    }
+
+    /// The settings form's fields.
+    pub fn pack_settings(&self) -> Result<PackSettings, String> {
+        let size = self.text("default_size").parse::<f32>().ok().filter(|s| (0.25..=4.0).contains(s)).ok_or("Quest size: a number from 0.25 to 4.")?;
+        Ok(PackSettings {
+            progression: self.enum_of("progression").unwrap_or_default(),
+            default_shape: self.enum_of("default_shape").unwrap_or_default(),
+            default_size: size,
+            auto_claim_rewards: self.flag("auto_claim_rewards"),
+            detection_delay: self.count("detection_delay", "Look at inventories every")?,
+        })
+    }
+
+    /// What the reward or entry form gives.
+    fn reward_kind(&self) -> Result<RewardKind, String> {
         let table = || -> Result<String, String> {
             Some(self.chosen("table")).filter(|t| !t.is_empty()).ok_or_else(|| "This pack has no reward table yet.".to_owned())
         };
@@ -383,12 +494,7 @@ impl Form {
                 RewardKind::Item { item: self.id("item", "Item")?, count, max_count }
             }
         };
-        let id = match &self.target {
-            Target::Reward { old: Some(old), .. } => old.clone(),
-            _ => String::new(),
-        };
-        let auto_claim = self.enum_of("auto_claim").unwrap_or_default();
-        Ok(Reward { id, title: optional(&self.text("title")), auto_claim, team: self.flag("team"), kind })
+        Ok(kind)
     }
 
     /// The edit Save asks for, or why it cannot go.
@@ -397,6 +503,10 @@ impl Form {
             Target::Quest(quest) => Edit::SetQuestInfo { quest: quest.clone(), info: self.quest_info()? },
             Target::Task { quest, old } => Edit::SaveTask { quest: quest.clone(), old: old.clone(), task: self.task_value()? },
             Target::Reward { quest, old } => Edit::SaveReward { quest: quest.clone(), old: old.clone(), reward: self.reward_value()? },
+            Target::Chapter(chapter) => Edit::SetChapter { chapter: chapter.clone(), info: self.chapter_info()? },
+            Target::Group(group) => Edit::SetGroup { group: group.clone(), title: self.text("title") },
+            Target::Settings => Edit::SetSettings { settings: self.pack_settings()? },
+            Target::Entry { table, index } => Edit::SaveEntry { table: table.clone(), index: *index, entry: self.entry_value()? },
         })
     }
 
@@ -405,6 +515,7 @@ impl Form {
         match &self.target {
             Target::Task { quest, old: Some(task) } => Some(Edit::RemoveTask { quest: quest.clone(), task: task.clone() }),
             Target::Reward { quest, old: Some(reward) } => Some(Edit::RemoveReward { quest: quest.clone(), reward: reward.clone() }),
+            Target::Entry { table, index: Some(index) } => Some(Edit::RemoveEntry { table: table.clone(), index: *index }),
             _ => None,
         }
     }
@@ -439,7 +550,17 @@ impl Form {
                 );
                 reward_rows(&kind, None, AutoClaim::Default, false, &self.tables)
             }
-            Target::Quest(_) => old.clone(),
+            Target::Entry { .. } => {
+                let kind = blank_reward(
+                    &match kept("type") {
+                        Some(Value::Choice(options, at)) => options[at].0.clone(),
+                        _ => String::new(),
+                    },
+                    &[],
+                );
+                entry_rows(&kind, None, 1)
+            }
+            Target::Quest(_) | Target::Chapter(_) | Target::Group(_) | Target::Settings => old.clone(),
         };
         let rows = fresh
             .into_iter()
@@ -765,8 +886,26 @@ fn task_rows(kind: &TaskKind, title: Option<&str>) -> Vec<Row> {
 
 /// A reward form's rows for `kind`.
 fn reward_rows(kind: &RewardKind, title: Option<&str>, auto: AutoClaim, team: bool, tables: &[String]) -> Vec<Row> {
+    let mut rows = kind_rows(kind, &REWARD_TYPES, tables);
+    rows.push(Row::text("title", "Title (optional)", title.unwrap_or(""), 100));
+    let auto_key = serde_json::to_value(auto).ok().and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_default();
+    rows.push(Row::choice("auto_claim", "Claimed by itself", &AUTO_CLAIMS, &auto_key));
+    rows.push(Row::flag("team", "For the whole party", team));
+    rows
+}
+
+/// A table entry form's rows for `kind`: no table in a table.
+fn entry_rows(kind: &RewardKind, title: Option<&str>, weight: u32) -> Vec<Row> {
+    let mut rows = kind_rows(kind, &REWARD_TYPES[..5], &[]);
+    rows.push(Row::text("title", "Title (optional)", title.unwrap_or(""), 100));
+    rows.push(Row::number("weight", "Weight (random draws)", Some(weight)));
+    rows
+}
+
+/// The type row and the rows of what a reward of `kind` gives.
+fn kind_rows(kind: &RewardKind, types: &[(&str, &str)], tables: &[String]) -> Vec<Row> {
     let key = serde_json::to_value(kind).ok().and_then(|v| v.get("type").and_then(|t| t.as_str()).map(str::to_owned)).unwrap_or_default();
-    let mut rows = vec![Row::choice("type", "Type", &REWARD_TYPES, &key)];
+    let mut rows = vec![Row::choice("type", "Type", types, &key)];
     match kind {
         RewardKind::Item { item, count, max_count } => {
             rows.push(Row::item("item", "Item", item));
@@ -782,10 +921,6 @@ fn reward_rows(kind: &RewardKind, title: Option<&str>, auto: AutoClaim, team: bo
             rows.push(Row::choice("table", "Table", &options, table));
         }
     }
-    rows.push(Row::text("title", "Title (optional)", title.unwrap_or(""), 100));
-    let auto_key = serde_json::to_value(auto).ok().and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_default();
-    rows.push(Row::choice("auto_claim", "Claimed by itself", &AUTO_CLAIMS, &auto_key));
-    rows.push(Row::flag("team", "For the whole party", team));
     rows
 }
 
@@ -917,6 +1052,45 @@ mod tests {
         }
         assert_eq!(form.chosen("type"), "random");
         assert!(form.reward_value().unwrap_err().contains("no reward table"));
+    }
+
+    #[test]
+    fn chapter_group_settings_and_entry_forms_round_trip() {
+        let groups = vec![Group { id: "main".into(), title: "Main story".into() }];
+        let chapter = Chapter {
+            id: "c".into(),
+            title: "Chapter".into(),
+            group: Some("main".into()),
+            progression: Some(Progression::Flexible),
+            default_size: Some(1.5),
+            ..Chapter::default()
+        };
+        let mut form = Form::chapter(&chapter, &groups);
+        assert_eq!(form.chapter_info(), Ok(ChapterInfo::of(&chapter)));
+        form.click(&FormAction::Cycle(row(&form, "group")), &measure);
+        assert_eq!(form.chapter_info().unwrap().group, None);
+
+        let mut form = Form::group(&groups[0]);
+        type_in(&mut form, "title", "Story");
+        assert_eq!(form.save(), Ok(Edit::SetGroup { group: "main".into(), title: "Story".into() }));
+
+        let settings = Settings::default();
+        let mut form = Form::settings(&settings);
+        assert_eq!(form.pack_settings(), Ok(PackSettings::of(&settings)));
+        type_in(&mut form, "detection_delay", "0");
+        assert!(form.save().is_err());
+
+        let entry = TableEntry { weight: 4, title: Some("Snack".into()), kind: RewardKind::Xp { points: 3 } };
+        let form = Form::entry("loot", Some(2), Some(&entry));
+        assert_eq!(form.entry_value(), Ok(entry));
+        assert_eq!(form.delete(), Some(Edit::RemoveEntry { table: "loot".into(), index: 2 }));
+        // No table inside a table: the types stop at the message.
+        let mut form = Form::entry("loot", None, None);
+        let t = row(&form, "type");
+        for _ in 0..5 {
+            form.click(&FormAction::Cycle(t), &measure);
+        }
+        assert_eq!(form.chosen("type"), "item");
     }
 
     #[test]

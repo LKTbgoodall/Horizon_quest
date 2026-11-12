@@ -7,7 +7,10 @@
 //
 // Ids stay as they are once made: progress files refer to full ids. A new
 // quest gets a fresh id from its title (`new_quest`, `new_quest_2`...).
-use super::hq_model::{DependencyMode, Quest, QuestFile, Reward, Shape, Task, TaskKind, Visibility, dependency_id, quest_id};
+use super::hq_model::{
+    Chapter, DependencyMode, Group, Progression, Quest, QuestFile, Reward, RewardKind, RewardTable, Settings, Shape, TableEntry, Task,
+    TaskKind, Visibility, dependency_id, quest_id,
+};
 use super::hq_validate::{self as validate, Severity};
 use serde::{Deserialize, Serialize};
 
@@ -53,6 +56,86 @@ pub enum Edit {
     RemoveTask { quest: String, task: String },
     SaveReward { quest: String, old: Option<String>, reward: Reward },
     RemoveReward { quest: String, reward: String },
+    /// A new empty chapter at the end, its id from its title.
+    NewChapter { title: String },
+    SetChapter { chapter: String, info: ChapterInfo },
+    /// Moves the chapter before (`by` < 0) or after the next chapter of
+    /// its group in the list.
+    MoveChapter { chapter: String, by: i32 },
+    /// Removes the chapter, its quests, and other chapters' links to them.
+    DeleteChapter { chapter: String },
+    NewGroup { title: String },
+    SetGroup { group: String, title: String },
+    /// Removes the group; its chapters stay, without a group.
+    DeleteGroup { group: String },
+    SetSettings { settings: PackSettings },
+    /// A new reward table with one entry (a table cannot be empty).
+    NewTable,
+    /// Replaces entry `index` of the table, or adds `entry` at the end.
+    SaveEntry { table: String, index: Option<usize>, entry: TableEntry },
+    RemoveEntry { table: String, index: usize },
+    DeleteTable { table: String },
+}
+
+/// What the chapter form edits.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChapterInfo {
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub icon: Option<String>,
+    pub group: Option<String>,
+    pub hidden: bool,
+    pub progression: Option<Progression>,
+    pub default_shape: Option<Shape>,
+    pub default_size: Option<f32>,
+}
+
+impl ChapterInfo {
+    pub fn of(chapter: &Chapter) -> Self {
+        Self {
+            title: chapter.title.clone(),
+            subtitle: chapter.subtitle.clone(),
+            icon: chapter.icon.clone(),
+            group: chapter.group.clone(),
+            hidden: chapter.hidden,
+            progression: chapter.progression,
+            default_shape: chapter.default_shape,
+            default_size: chapter.default_size,
+        }
+    }
+
+    fn write(&self, chapter: &mut Chapter) {
+        chapter.title = self.title.clone();
+        chapter.subtitle = self.subtitle.clone();
+        chapter.icon = self.icon.clone();
+        chapter.group = self.group.clone();
+        chapter.hidden = self.hidden;
+        chapter.progression = self.progression;
+        chapter.default_shape = self.default_shape;
+        chapter.default_size = self.default_size;
+    }
+}
+
+/// What the pack settings form edits (quests.json, its groups aside).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PackSettings {
+    pub progression: Progression,
+    pub default_shape: Shape,
+    pub default_size: f32,
+    pub auto_claim_rewards: bool,
+    pub detection_delay: u32,
+}
+
+impl PackSettings {
+    pub fn of(settings: &Settings) -> Self {
+        Self {
+            progression: settings.progression,
+            default_shape: settings.default_shape,
+            default_size: settings.default_size,
+            auto_claim_rewards: settings.auto_claim_rewards,
+            detection_delay: settings.detection_delay,
+        }
+    }
 }
 
 /// What the quest form edits.
@@ -115,6 +198,14 @@ fn locate(file: &QuestFile, id: &str) -> Option<(usize, usize)> {
     let c = file.chapters.iter().position(|ch| ch.id == chapter)?;
     let q = file.chapters[c].quests.iter().position(|qu| qu.id == quest)?;
     Some((c, q))
+}
+
+fn chapter_at(file: &QuestFile, chapter: &str) -> Result<usize, String> {
+    file.chapters.iter().position(|c| c.id == chapter).ok_or_else(|| format!("There is no chapter {chapter} any more."))
+}
+
+fn table_at(file: &QuestFile, table: &str) -> Result<usize, String> {
+    file.reward_tables.iter().position(|t| t.id == table).ok_or_else(|| format!("There is no reward table {table} any more."))
 }
 
 fn place(x: f32, y: f32) -> Result<(f32, f32), String> {
@@ -190,7 +281,7 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
     match edit {
         Edit::NewQuest { chapter, x, y } => {
             let (x, y) = place(*x, *y)?;
-            let c = file.chapters.iter().position(|ch| ch.id == *chapter).ok_or_else(|| format!("There is no chapter {chapter} any more."))?;
+            let c = chapter_at(file, chapter)?;
             let id = fresh_id(file, c, NEW_QUEST);
             let task = Task { id: "check".to_owned(), title: None, kind: TaskKind::Checkmark };
             file.chapters[c].quests.push(Quest { id: id.clone(), title: NEW_QUEST.to_owned(), x, y, tasks: vec![task], ..Quest::default() });
@@ -266,6 +357,114 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
         Edit::RemoveReward { quest, reward } => {
             let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
             remove_child(&mut file.chapters[c].quests[q].rewards, reward, |r| &mut r.id, "reward")?;
+            Ok(None)
+        }
+        Edit::NewChapter { title } => {
+            let id = fresh(title, |id| file.chapters.iter().any(|c| c.id == id));
+            let order = file.chapters.iter().map(|c| c.order).max().unwrap_or(0);
+            file.chapters.push(Chapter { id: id.clone(), title: title.clone(), order, ..Chapter::default() });
+            Ok(Some(id))
+        }
+        Edit::SetChapter { chapter, info } => {
+            if info.default_size.is_some_and(|size| !(0.25..=4.0).contains(&size)) {
+                return Err("A size goes from 0.25 to 4.".to_owned());
+            }
+            let c = chapter_at(file, chapter)?;
+            info.write(&mut file.chapters[c]);
+            Ok(None)
+        }
+        Edit::MoveChapter { chapter, by } => {
+            let c = chapter_at(file, chapter)?;
+            let group = file.chapters[c].group.clone();
+            let same: Vec<usize> = (0..file.chapters.len()).filter(|&i| file.chapters[i].group == group).collect();
+            let at = same.iter().position(|&i| i == c).unwrap_or(0) as i32;
+            let Some(&other) = usize::try_from(at + by.signum()).ok().and_then(|to| same.get(to)) else {
+                return Ok(None);
+            };
+            file.chapters.swap(c, other);
+            // The loader orders chapters by `order`: number them as they stand.
+            for (i, chapter) in file.chapters.iter_mut().enumerate() {
+                chapter.order = i as i32;
+            }
+            Ok(None)
+        }
+        Edit::DeleteChapter { chapter } => {
+            if file.chapters.len() <= 1 {
+                return Err("A pack keeps at least one chapter.".to_owned());
+            }
+            let c = chapter_at(file, chapter)?;
+            file.chapters.remove(c);
+            let gone = format!("{chapter}/");
+            for other in &mut file.chapters {
+                let here = other.id.clone();
+                for quest in &mut other.quests {
+                    quest.dependencies.retain(|d| !dependency_id(&here, d).starts_with(&gone));
+                }
+            }
+            Ok(None)
+        }
+        Edit::NewGroup { title } => {
+            let groups = &mut file.settings.groups;
+            let id = fresh(title, |id| groups.iter().any(|g| g.id == id));
+            groups.push(Group { id, title: title.clone() });
+            Ok(None)
+        }
+        Edit::SetGroup { group, title } => {
+            let found = file.settings.groups.iter_mut().find(|g| g.id == *group).ok_or_else(|| format!("There is no group {group} any more."))?;
+            found.title = title.clone();
+            Ok(None)
+        }
+        Edit::DeleteGroup { group } => {
+            file.settings.groups.retain(|g| g.id != *group);
+            for chapter in &mut file.chapters {
+                if chapter.group.as_deref() == Some(group) {
+                    chapter.group = None;
+                }
+            }
+            Ok(None)
+        }
+        Edit::SetSettings { settings } => {
+            if !(0.25..=4.0).contains(&settings.default_size) || settings.detection_delay == 0 {
+                return Err("The size goes from 0.25 to 4, the delay is at least 1 tick.".to_owned());
+            }
+            let s = &mut file.settings;
+            s.progression = settings.progression;
+            s.default_shape = settings.default_shape;
+            s.default_size = settings.default_size;
+            s.auto_claim_rewards = settings.auto_claim_rewards;
+            s.detection_delay = settings.detection_delay;
+            Ok(None)
+        }
+        Edit::NewTable => {
+            let id = fresh("table", |id| file.reward_tables.iter().any(|t| t.id == id));
+            let bread = RewardKind::Item { item: "minecraft:bread".into(), count: 1, max_count: None };
+            file.reward_tables.push(RewardTable { id, entries: vec![TableEntry { weight: 1, title: None, kind: bread }] });
+            Ok(None)
+        }
+        Edit::SaveEntry { table, index, entry } => {
+            let t = table_at(file, table)?;
+            let entries = &mut file.reward_tables[t].entries;
+            match index {
+                Some(i) => *entries.get_mut(*i).ok_or_else(|| "That entry is not there any more.".to_owned())? = entry.clone(),
+                None => entries.push(entry.clone()),
+            }
+            Ok(None)
+        }
+        Edit::RemoveEntry { table, index } => {
+            let t = table_at(file, table)?;
+            let entries = &mut file.reward_tables[t].entries;
+            if entries.len() <= 1 {
+                return Err("A table keeps at least one entry: delete the table instead.".to_owned());
+            }
+            if *index >= entries.len() {
+                return Err("That entry is not there any more.".to_owned());
+            }
+            entries.remove(*index);
+            Ok(None)
+        }
+        Edit::DeleteTable { table } => {
+            let t = table_at(file, table)?;
+            file.reward_tables.remove(t);
             Ok(None)
         }
     }
@@ -418,6 +617,63 @@ mod tests {
         check(&file).unwrap();
         apply(&mut file, &Edit::RemoveReward { quest: "one/a".into(), reward: "xp_levels".into() }).unwrap();
         assert!(file.chapters[0].quests[0].rewards.is_empty());
+    }
+
+    #[test]
+    fn chapters_are_made_moved_within_their_group_and_deleted_with_their_links() {
+        let mut file = pack();
+        let made = apply(&mut file, &Edit::NewChapter { title: "Three".into() }).unwrap();
+        assert_eq!(made.as_deref(), Some("three"));
+        check(&file).unwrap();
+        let ids = |file: &QuestFile| file.chapters.iter().map(|c| c.id.clone()).collect::<Vec<_>>();
+        apply(&mut file, &Edit::MoveChapter { chapter: "three".into(), by: -1 }).unwrap();
+        assert_eq!(ids(&file), ["one", "three", "two"]);
+        // A chapter in a group moves among that group's chapters only.
+        apply(&mut file, &Edit::NewGroup { title: "Side paths".into() }).unwrap();
+        let mut info = ChapterInfo::of(&file.chapters[2]);
+        info.group = Some("side_paths".into());
+        apply(&mut file, &Edit::SetChapter { chapter: "two".into(), info }).unwrap();
+        apply(&mut file, &Edit::MoveChapter { chapter: "two".into(), by: -1 }).unwrap();
+        assert_eq!(ids(&file), ["one", "three", "two"]);
+        check(&file).unwrap();
+        apply(&mut file, &Edit::DeleteGroup { group: "side_paths".into() }).unwrap();
+        assert_eq!(file.chapters[2].group, None);
+        // Deleting "one" drops "two/c"'s link to "one/b".
+        apply(&mut file, &Edit::DeleteChapter { chapter: "one".into() }).unwrap();
+        assert!(file.chapters[1].quests[0].dependencies.is_empty());
+        apply(&mut file, &Edit::DeleteChapter { chapter: "three".into() }).unwrap();
+        assert!(apply(&mut file, &Edit::DeleteChapter { chapter: "two".into() }).is_err());
+        check(&file).unwrap();
+    }
+
+    #[test]
+    fn tables_keep_one_entry_and_a_used_table_cannot_go() {
+        use super::super::hq_model::AutoClaim;
+        let mut file = pack();
+        apply(&mut file, &Edit::NewTable).unwrap();
+        assert_eq!(file.reward_tables[0].id, "table");
+        let xp = TableEntry { weight: 3, title: None, kind: RewardKind::Xp { points: 5 } };
+        apply(&mut file, &Edit::SaveEntry { table: "table".into(), index: None, entry: xp.clone() }).unwrap();
+        apply(&mut file, &Edit::SaveEntry { table: "table".into(), index: Some(0), entry: xp.clone() }).unwrap();
+        assert_eq!(file.reward_tables[0].entries, vec![xp.clone(), xp]);
+        apply(&mut file, &Edit::RemoveEntry { table: "table".into(), index: 1 }).unwrap();
+        assert!(apply(&mut file, &Edit::RemoveEntry { table: "table".into(), index: 0 }).is_err());
+        let draw = Reward { id: String::new(), title: None, auto_claim: AutoClaim::Default, team: false, kind: RewardKind::Random { table: "table".into() } };
+        apply(&mut file, &Edit::SaveReward { quest: "one/a".into(), old: None, reward: draw }).unwrap();
+        check(&file).unwrap();
+        apply(&mut file, &Edit::DeleteTable { table: "table".into() }).unwrap();
+        assert!(check(&file).is_err());
+    }
+
+    #[test]
+    fn pack_settings_are_checked() {
+        let mut file = pack();
+        let mut settings = PackSettings::of(&file.settings);
+        settings.progression = Progression::Flexible;
+        apply(&mut file, &Edit::SetSettings { settings: settings.clone() }).unwrap();
+        assert_eq!(PackSettings::of(&file.settings), settings);
+        settings.detection_delay = 0;
+        assert!(apply(&mut file, &Edit::SetSettings { settings }).is_err());
     }
 
     #[test]

@@ -12,6 +12,7 @@
 //! the game draws the real ones, and no game asset is in this repository).
 
 use horizon_mod_horizon_quests::hq_book::{Action, BookView, Draw, Scene, Screen};
+use horizon_mod_horizon_quests::hq_edit::Edit;
 use horizon_mod_horizon_quests::hq_logic::Book;
 use horizon_mod_horizon_quests::hq_model::Progress;
 use horizon_mod_horizon_quests::hq_progress::{Actor, QuestEvent, apply};
@@ -402,6 +403,19 @@ fn main() {
         "book-11-task-form",
         "The task form: its type cycles on a click, and the rows follow the type. Delete removes the task.",
         svg(&view.scene(&screen(&book, &progress, AWAY)), AWAY),
+    ));
+
+    // 12. The chapter list in edit mode: new chapter and group rows, a chapter's menu.
+    view.form = None;
+    view.close_quest();
+    view.sidebar_open = true;
+    let at = pointing_at(&view, &book, &progress, &Action::Chapter(0));
+    view.right_click(&screen(&book, &progress, at));
+    let mouse = pointing_at(&view, &book, &progress, &Action::Edit(Edit::MoveChapter { chapter: "c".into(), by: 1 }));
+    pictures.push((
+        "book-12-edit-chapters",
+        "In edit mode the chapter list ends with + New chapter and + New group; a right click on a chapter edits, moves or deletes it.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 
     let vault = root.join("../vault/04 - Design/previews");

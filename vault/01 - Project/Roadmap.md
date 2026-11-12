@@ -81,7 +81,7 @@ updated: 2026-11-12
   - [ ] v0.11.0 groundwork: pencil for operators, edit mode, drag to move, new / duplicate / delete quests, link picking, server-side save in the world, modpack folder: coded, to test in game
   - [ ] v0.12.0: text fields (`hq_text`, `native_screen_char_typed_pre`) and the quest form (`hq_form`): coded 2026-11-12, to test in game
   - [ ] v0.13.0: tasks and rewards: add (the "+" of FTB), edit, remove, per type: coded 2026-11-12, to test in game
-  - [ ] v0.14: chapters and groups (new, rename, order, delete), reward tables, settings
+  - [ ] v0.14.0: chapters and groups (new, edit, move, delete), reward tables and entries, pack settings: coded 2026-11-12, to test in game. Everything a pack file holds is now editable in game
 - [ ] FTB Quests import (JSON5/SNBT)
 - [ ] API for other mods (custom tasks and rewards)
 - [ ] Structure task (if a hook appears)
