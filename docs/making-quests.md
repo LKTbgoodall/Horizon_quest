@@ -15,9 +15,10 @@ The server uses the first of these that exists:
 
 An operator (and the owner of a single-player world) has a **pencil** at the bottom right of the book. It turns on edit mode:
 - drag a quest to move it; right-click an empty spot for **New quest here**;
-- right-click a quest: **Edit...** (the quest form: title, subtitle, description, icon with suggestions, shape, size, when it shows, what it needs, optional, tasks in order, repeatable, cooldown), **Duplicate**, **Pick what this quest needs... / opens...** (then click quests to link or unlink them), **Delete**.
+- open a quest: click its title, subtitle or description to type there, its icon to choose one from the item grid, the gear for its settings (shape, size, when it shows, what it needs, optional, tasks in order, repeatable, cooldown), applied at once;
+- right-click a quest: **Settings...**, **Duplicate**, **Pick what this quest needs... / opens...** (then click quests to link or unlink them), **Delete**.
 
-- in a quest's window, click a task or reward to edit it (Delete is in its form), or the green **+** to add one;
+- in a quest's window, click a task or reward to open its panel (Delete is in it), or the green **+** to add one (items and mobs are chosen from a grid);
 - the chapter list ends with **+ New chapter** and **+ New group**; right-click a chapter to edit, move or delete it, a group to rename or delete it;
 - right-click an empty spot: **Reward tables...** (tables and their entries) and **Pack settings...** (`quests.json`).
 

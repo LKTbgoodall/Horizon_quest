@@ -9,7 +9,7 @@
 // quest gets a fresh id from its title (`new_quest`, `new_quest_2`...).
 use super::hq_model::{
     Chapter, DependencyMode, Group, Progression, Quest, QuestFile, Reward, RewardKind, RewardTable, Settings, Shape, TableEntry, Task,
-    TaskKind, Visibility, dependency_id, quest_id,
+    TaskKind, Visibility, child_id, dependency_id, quest_id,
 };
 use super::hq_validate::{self as validate, Severity};
 use serde::{Deserialize, Serialize};
@@ -251,20 +251,23 @@ fn type_name(value: &impl Serialize) -> String {
 
 /// Puts `value` among `list` in place of the one with id `old`, or at the
 /// end with a fresh id from its type. `id` reads and writes an entry's id.
-fn save_child<T: Serialize>(list: &mut Vec<T>, old: &Option<String>, mut value: T, id: fn(&mut T) -> &mut String, what: &str) -> Result<(), String> {
+/// Returns the new entry's id, when it is new.
+fn save_child<T: Serialize>(list: &mut Vec<T>, old: &Option<String>, mut value: T, id: fn(&mut T) -> &mut String, what: &str) -> Result<Option<String>, String> {
     match old {
         Some(old) => {
             let at = list.iter_mut().position(|entry| id(entry) == old).ok_or_else(|| format!("There is no {what} {old} any more."))?;
             *id(&mut value) = old.clone();
             list[at] = value;
+            Ok(None)
         }
         None => {
             let ids: Vec<String> = list.iter_mut().map(|entry| id(entry).clone()).collect();
-            *id(&mut value) = fresh(&type_name(&value), |taken| ids.iter().any(|i| i == taken));
+            let made = fresh(&type_name(&value), |taken| ids.iter().any(|i| i == taken));
+            *id(&mut value) = made.clone();
             list.push(value);
+            Ok(Some(made))
         }
     }
-    Ok(())
 }
 
 /// Removes the entry of `list` with id `old`.
@@ -341,8 +344,8 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
         }
         Edit::SaveTask { quest, old, task } => {
             let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
-            save_child(&mut file.chapters[c].quests[q].tasks, old, task.clone(), |t| &mut t.id, "task")?;
-            Ok(None)
+            let made = save_child(&mut file.chapters[c].quests[q].tasks, old, task.clone(), |t| &mut t.id, "task")?;
+            Ok(made.map(|id| child_id(quest, &id)))
         }
         Edit::RemoveTask { quest, task } => {
             let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
@@ -351,8 +354,8 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
         }
         Edit::SaveReward { quest, old, reward } => {
             let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
-            save_child(&mut file.chapters[c].quests[q].rewards, old, reward.clone(), |r| &mut r.id, "reward")?;
-            Ok(None)
+            let made = save_child(&mut file.chapters[c].quests[q].rewards, old, reward.clone(), |r| &mut r.id, "reward")?;
+            Ok(made.map(|id| child_id(quest, &id)))
         }
         Edit::RemoveReward { quest, reward } => {
             let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
@@ -597,7 +600,7 @@ mod tests {
         let mut file = pack();
         let item = Task { id: String::new(), title: None, kind: TaskKind::Item { item: ItemMatch::Id("minecraft:stone".into()), count: 3, consume: false } };
         let edit = |old: Option<&str>, task: &Task| Edit::SaveTask { quest: "one/a".into(), old: old.map(str::to_owned), task: task.clone() };
-        apply(&mut file, &edit(None, &item)).unwrap();
+        assert_eq!(apply(&mut file, &edit(None, &item)).unwrap().as_deref(), Some("one/a/item"));
         apply(&mut file, &edit(None, &item)).unwrap();
         let ids: Vec<&str> = file.chapters[0].quests[0].tasks.iter().map(|t| t.id.as_str()).collect();
         assert_eq!(ids, ["t", "item", "item_2"]);

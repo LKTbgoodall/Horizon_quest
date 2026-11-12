@@ -11,7 +11,9 @@
 //! stretched to the widths below) and the item icons (boxes with initials:
 //! the game draws the real ones, and no game asset is in this repository).
 
-use horizon_mod_horizon_quests::hq_book::{Action, BookView, Draw, Scene, Screen};
+use horizon_mod_horizon_quests::hq_book::{Action, BookView, Draw, Scene, Screen, Typed};
+use horizon_mod_horizon_quests::hq_inline::{NewTask, PanelAction, PickAction, Purpose, Subject};
+use horizon_mod_horizon_quests::hq_model::Shape;
 use horizon_mod_horizon_quests::hq_edit::Edit;
 use horizon_mod_horizon_quests::hq_logic::Book;
 use horizon_mod_horizon_quests::hq_model::Progress;
@@ -372,48 +374,91 @@ fn main() {
     (view.editor, view.editing, view.source) = (true, true, "world".to_owned());
     let at = pointing_at(&view, &book, &progress, &Action::Quest(0));
     view.right_click(&screen(&book, &progress, at));
-    let mouse = pointing_at(&view, &book, &progress, &Action::EditQuest("c/q".into()));
+    let mouse = pointing_at(&view, &book, &progress, &Action::OpenPanel(Subject::Quest("c/q".into())));
     pictures.push((
         "book-8-edit-menu",
         "Edit mode (an operator clicked the pencil): orange band, grid dots, and the menu of a right click on a quest.",
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 
-    // 9. The quest form.
-    click(&mut view, &book, &progress, &Action::EditQuest("c/q".into()));
+    // 9. In edit mode the quest window is the editor: the title typed in place.
+    view.menu = None;
+    click(&mut view, &book, &progress, &Action::Quest(0));
+    view.release(&screen(&book, &progress, AWAY));
+    click(&mut view, &book, &progress, &Action::Type(Typed::Title("c/q".into())));
+    " best".chars().for_each(|c| {
+        view.typed(c);
+    });
     pictures.push((
-        "book-9-quest-form",
-        "Edit... opens the quest form: text fields (the cursor in the title), choices that cycle on a click, yes / no flags.",
+        "book-9-title-typed",
+        "Edit mode: the quest window is the editor. A click on the title types it in place; the icon opens the item picker, the gear the settings.",
         svg(&view.scene(&screen(&book, &progress, AWAY)), AWAY),
     ));
+    view.typing = None;
 
-    // 10. In edit mode the quest window edits tasks and rewards; a "+" adds one.
-    view.form = None;
-    click(&mut view, &book, &progress, &Action::Quest(0));
-    // In edit mode a quest opens when the button comes up without moving.
-    view.release(&screen(&book, &progress, AWAY));
-    let mouse = pointing_at(&view, &book, &progress, &Action::EditTask("c/q".into(), None));
+    // 10. The gear: the quest's settings in a panel beside the window.
+    click(&mut view, &book, &progress, &Action::OpenPanel(Subject::Quest("c/q".into())));
+    let mouse = pointing_at(&view, &book, &progress, &Action::Panel(PanelAction::Shape("shape", Some(Shape::Diamond))));
     pictures.push((
-        "book-10-edit-quest-window",
-        "In edit mode a click on a task or a reward edits it, and the green + at the end of each column adds one.",
+        "book-10-quest-settings",
+        "The gear opens the quest's settings beside its window: the shapes as drawn, numbers with - and +, switches, choices side by side. Every click applies at once.",
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
-    click(&mut view, &book, &progress, &Action::EditTask("c/q".into(), Some("w".into())));
+
+    // 11. The green + of the tasks: a menu of task types.
+    click(&mut view, &book, &progress, &Action::AddTask("c/q".into()));
+    let mouse = pointing_at(&view, &book, &progress, &Action::PickFor(Purpose::NewTask { quest: "c/q".into(), kind: NewTask::Kill }, true));
     pictures.push((
-        "book-11-task-form",
-        "The task form: its type cycles on a click, and the rows follow the type. Delete removes the task.",
-        svg(&view.scene(&screen(&book, &progress, AWAY)), AWAY),
+        "book-11-add-task",
+        "The green + under Tasks: what kind of task, each with its icon.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 
-    // 12. The chapter list in edit mode: new chapter and group rows, a chapter's menu.
-    view.form = None;
+    // 12. The picker: every item (here a few), with a search line.
+    view.item_names = [
+        ("minecraft:oak_log", "Oak Log"),
+        ("minecraft:oak_planks", "Oak Planks"),
+        ("minecraft:stone", "Stone"),
+        ("minecraft:iron_ingot", "Iron Ingot"),
+        ("minecraft:diamond", "Diamond"),
+        ("minecraft:bread", "Bread"),
+        ("minecraft:golden_apple", "Golden Apple"),
+        ("minecraft:torch", "Torch"),
+        ("minecraft:crafting_table", "Crafting Table"),
+        ("minecraft:furnace", "Furnace"),
+        ("minecraft:chest", "Chest"),
+        ("minecraft:wheat", "Wheat"),
+    ]
+    .into_iter()
+    .map(|(a, b)| (a.to_owned(), b.to_owned()))
+    .collect();
+    click(&mut view, &book, &progress, &Action::PickFor(Purpose::NewTask { quest: "c/q".into(), kind: NewTask::Have }, false));
+    let mouse = pointing_at(&view, &book, &progress, &Action::Pick(PickAction::Choose("minecraft:diamond".into())));
+    pictures.push((
+        "book-12-item-picker",
+        "Then the item picker: every item of the game, a search line (an item tag works for tasks), the wheel for more.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+    view.picker = None;
+
+    // 13. A click on a task: its panel.
+    click(&mut view, &book, &progress, &Action::OpenPanel(Subject::Task("c/q/w".into())));
+    let mouse = pointing_at(&view, &book, &progress, &Action::Panel(PanelAction::Step("count", 1.0)));
+    pictures.push((
+        "book-13-task-panel",
+        "A click on a task opens its panel: the item slot opens the picker, the count steps with - / + or the wheel, a red button deletes it.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+    view.panel = None;
     view.close_quest();
+
+    // 14. The chapter list in edit mode: new chapter and group rows, a chapter's menu.
     view.sidebar_open = true;
     let at = pointing_at(&view, &book, &progress, &Action::Chapter(0));
     view.right_click(&screen(&book, &progress, at));
     let mouse = pointing_at(&view, &book, &progress, &Action::Edit(Edit::MoveChapter { chapter: "c".into(), by: 1 }));
     pictures.push((
-        "book-12-edit-chapters",
+        "book-14-edit-chapters",
         "In edit mode the chapter list ends with + New chapter and + New group; a right click on a chapter edits, moves or deletes it.",
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));

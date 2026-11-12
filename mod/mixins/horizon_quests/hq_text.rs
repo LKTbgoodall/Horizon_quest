@@ -178,13 +178,81 @@ impl TextField {
         (shown, start, cursor_x)
     }
 
-    pub fn line_count(&self) -> usize {
-        self.value.split('\n').count()
+    /// The text cut into lines `width` wide: each line's first and last
+    /// character (end excluded). A new line ends a line; a long line breaks
+    /// after a space where it can, else where it must.
+    pub fn wrapped(&self, width: f32, measure: &dyn Fn(&str) -> f32) -> Vec<(usize, usize)> {
+        let chars: Vec<char> = self.value.chars().collect();
+        let wide = |from: usize, to: usize| measure(&chars[from..to].iter().collect::<String>());
+        let mut lines = Vec::new();
+        let mut start = 0;
+        loop {
+            let end = (start..chars.len()).find(|&i| chars[i] == '\n').unwrap_or(chars.len());
+            let mut from = start;
+            while end > from && wide(from, end) > width {
+                // The most that fits, then back to just after a space in it.
+                let mut cut = from + 1;
+                while cut < end && wide(from, cut + 1) <= width {
+                    cut += 1;
+                }
+                if let Some(space) = (from + 1..cut).rev().find(|&i| chars[i - 1] == ' ') {
+                    cut = space;
+                }
+                lines.push((from, cut));
+                from = cut;
+            }
+            lines.push((from, end));
+            if end >= chars.len() {
+                return lines;
+            }
+            start = end + 1;
+        }
     }
 
-    /// The line the cursor is on.
-    pub fn cursor_line(&self) -> usize {
-        self.place().0
+    /// The line of `lines` (from `wrapped`) the cursor is on, and how far
+    /// into it.
+    pub fn cursor_in(&self, lines: &[(usize, usize)], measure: &dyn Fn(&str) -> f32) -> (usize, f32) {
+        let c = self.cursor;
+        let line = (0..lines.len())
+            .find(|&i| {
+                let (start, end) = lines[i];
+                start <= c && (c < end || (c == end && lines.get(i + 1).is_none_or(|next| next.0 != end)))
+            })
+            .unwrap_or(lines.len().saturating_sub(1));
+        let start = lines.get(line).map_or(0, |l| l.0);
+        let before: String = self.value.chars().skip(start).take(c.saturating_sub(start)).collect();
+        (line, measure(&before))
+    }
+
+    /// The cursor put `x` pixels into line `line` of `lines`.
+    pub fn place_in(&mut self, lines: &[(usize, usize)], line: usize, x: f32, measure: &dyn Fn(&str) -> f32) {
+        let Some(&(start, end)) = lines.get(line.min(lines.len().saturating_sub(1))) else {
+            return;
+        };
+        let chars: Vec<char> = self.value.chars().collect();
+        let mut at = end;
+        for k in start..end {
+            let left: String = chars[start..k].iter().collect();
+            let with: String = chars[start..=k].iter().collect();
+            if x < (measure(&left) + measure(&with)) / 2.0 {
+                at = k;
+                break;
+            }
+        }
+        // A line broken after a space: its end is the next line's start.
+        if at == end && lines.get(line + 1).is_some_and(|next| next.0 == end) && end > start {
+            at = end - 1;
+        }
+        self.cursor = at;
+    }
+
+    /// Up or Down by a line of `lines`, keeping the cursor's x.
+    pub fn step_line(&mut self, lines: &[(usize, usize)], down: bool, measure: &dyn Fn(&str) -> f32) {
+        let (line, x) = self.cursor_in(lines, measure);
+        let to = if down { Some(line + 1).filter(|&l| l < lines.len()) } else { line.checked_sub(1) };
+        if let Some(to) = to {
+            self.place_in(lines, to, x, measure);
+        }
     }
 }
 
@@ -227,9 +295,9 @@ mod tests {
     #[test]
     fn up_and_down_keep_the_column() {
         let mut field = TextField::lines("hello\nhi\nworld", 100);
-        assert_eq!((field.cursor_line(), field.cursor), (2, 14));
+        assert_eq!(field.cursor, 14);
         field.key(Key::Up);
-        assert_eq!((field.cursor_line(), field.cursor), (1, 8));
+        assert_eq!(field.cursor, 8);
         field.key(Key::Up);
         assert_eq!(field.cursor, 2);
         field.key(Key::End);
@@ -253,6 +321,22 @@ mod tests {
         assert_eq!(field.cursor, 2);
         field.click(0, 1000.0, 0, &measure);
         assert_eq!(field.cursor, 10);
+    }
+
+    #[test]
+    fn long_lines_wrap_after_spaces_and_the_cursor_follows() {
+        // 6 pixels a character, 30 wide: 5 characters a line.
+        let mut field = TextField::lines("ab cd efgh\nijklmnop", 100);
+        let lines = field.wrapped(30.0, &measure);
+        assert_eq!(lines, [(0, 3), (3, 6), (6, 10), (11, 16), (16, 19)]);
+        assert_eq!(field.cursor_in(&lines, &measure), (4, 18.0));
+        field.step_line(&lines, false, &measure);
+        assert_eq!(field.cursor, 14);
+        field.step_line(&lines, false, &measure);
+        assert_eq!(field.cursor_in(&lines, &measure).0, 2);
+        field.place_in(&lines, 0, 100.0, &measure);
+        assert_eq!(field.cursor, 2);
+        assert_eq!(TextField::lines("", 10).wrapped(30.0, &measure), [(0, 0)]);
     }
 
     #[test]

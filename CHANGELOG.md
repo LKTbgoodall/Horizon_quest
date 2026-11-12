@@ -4,6 +4,17 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.15.0
+- **Editing in place**, after Bastien found the forms "horrible": the big forms are gone. In edit mode the quest window is the editor:
+  - the title, subtitle and description are typed where they are shown (the description wraps; Enter starts a paragraph; Enter, Escape or a click elsewhere keeps the text);
+  - the icon opens an **item picker**: a grid of every item of the game with a search line (an item tag for tasks), the wheel for more; mobs are picked the same way, by their spawn eggs;
+  - the **gear** opens the quest's settings in a panel beside the window, which moves aside to make room: the node shapes as drawn ("A" for the chapter's), numbers with - and + (and the wheel), switches, choices side by side; every click applies at once;
+  - the green **+** of tasks and rewards opens a menu of types with icons; items and mobs go through the picker; the new task or reward's panel opens to adjust it; a click on a task or reward opens its panel (red Delete inside).
+- Chapters, groups, table entries and the pack settings use the same panels. "+ Add an entry" adds a bread entry to change in its panel.
+- "Shape: the chapter's" now shows the shape it is, marked "A".
+- New pure module `hq_inline` (controls, panel layout, picker, what each control changes); `hq_text` wraps lines; `hq_form` removed. The key hook now gets the screen.
+- Book previews 9 to 14 redone.
+
 ## 0.14.0
 - **Chapters and groups in edit mode**: the chapter list ends with **+ New chapter** (the book turns to it) and **+ New group**. Right-click a chapter: **Edit...** (title, subtitle, icon, group, hidden, progression, quest shape and size), **Move up** / **Move down** among the chapters of its group, **Delete** (asks first; other chapters' links to its quests go too; a pack keeps one chapter). Right-click a group: **Rename...**, **Delete the group** (its chapters stay, without a group).
 - **Reward tables**: right-click an empty spot, **Reward tables...**: the tables, each one's entries (click to edit: type, title, weight), **+ Add an entry**, **+ New table**, **Delete this table** (refused while a reward uses it). A table keeps at least one entry.

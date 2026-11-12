@@ -18,8 +18,8 @@ pub mod hq_commands;
 pub mod hq_config;
 #[path = "../mixins/horizon_quests/hq_edit.rs"]
 pub mod hq_edit;
-#[path = "../mixins/horizon_quests/hq_form.rs"]
-pub mod hq_form;
+#[path = "../mixins/horizon_quests/hq_inline.rs"]
+pub mod hq_inline;
 #[path = "../mixins/horizon_quests/hq_logic.rs"]
 pub mod hq_logic;
 #[path = "../mixins/horizon_quests/hq_meta.rs"]

@@ -42,7 +42,11 @@ Edit mode (v0.11.0) with a quest's menu:
 ![[book-8-edit-menu.svg]]
 
 The quest form (v0.12.0):
-![[book-9-quest-form.svg]]
+![[book-9-title-typed.svg]]
+![[book-10-quest-settings.svg]]
+![[book-11-add-task.svg]]
+![[book-12-item-picker.svg]]
+![[book-13-task-panel.svg]]
 
 ## Layout (MVP)
 ```
@@ -95,6 +99,8 @@ The quest form (v0.12.0):
 - Chat message and sound on quest completion. Client toasts (`native_add_toast`, ⏳) when available.
 
 ## In-game editor (edit mode, since v0.11.0)
+> **Since v0.15.0 the forms below are replaced by editing in place** ([[ADR-017 Edit in place]]): the quest window is the editor (title / subtitle / description typed in place, `Typed`, `edit_lines`, `Caret`), the icon opens `hq_inline::Picker`, the gear and a click on a task or reward open an `hq_inline::panel` beside the window (`BookView.panel: Option<Subject>`, `picker`, `typing`); "+" opens a menu of types with icons (`Menu.icons`). What follows about `hq_form` is history.
+
 → [[ADR-016 Edit mode in the book]]
 - **Pencil** (`pencil_button`, pixel art `PENCIL_PIXELS`) left of the "x" in the bottom band, only when the server said `ToClient::Editor { allowed: true }`. It toggles `BookView.editing`: orange band (`EDIT_BAND`), "Editing (<source>)" on the left, a dot per grid cell (`draw_grid`), help "right-click: menu | drag a quest: move it".
 - **Drag a quest**: a press on a node starts `Moving` (no selection yet); `drag` moves it (`place_of` draws it on its snapped half cell); `release` (hook `native_screen_mouse_button_released_pre`, API 80) sends `Edit::MoveQuest`, or opens the quest when it did not move (2 px).
@@ -107,11 +113,10 @@ The quest form (v0.12.0):
 - **Chapters, groups, tables, settings** (v0.14.0): in edit mode `draw_sidebar` adds "+ New chapter" / "+ New group" rows (`EDIT_INK`); `right_click` over the open list gives a chapter's menu (Edit..., Move up / down, Delete with `AskDeleteChapter`) or a group's (Rename..., Delete the group). The canvas menu adds "Reward tables..." (`Action::Tables` → a `Menu` of tables → `OpenTable` → a `Menu` of entries with "+ Add an entry" and "Delete this table") and "Pack settings..." (`EditSettings`). Forms: `Form::chapter`, `group`, `settings`, `entry` (entries: the first five reward types, no table in a table, plus a weight). `pack_changed` keeps the chapter shown by id and turns to a new chapter.
 
 The chapter list in edit mode (v0.14.0):
-![[book-12-edit-chapters.svg]]
+![[book-14-edit-chapters.svg]]
 
 Edit mode's quest window and the task form (v0.13.0):
-![[book-10-edit-quest-window.svg]]
-![[book-11-task-form.svg]]
+
 
 ## Optional fallback: chest-menu book (not planned)
 If vanilla-client support is ever wanted: pure pages in `hq_book_menu` (`layout()` / `click()`, like `smp_market_menu`), opened with `native_open_menu` (6 rows), the bottom row for navigation (`BACK=45`, `PREV=47`, `NEXT=51`, `CLOSE=53`), and the tracked quest in `native_sidebar`. See [[Example - smp mod (patterns to reuse)]] §4.

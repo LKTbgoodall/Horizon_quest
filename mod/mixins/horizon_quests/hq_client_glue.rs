@@ -519,22 +519,35 @@ fn edit_here(s: &mut ClientState, change: &Edit) {
     }
 }
 
-/// A key over the book: the quest form takes every key while it is up.
-/// Escape closes the window on top (the edit menu, the recipe view, the
-/// choice window, then the quest window), and the book once none is open.
-pub(super) fn screen_key(game: &Game<'_>, key: &str, canceled: &mut bool) {
+/// A key over the book: while text is typed or the picker is up, the book
+/// takes every key. Escape closes the window on top (the picker, the edit
+/// menu, the panel, the recipe view, the choice window, then the quest
+/// window), and the book once none is open.
+pub(super) fn screen_key(game: &Game<'_>, screen: &NativeScreenView<'_>, key: &str, canceled: &mut bool) {
     if !ours(game) {
         return;
     }
-    let escape = key == "key.keyboard.escape";
-    if with(|s| {
-        s.view.key(key) || (escape && (s.view.recipe.take().is_some() || s.view.choosing.take().is_some() || s.view.close_quest()))
-    }) {
+    let mut taken = false;
+    let reaction = on_book(game, screen, |view, scr| match view.key(scr, key) {
+        Some(reaction) => {
+            taken = true;
+            reaction
+        }
+        None => Reaction::Nothing,
+    });
+    react(game, reaction);
+    if !taken
+        && key == "key.keyboard.escape"
+        && with(|s| s.view.recipe.take().is_some() || s.view.choosing.take().is_some() || s.view.close_quest())
+    {
+        taken = true;
+    }
+    if taken {
         *canceled = true;
     }
 }
 
-/// A character typed over the book: into the quest form (API 104).
+/// A character typed over the book: into the text typed in place or the picker's search (API 104).
 pub(super) fn typed(game: &Game<'_>, c: char, canceled: &mut bool) {
     if ours(game) && with(|s| s.view.typed(c)) {
         *canceled = true;
@@ -631,25 +644,12 @@ pub(super) fn dragged(game: &Game<'_>, delta: [f32; 2], canceled: &mut bool) {
     });
 }
 
-/// The wheel zooms the canvas and scrolls lists.
+/// The wheel zooms the canvas, scrolls lists, steps a panel's number.
 pub(super) fn scrolled(game: &Game<'_>, screen: &NativeScreenView<'_>, scroll: [f64; 2], canceled: &mut bool) {
     if !ours(game) {
         return;
     }
     *canceled = true;
-    let measure = |text: &str| game.native_text_width(text);
-    with(|s| {
-        let Some(book) = &s.book else {
-            return;
-        };
-        let scr = Screen {
-            book,
-            progress: &s.progress,
-            player: &s.player,
-            rect: screen.rect,
-            mouse: screen.mouse,
-            measure: &measure,
-        };
-        s.view.scroll(&scr, scroll[1]);
-    });
+    let reaction = on_book(game, screen, |view, scr| view.scroll(scr, scroll[1]));
+    react(game, reaction);
 }

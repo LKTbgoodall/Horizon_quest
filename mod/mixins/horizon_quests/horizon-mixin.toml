@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.14.0"
+version = "0.15.0"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
@@ -47,10 +47,10 @@ name = "hq_text"
 source = "hq_text.rs"
 
 [[module]]
-id = "form"
+id = "inline"
 file = "crates/horizon-client/src/game.rs"
-name = "hq_form"
-source = "hq_form.rs"
+name = "hq_inline"
+source = "hq_inline.rs"
 
 [[module]]
 id = "logic"
@@ -225,6 +225,7 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_screen_key_presse
 helper = "screen_key.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "screen", ty = "&horizon_client::mod_api::NativeScreenView<'_>", value = "screen" },
   { name = "key", ty = "&str", value = "key" },
   { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
 ]
