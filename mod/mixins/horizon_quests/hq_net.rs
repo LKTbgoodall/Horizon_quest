@@ -89,7 +89,14 @@ pub enum ToClient {
     Party { name: Option<String> },
     /// Whether this player may edit the quests (an operator), and where the
     /// pack in use comes from, for the book's edit mode.
-    Editor { allowed: bool, source: String },
+    /// `advancements`: the server's advancements a task may name (id, icon
+    /// item), for the editor's picker; empty when not allowed.
+    Editor {
+        allowed: bool,
+        source: String,
+        #[serde(default)]
+        advancements: Vec<(String, String)>,
+    },
 }
 
 /// The server's answer to a book's `Hello`.

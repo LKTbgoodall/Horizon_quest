@@ -366,10 +366,11 @@ pub(super) fn from_server(game: &mut Game<'_>, channel: &str, data: &[u8]) {
             s.view.pack_changed(s.book.as_ref(), &book, None);
             s.book = Some(book);
         }
-        ToClient::Editor { allowed, source } => {
+        ToClient::Editor { allowed, source, advancements } => {
             s.view.editor = allowed;
             s.view.editing &= allowed;
             s.view.source = source;
+            s.view.advancements = advancements;
         }
         ToClient::Progress { player, progress } => {
             s.player = player;
@@ -450,15 +451,15 @@ pub(super) fn pressed(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i3
     react(game, reaction);
 }
 
-/// The left button came up over the book: a quest dragged in edit mode is
-/// dropped.
+/// A button came up over the book: a quest dragged in edit mode is dropped
+/// (left), a link dragged is dropped or a quest's menu opens (right).
 pub(super) fn released(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
     if !ours(game) {
         return;
     }
     *canceled = true;
-    if button == 0 {
-        let reaction = on_book(game, screen, |view, scr| view.release(scr));
+    if button == 0 || button == 1 {
+        let reaction = on_book(game, screen, |view, scr| if button == 0 { view.release(scr) } else { view.right_release(scr) });
         react(game, reaction);
     }
 }

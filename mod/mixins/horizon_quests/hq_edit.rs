@@ -8,7 +8,7 @@
 // Ids stay as they are once made: progress files refer to full ids. A new
 // quest gets a fresh id from its title (`new_quest`, `new_quest_2`...).
 use super::hq_model::{
-    Chapter, DependencyMode, Group, Progression, Quest, QuestFile, Reward, RewardKind, RewardTable, Settings, Shape, TableEntry, Task,
+    AutoClaim, Chapter, DependencyMode, Group, Progression, Quest, QuestFile, Reward, RewardKind, RewardTable, Settings, Shape, TableEntry, Task,
     Visibility, child_id, dependency_id, quest_id,
 };
 use super::hq_validate::{self as validate, Severity};
@@ -54,6 +54,9 @@ pub enum Edit {
     SaveTask { quest: String, old: Option<String>, task: Task },
     RemoveTask { quest: String, task: String },
     SaveReward { quest: String, old: Option<String>, reward: Reward },
+    /// A random (or, with `choice`, a chosen) reward drawn from a new table
+    /// of its own, whose first entry is one `item`.
+    NewTableReward { quest: String, choice: bool, item: String },
     RemoveReward { quest: String, reward: String },
     /// A new empty chapter at the end, its id from its title.
     NewChapter { title: String },
@@ -355,6 +358,17 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
             let made = save_child(&mut file.chapters[c].quests[q].rewards, old, reward.clone(), |r| &mut r.id, "reward")?;
             Ok(made.map(|id| child_id(quest, &id)))
         }
+        Edit::NewTableReward { quest, choice, item } => {
+            let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
+            let base = format!("{}_{}", file.chapters[c].quests[q].id, if *choice { "choice" } else { "loot" });
+            let table = fresh(&base, |id| file.reward_tables.iter().any(|t| t.id == id));
+            let first = RewardKind::Item { item: item.clone(), count: 1, max_count: None };
+            file.reward_tables.push(RewardTable { id: table.clone(), entries: vec![TableEntry { weight: 1, title: None, kind: first }] });
+            let kind = if *choice { RewardKind::Choice { table } } else { RewardKind::Random { table } };
+            let reward = Reward { id: String::new(), title: None, auto_claim: AutoClaim::Default, team: false, kind };
+            let made = save_child(&mut file.chapters[c].quests[q].rewards, &None, reward, |r| &mut r.id, "reward")?;
+            Ok(made.map(|id| child_id(quest, &id)))
+        }
         Edit::RemoveReward { quest, reward } => {
             let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
             remove_child(&mut file.chapters[c].quests[q].rewards, reward, |r| &mut r.id, "reward")?;
@@ -471,6 +485,31 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
     }
 }
 
+/// The data packs' folder of advancements (vanilla's, mods', the world's).
+pub const ADVANCEMENT_FOLDER: &str = "advancement";
+
+/// The advancements a task may name, from their files as the data load reads
+/// them (`namespace:path`, JSON): (id, icon item), sorted by id. Those with
+/// no `display` (recipe unlocks, hidden helpers) are left out.
+pub fn advancements(files: &[(String, serde_json::Value)]) -> Vec<(String, String)> {
+    let mut found: Vec<(String, String)> = files
+        .iter()
+        .filter_map(|(id, json)| {
+            let display = json.get("display")?.as_object()?;
+            let icon = display.get("icon");
+            let item = icon
+                .and_then(|i| i.get("id").or_else(|| i.get("item")))
+                .and_then(|i| i.as_str())
+                .or_else(|| icon.and_then(|i| i.as_str()))
+                .unwrap_or("minecraft:knowledge_book");
+            let item = if item.contains(':') { item.to_owned() } else { format!("minecraft:{item}") };
+            Some((id.clone(), item))
+        })
+        .collect();
+    found.sort();
+    found
+}
+
 /// `file` as the loader reads it back, when that leaves nothing out and
 /// finds no error; else why not, in a line for the book.
 pub fn check(file: &QuestFile) -> Result<QuestFile, String> {
@@ -515,6 +554,24 @@ mod tests {
         let one = Chapter { id: "one".to_owned(), title: "One".to_owned(), quests: vec![quest("a", &[]), quest("b", &["a"])], ..Chapter::default() };
         let two = Chapter { id: "two".to_owned(), title: "Two".to_owned(), order: 1, quests: vec![quest("c", &["one/b"])], ..Chapter::default() };
         QuestFile { chapters: vec![one, two], ..QuestFile::default() }
+    }
+
+    #[test]
+    fn advancements_are_read_from_their_files() {
+        let files: Vec<(String, serde_json::Value)> = vec![
+            ("minecraft:story/mine_stone".into(), serde_json::json!({ "display": { "icon": { "id": "minecraft:wooden_pickaxe" } } })),
+            ("minecraft:recipes/misc/bread".into(), serde_json::json!({ "criteria": {} })),
+            ("mymod:root".into(), serde_json::json!({ "display": { "icon": { "item": "stone" } } })),
+            ("minecraft:adventure/root".into(), serde_json::json!({ "display": {} })),
+        ];
+        assert_eq!(
+            advancements(&files),
+            [
+                ("minecraft:adventure/root".to_owned(), "minecraft:knowledge_book".to_owned()),
+                ("minecraft:story/mine_stone".to_owned(), "minecraft:wooden_pickaxe".to_owned()),
+                ("mymod:root".to_owned(), "minecraft:stone".to_owned()),
+            ]
+        );
     }
 
     #[test]
@@ -618,6 +675,14 @@ mod tests {
         check(&file).unwrap();
         apply(&mut file, &Edit::RemoveReward { quest: "one/a".into(), reward: "xp_levels".into() }).unwrap();
         assert!(file.chapters[0].quests[0].rewards.is_empty());
+        // A drawn reward gets a table of its own, its first entry the item picked.
+        for (choice, table, made) in [(false, "a_loot", "one/a/random"), (true, "a_choice", "one/a/choice")] {
+            let id = apply(&mut file, &Edit::NewTableReward { quest: "one/a".into(), choice, item: "minecraft:apple".into() }).unwrap();
+            assert_eq!(id.as_deref(), Some(made));
+            let t = file.reward_tables.iter().find(|t| t.id == table).expect("its table");
+            assert_eq!(t.entries.len(), 1);
+            check(&file).unwrap();
+        }
     }
 
     #[test]

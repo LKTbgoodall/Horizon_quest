@@ -994,15 +994,15 @@ mod tests {
     }
 
     #[test]
-    fn a_quest_without_tasks_completes_on_refresh() {
+    fn a_quest_without_tasks_never_completes_by_itself() {
+        // A quest just made in the editor has no task yet: it must not be done.
         let chapter = r#"{ "id": "a", "title": "A", "quests": [
-            { "id": "welcome", "title": "t", "rewards": [ { "id": "r", "type": "xp", "points": 5 } ] } ] }"#;
+            { "id": "new", "title": "t", "rewards": [ { "id": "r", "type": "xp", "points": 5 } ] } ] }"#;
         let book = book("{}", &[chapter]);
         let mut progress = Progress::default();
         let out = run(&book, &mut progress, QuestEvent::Refresh);
-        assert_eq!(out.effects, [quest_completed("a/welcome"), Effect::ChapterCompleted { chapter: "a".into() }]);
-        assert_eq!((progress.started.get("a/welcome"), progress.completed.get("a/welcome")), (Some(&NOW), Some(&NOW)));
-        assert_eq!(run(&book, &mut progress, QuestEvent::Refresh), Outcome::default());
+        assert!(!out.effects.iter().any(|e| matches!(e, Effect::QuestCompleted { .. })), "{:?}", out.effects);
+        assert!(!progress.is_completed("a/new"));
     }
 
     #[test]

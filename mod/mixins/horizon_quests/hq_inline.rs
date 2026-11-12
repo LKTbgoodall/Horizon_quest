@@ -7,7 +7,7 @@
 // click changes the thing at once (the book sends the edit). The picker is a
 // grid of every item, or every mob (by spawn egg), with a search line.
 // Pure: it lays itself out as hq_book draws and click zones.
-use super::hq_book::{Draw, NODE_SPRITE, fit_text, node_cell, pretty};
+use super::hq_book::{Draw, NODE_SPRITE, entry_label, fit_text, node_cell, pretty, reward_item};
 use super::hq_canvas as canvas;
 use super::hq_edit::{ChapterInfo, Edit, PackSettings, QuestInfo};
 use super::hq_logic::{Book, QuestState};
@@ -35,6 +35,12 @@ pub enum Control {
     Shapes { key: &'static str, label: &'static str, at: Option<Shape>, auto: Option<Shape> },
     /// An item slot: a click opens the picker. `mob` shows an entity by its egg.
     Item { key: &'static str, label: &'static str, item: String, mob: bool },
+    /// Something chosen from a list (an advancement), shown by `icon` and
+    /// `name`; `value` is its id. A click opens the picker.
+    Choose { key: &'static str, label: &'static str, value: String, icon: String, name: String },
+    /// A list: one row per entry, (icon, text), a click edits that entry;
+    /// a last row adds one. A reward table's entries in a reward's panel.
+    Rows { key: &'static str, label: &'static str, rows: Vec<(String, String)>, add: &'static str },
     /// A red button across the panel.
     Danger { key: &'static str, label: &'static str },
 }
@@ -54,6 +60,9 @@ pub enum PanelAction {
     Pick(&'static str),
     /// A red button.
     Press(&'static str),
+    /// Row `1` of list `0`, and its "add" row.
+    Row(&'static str, usize),
+    AddRow(&'static str),
     Close,
     Stay,
 }
@@ -98,6 +107,7 @@ const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0x90_90A0;
 const LABEL_INK: u32 = 0xB8_B8C4;
 const CURSOR: u32 = 0xFFE0_E0E8;
+const ADD_INK: u32 = 0x80_E080;
 /// The picker's grid.
 const CELL: f32 = 18.0;
 const COLUMNS: usize = 9;
@@ -122,6 +132,8 @@ fn control<'a>(controls: &'a [Control], key: &str) -> Option<&'a Control> {
         | Control::Segments { key: k, .. }
         | Control::Shapes { key: k, .. }
         | Control::Item { key: k, .. }
+        | Control::Rows { key: k, .. }
+        | Control::Choose { key: k, .. }
         | Control::Danger { key: k, .. } => *k == key,
     })
 }
@@ -284,14 +296,32 @@ pub fn task_controls(task: &Task) -> Vec<Control> {
             Control::Text { key: "from", label: "From x y z", value: place_text(*from), hint: "" },
             Control::Text { key: "to", label: "To x y z", value: place_text(*to), hint: "" },
         ],
-        TaskKind::Advancement { advancement } => {
-            vec![Control::Text { key: "advancement", label: "Advancement", value: advancement.clone(), hint: "minecraft:story/mine_stone" }]
-        }
+        TaskKind::Advancement { advancement } => vec![Control::Choose {
+            key: "advancement",
+            label: "Advancement",
+            value: advancement.clone(),
+            icon: "minecraft:knowledge_book".to_owned(),
+            name: advancement_name(advancement),
+        }],
         TaskKind::Checkmark => Vec::new(),
     };
     controls.push(Control::Text { key: "title", label: "Title", value: task.title.clone().unwrap_or_default(), hint: "automatic" });
     controls.push(Control::Danger { key: "delete", label: "Delete this task" });
     controls
+}
+
+/// An advancement's name for the editor: its group and its own name
+/// (`minecraft:story/mine_stone` is "Story: Mine stone"), the namespace
+/// added when it is not the game's.
+pub fn advancement_name(id: &str) -> String {
+    let (namespace, path) = id.split_once(':').unwrap_or(("minecraft", id));
+    let name = pretty(path);
+    let group = path.rsplit_once('/').map(|(group, _)| pretty(group));
+    let named = match group {
+        Some(group) if group != name => format!("{group}: {name}"),
+        _ => name,
+    };
+    if namespace == "minecraft" { named } else { format!("{named} ({namespace})") }
 }
 
 /// `task` after `action`; false when nothing changed.
@@ -342,6 +372,11 @@ pub fn task_pick(task: &mut Task, key: &str, id: &str) {
             }
         }
         (TaskKind::Kill { entity, .. }, "entity") => *entity = id.to_owned(),
+        (TaskKind::Advancement { advancement }, "advancement") => {
+            if let Some(found) = resource_id(id) {
+                *advancement = found;
+            }
+        }
         _ => {}
     }
 }
@@ -396,14 +431,21 @@ fn kind_controls(kind: &RewardKind, tables: &[String]) -> Vec<Control> {
             vec![Control::Text { key: "command", label: "Command", value: command.clone(), hint: "give {player} diamond" }]
         }
         RewardKind::Toast { text } => vec![Control::Text { key: "text", label: "Message", value: text.clone(), hint: "Well done!" }],
-        RewardKind::Random { table } | RewardKind::Choice { table } => vec![Control::Segments {
+        // The table's entries are listed by the reward's panel; another
+        // table can be picked when the pack has more than one.
+        RewardKind::Random { table } | RewardKind::Choice { table } if tables.len() > 1 => vec![Control::Segments {
             key: "table",
             label: "Table",
             options: tables.to_vec(),
             at: tables.iter().position(|t| t == table),
         }],
+        RewardKind::Random { .. } | RewardKind::Choice { .. } => Vec::new(),
     }
 }
+
+/// A new experience reward's amount in points, and in levels.
+const XP_POINTS: u32 = 50;
+const XP_LEVELS: u32 = 1;
 
 /// `kind` after `action` on its controls.
 fn kind_change(kind: &mut RewardKind, tables: &[String], action: &PanelAction) {
@@ -419,12 +461,11 @@ fn kind_change(kind: &mut RewardKind, tables: &[String], action: &PanelAction) {
         (RewardKind::Xp { points }, Some((_, v)), _) => *points = v as u32,
         (RewardKind::XpLevels { levels }, Some((_, v)), _) => *levels = v as u32,
         (kind @ RewardKind::Xp { .. }, _, PanelAction::Segment("unit", 1)) => {
-            let RewardKind::Xp { points } = *kind else { return };
-            *kind = RewardKind::XpLevels { levels: points.clamp(1, 1000) };
+            // Each unit starts from its own default: 50 points, 1 level.
+            *kind = RewardKind::XpLevels { levels: XP_LEVELS };
         }
         (kind @ RewardKind::XpLevels { .. }, _, PanelAction::Segment("unit", 0)) => {
-            let RewardKind::XpLevels { levels } = *kind else { return };
-            *kind = RewardKind::Xp { points: levels };
+            *kind = RewardKind::Xp { points: XP_POINTS };
         }
         (RewardKind::Random { table } | RewardKind::Choice { table }, _, PanelAction::Segment(_, i)) => {
             if let Some(found) = tables.get(*i) {
@@ -653,6 +694,11 @@ pub enum Purpose {
     NewTask { quest: String, kind: NewTask },
     /// A new item reward of quest `0`.
     NewReward(String),
+    /// A new random (or, with `choice`, chosen) reward of quest `quest`,
+    /// from a new table whose first entry is the item picked.
+    NewTableReward { quest: String, choice: bool },
+    /// A new item entry of reward table `0`.
+    NewEntry(String),
 }
 
 /// The new tasks that start with the picker.
@@ -718,7 +764,13 @@ pub fn subject_panel(book: &Book, subject: &Subject) -> Option<(String, Vec<Cont
             let (n, i) = book.find_reward(r)?;
             let reward = &book.quest(n).rewards[i];
             let pack = book.settings().auto_claim_rewards;
-            ("Reward".to_owned(), reward_controls(reward.title.as_deref(), reward.auto_claim, reward.team, &reward.kind, &table_ids(book), pack))
+            let mut controls = reward_controls(reward.title.as_deref(), reward.auto_claim, reward.team, &reward.kind, &table_ids(book), pack);
+            if let RewardKind::Random { table } | RewardKind::Choice { table } = &reward.kind {
+                let choice = matches!(reward.kind, RewardKind::Choice { .. });
+                let at = controls.iter().position(|c| matches!(c, Control::Segments { key: "table", .. })).map_or(0, |i| i + 1);
+                controls.insert(at, table_rows(book, table, choice));
+            }
+            ("Reward".to_owned(), controls)
         }
         Subject::Chapter(c) => {
             let chapter = book.file().chapters.iter().find(|ch| ch.id == *c)?;
@@ -734,6 +786,32 @@ pub fn subject_panel(book: &Book, subject: &Subject) -> Option<(String, Vec<Cont
             (format!("Table {t}, entry {}", i + 1), entry_controls(entry.title.as_deref(), entry.weight, &entry.kind))
         }
     })
+}
+
+/// Reward table `table`'s entries as a list: what each gives and, for a
+/// random draw, its chance.
+fn table_rows(book: &Book, table: &str, choice: bool) -> Control {
+    let entries = book.table(table).map_or(&[][..], |t| &t.entries[..]);
+    let total: u32 = entries.iter().map(|e| e.weight).sum();
+    let rows = entries
+        .iter()
+        .map(|e| {
+            let label = entry_label(e);
+            let text = if choice || total == 0 { label } else { format!("{label} {}%", (e.weight * 100 + total / 2) / total) };
+            (reward_item(&e.kind).0, text)
+        })
+        .collect();
+    Control::Rows { key: "entries", label: if choice { "Choose from" } else { "Draws from" }, rows, add: "+ Add an item" }
+}
+
+/// The reward table a reward's panel lists, when it draws from one.
+pub fn subject_table(book: &Book, subject: &Subject) -> Option<String> {
+    let Subject::Reward(r) = subject else { return None };
+    let (n, i) = book.find_reward(r)?;
+    match &book.quest(n).rewards[i].kind {
+        RewardKind::Random { table } | RewardKind::Choice { table } => Some(table.clone()),
+        _ => None,
+    }
 }
 
 /// The task, reward or entry of `subject` as it is, to change.
@@ -842,7 +920,7 @@ pub fn subject_text(book: &Book, subject: &Subject, key: &str, text: &str) -> Re
 pub fn subject_value(book: &Book, subject: &Subject, key: &str) -> String {
     subject_panel(book, subject)
         .and_then(|(_, controls)| match control(&controls, key) {
-            Some(Control::Text { value, .. }) => Some(value.clone()),
+            Some(Control::Text { value, .. } | Control::Choose { value, .. }) => Some(value.clone()),
             Some(Control::Number { value, .. }) => Some(number_text(*value)),
             _ => None,
         })
@@ -878,6 +956,14 @@ pub fn picked(book: &Book, purpose: &Purpose, subject: Option<&Subject>, id: &st
             let kind = RewardKind::Item { item: id.to_owned(), count: 1, max_count: None };
             let reward = Reward { id: String::new(), title: None, auto_claim: AutoClaim::Default, team: false, kind };
             Some(Edit::SaveReward { quest: quest.clone(), old: None, reward })
+        }
+        Purpose::NewTableReward { quest, choice } => {
+            Some(Edit::NewTableReward { quest: quest.clone(), choice: *choice, item: id.to_owned() }).filter(|_| !id.starts_with('#'))
+        }
+        Purpose::NewEntry(table) => {
+            let kind = RewardKind::Item { item: id.to_owned(), count: 1, max_count: None };
+            let entry = TableEntry { weight: 1, title: None, kind };
+            Some(Edit::SaveEntry { table: table.clone(), index: None, entry }).filter(|_| !id.starts_with('#'))
         }
         Purpose::Panel(key) => match subject? {
             Subject::Task(t) => {
@@ -930,23 +1016,22 @@ pub fn add_task_menu(quest: &str) -> Vec<(String, String, Add)> {
     .collect()
 }
 
-/// The "add a reward" menu of quest `quest`; draws from a table only when
-/// the pack has one.
-pub fn add_reward_menu(book: &Book, quest: &str) -> Vec<(String, String, Add)> {
+/// The "add a reward" menu of quest `quest`.
+pub fn add_reward_menu(quest: &str) -> Vec<(String, String, Add)> {
     let make = |kind: RewardKind| {
         let reward = Reward { id: String::new(), title: None, auto_claim: AutoClaim::Default, team: false, kind };
         Add::Edit(Edit::SaveReward { quest: quest.to_owned(), old: None, reward })
     };
-    let mut menu = vec![
+    // A drawn reward starts with its first item and a table of its own.
+    let drawn = |choice| Add::Pick(Purpose::NewTableReward { quest: quest.to_owned(), choice }, false);
+    let menu = vec![
         ("Items", "minecraft:chest", Add::Pick(Purpose::NewReward(quest.to_owned()), false)),
-        ("Experience", "minecraft:experience_bottle", make(RewardKind::Xp { points: 50 })),
+        ("Experience", "minecraft:experience_bottle", make(RewardKind::Xp { points: XP_POINTS })),
         ("Run a command", "minecraft:command_block", make(RewardKind::Command { command: "say {player} did it!".into() })),
         ("Show a message", "minecraft:paper", make(RewardKind::Toast { text: "Well done!".into() })),
+        ("Random item", QUESTION_ICON, drawn(false)),
+        ("Item of their choice", "minecraft:barrel", drawn(true)),
     ];
-    if let Some(table) = table_ids(book).into_iter().next() {
-        menu.push(("Random from a table", QUESTION_ICON, make(RewardKind::Random { table: table.clone() })));
-        menu.push(("Choice from a table", "minecraft:barrel", make(RewardKind::Choice { table })));
-    }
     menu.into_iter().map(|(label, icon, add)| (label.to_owned(), icon.to_owned(), add)).collect()
 }
 
@@ -1002,8 +1087,9 @@ fn control_h(c: &Control, field_w: f32, measure: &dyn Fn(&str) -> f32) -> f32 {
             let rects = chip_rows(options, 0.0, 0.0, field_w, measure);
             rects.last().map_or(ROW, |r| r[1] + ROW)
         }
-        Control::Item { .. } => 20.0,
+        Control::Item { .. } | Control::Choose { .. } => 20.0,
         Control::Shapes { .. } => 20.0,
+        Control::Rows { rows, .. } => (rows.len() + 1) as f32 * ROW,
         Control::Danger { .. } => ROW + 4.0,
         _ => ROW,
     }
@@ -1067,7 +1153,9 @@ pub fn panel(
             | Control::Toggle { label, .. }
             | Control::Segments { label, .. }
             | Control::Shapes { label, .. }
-            | Control::Item { label, .. } => *label,
+            | Control::Item { label, .. }
+            | Control::Rows { label, .. }
+            | Control::Choose { label, .. } => *label,
             Control::Danger { .. } => "",
         };
         let label_y = row_y + if ch >= 20.0 && !matches!(c, Control::Segments { .. }) { 6.0 } else { 3.0 };
@@ -1184,6 +1272,27 @@ pub fn panel(
                 text(&mut draws, fit_text(&name, field_w - 24.0, measure), [slot[0] + 23.0, row_y + 6.0], if item.is_empty() { DIM_INK } else { INK });
                 zones.push(([field_x, row_y, field_w, 19.0], PanelAction::Pick(key)));
             }
+            Control::Choose { key, icon, name, .. } => {
+                let slot = [field_x, row_y, 19.0, 19.0];
+                fill(&mut draws, slot, SLOT);
+                frame(&mut draws, slot, if canvas::inside(slot, mouse) { FOCUS_EDGE } else { SLOT_EDGE });
+                draws.push(Draw::Item { item: icon.clone(), at: [slot[0] + 1.5, slot[1] + 1.5], size: 16.0 });
+                text(&mut draws, fit_text(name, field_w - 24.0, measure), [slot[0] + 23.0, row_y + 6.0], INK);
+                zones.push(([field_x, row_y, field_w, 19.0], PanelAction::Pick(key)));
+            }
+            Control::Rows { key, rows, add, .. } => {
+                for (i, (icon, line)) in rows.iter().enumerate() {
+                    let row = [field_x, row_y + i as f32 * ROW, field_w, ROW - 1.0];
+                    fill(&mut draws, row, if canvas::inside(row, mouse) { CHIP_HOVER } else { SLOT });
+                    draws.push(Draw::Item { item: icon.clone(), at: [row[0] + 1.0, row[1] + 0.5], size: 12.0 });
+                    text(&mut draws, fit_text(line, field_w - 18.0, measure), [row[0] + 15.0, row[1] + 3.0], INK);
+                    zones.push((row, PanelAction::Row(key, i)));
+                }
+                let more = [field_x, row_y + rows.len() as f32 * ROW, field_w, ROW - 1.0];
+                fill(&mut draws, more, if canvas::inside(more, mouse) { CHIP_HOVER } else { CHIP });
+                text(&mut draws, (*add).to_owned(), [more[0] + 4.0, more[1] + 3.0], ADD_INK);
+                zones.push((more, PanelAction::AddRow(key)));
+            }
             Control::Danger { key, label } => {
                 let button = [x + PAD, row_y + 2.0, w - 2.0 * PAD, ROW];
                 fill(&mut draws, button, if canvas::inside(button, mouse) { DANGER_HOVER } else { DANGER });
@@ -1209,19 +1318,40 @@ pub struct Picker {
     pub mobs: bool,
     /// Whether an item tag (`#minecraft:logs`) may be chosen.
     pub tags: bool,
+    /// Advancements (id, icon item) to choose from, in place of items.
+    pub advancements: Option<Vec<(String, String)>>,
 }
 
 impl Picker {
     pub fn new(mobs: bool, tags: bool) -> Self {
-        Self { query: TextField::new("", 60), scroll: 0, mobs, tags }
+        Self { query: TextField::new("", 60), scroll: 0, mobs, tags, advancements: None }
+    }
+
+    /// A picker of the server's advancements.
+    pub fn advancements(list: Vec<(String, String)>) -> Self {
+        Self { advancements: Some(list), ..Self::new(false, false) }
     }
 
     /// What can be chosen, as (value, icon, name), filtered by the search
-    /// line and sorted by name; a tag typed comes first.
+    /// line and sorted by name; a tag typed comes first. Each word must be
+    /// found in the id or the name; `@word` keeps what a mod adds, by the
+    /// namespace of its id (`@applied` for `appliedenergistics:...`).
     pub fn entries(&self, names: &HashMap<String, String>) -> Vec<(String, String, String)> {
         let typed = self.query.value.trim().to_lowercase();
+        let (mods, words): (Vec<&str>, Vec<&str>) = typed.split_whitespace().filter(|w| *w != "@").partition(|w| w.starts_with('@'));
+        let mods: Vec<&str> = mods.iter().map(|m| &m[1..]).collect();
+        let matches = |value: &str, name: &str| {
+            let namespace = value.trim_start_matches('#').split_once(':').map_or("minecraft", |(ns, _)| ns);
+            mods.iter().all(|m| namespace.contains(m))
+                && words.iter().all(|w| value.contains(w) || name.to_lowercase().contains(w))
+        };
+        let listed: Vec<(String, String, String)> = match &self.advancements {
+            Some(list) => list.iter().map(|(id, icon)| (id.clone(), icon.clone(), advancement_name(id))).collect(),
+            None => Vec::new(),
+        };
         let mut found: Vec<(String, String, String)> = names
             .iter()
+            .filter(|_| self.advancements.is_none())
             .filter_map(|(id, name)| {
                 if self.mobs {
                     let entity = id.strip_suffix("_spawn_egg")?;
@@ -1231,11 +1361,12 @@ impl Picker {
                     Some((id.clone(), id.clone(), name.clone()))
                 }
             })
-            .filter(|(value, _, name)| typed.is_empty() || value.contains(&typed) || name.to_lowercase().contains(&typed))
+            .chain(listed)
+            .filter(|(value, _, name)| matches(value, name))
             .collect();
         found.sort_by(|a, b| a.2.cmp(&b.2).then_with(|| a.0.cmp(&b.0)));
         if self.tags
-            && let Some(tag) = typed.strip_prefix('#').and_then(resource_id)
+            && let Some(tag) = words.iter().find_map(|w| w.strip_prefix('#')).and_then(resource_id)
         {
             found.insert(0, (format!("#{tag}"), format!("#{tag}"), format!("Any item of #{tag}")));
         }
@@ -1269,7 +1400,13 @@ impl Picker {
         fill(&mut draws, rect, 0xFF1C_2230);
         frame(&mut draws, rect, EDGE);
         fill(&mut draws, [x + 1.0, y + 1.0, w - 2.0, BAR - 1.0], BAR_BACK);
-        let title = if self.mobs { "Choose a mob" } else { "Choose an item" };
+        let title = if self.advancements.is_some() {
+            "Choose an advancement"
+        } else if self.mobs {
+            "Choose a mob"
+        } else {
+            "Choose an item"
+        };
         text(&mut draws, title.to_owned(), [x + PAD, y + 3.0], INK);
         let close = [x + w - 11.0, y + 2.0, 9.0, 9.0];
         text(&mut draws, "x".to_owned(), [close[0] + 2.0, close[1]], if canvas::inside(close, mouse) { INK } else { DIM_INK });
@@ -1280,7 +1417,7 @@ impl Picker {
         frame(&mut draws, search, if searching { FOCUS_EDGE } else { EDGE });
         let at = [search[0] + 3.0, search[1] + 3.0];
         if self.query.value.is_empty() && !searching {
-            let hint = if self.tags { "Search (or #tag)" } else { "Search" };
+            let hint = if self.tags { "Search (@mod, #tag)" } else { "Search (@mod)" };
             text(&mut draws, hint.to_owned(), at, DIM_INK);
         } else {
             let (shown, _, cursor) = self.query.shown(0, search[2] - 6.0, measure);
@@ -1381,10 +1518,10 @@ mod tests {
         // Experience: points and levels are one reward with a unit.
         let mut xp = RewardKind::Xp { points: 30 };
         reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Segment("unit", 1));
-        assert_eq!(xp, RewardKind::XpLevels { levels: 30 });
+        assert_eq!(xp, RewardKind::XpLevels { levels: 1 });
         reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Set("amount", 3.0));
         reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Segment("unit", 0));
-        assert_eq!(xp, RewardKind::Xp { points: 3 });
+        assert_eq!(xp, RewardKind::Xp { points: 50 });
         let mut draw = RewardKind::Random { table: "a".into() };
         reward_change(&mut auto, &mut team, &mut draw, &tables, false, &PanelAction::Segment("table", 1));
         assert_eq!(draw, RewardKind::Random { table: "b".into() });
@@ -1436,12 +1573,23 @@ mod tests {
             ("minecraft:oak_log", "Oak Log"),
             ("minecraft:zombie_spawn_egg", "Zombie Spawn Egg"),
             ("minecraft:stone", "Stone"),
+            ("appliedenergistics:quartz_glass", "Quartz Glass"),
+            ("appliedenergistics:sky_stone", "Sky Stone"),
         ]
         .into_iter()
         .map(|(a, b)| (a.to_owned(), b.to_owned()))
         .collect();
+        let values = |picker: &Picker| picker.entries(&names).into_iter().map(|e| e.0).collect::<Vec<_>>();
         let mut picker = Picker::new(false, true);
-        assert_eq!(picker.entries(&names).len(), 3);
+        assert_eq!(picker.entries(&names).len(), 5);
+        // `@` keeps one mod's items, other words narrow them down.
+        "@applied".chars().for_each(|c| picker.query.type_char(c));
+        assert_eq!(values(&picker), ["appliedenergistics:quartz_glass", "appliedenergistics:sky_stone"]);
+        " stone".chars().for_each(|c| picker.query.type_char(c));
+        assert_eq!(values(&picker), ["appliedenergistics:sky_stone"]);
+        picker.query = TextField::new("@minecraft stone", 60);
+        assert_eq!(values(&picker), ["minecraft:stone"]);
+        picker.query = TextField::new("", 60);
         "#logs".chars().for_each(|c| picker.query.type_char(c));
         let found = picker.entries(&names);
         assert_eq!(found[0].0, "#minecraft:logs");
@@ -1449,6 +1597,27 @@ mod tests {
         assert_eq!(mobs.entries(&names), vec![("minecraft:zombie".to_owned(), "minecraft:zombie_spawn_egg".to_owned(), "Zombie".to_owned())]);
         let (_, _, zones, _) = mobs.layout([0.0, 0.0, 400.0, 300.0], &names, false, [-1.0, -1.0], 0, &measure);
         assert!(zones.iter().any(|(_, a)| *a == PickAction::Choose("minecraft:zombie".into())));
+    }
+
+    #[test]
+    fn advancements_are_chosen_from_a_list() {
+        let list = vec![
+            ("minecraft:story/mine_stone".to_owned(), "minecraft:wooden_pickaxe".to_owned()),
+            ("minecraft:nether/root".to_owned(), "minecraft:red_nether_bricks".to_owned()),
+            ("mymod:big/thing".to_owned(), "minecraft:stone".to_owned()),
+        ];
+        assert_eq!(advancement_name("minecraft:story/mine_stone"), "Story: Mine stone");
+        assert_eq!(advancement_name("mymod:big/thing"), "Big: Thing (mymod)");
+        let names: HashMap<String, String> = [("minecraft:stone".to_owned(), "Stone".to_owned())].into_iter().collect();
+        let mut picker = Picker::advancements(list);
+        let found: Vec<String> = picker.entries(&names).into_iter().map(|e| e.0).collect();
+        assert_eq!(found, ["mymod:big/thing", "minecraft:nether/root", "minecraft:story/mine_stone"]);
+        "stone".chars().for_each(|c| picker.query.type_char(c));
+        assert_eq!(picker.entries(&names)[0].1, "minecraft:wooden_pickaxe");
+        let mut task = Task { id: "t".into(), title: None, kind: TaskKind::Advancement { advancement: "minecraft:story/root".into() } };
+        assert!(matches!(&task_controls(&task)[0], Control::Choose { name, .. } if name == "Story: Root"));
+        task_pick(&mut task, "advancement", "minecraft:nether/root");
+        assert_eq!(task.kind, TaskKind::Advancement { advancement: "minecraft:nether/root".into() });
     }
 
     #[test]

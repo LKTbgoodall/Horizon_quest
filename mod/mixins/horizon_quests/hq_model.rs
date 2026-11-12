@@ -168,7 +168,7 @@ pub struct Quest {
     /// Seconds a repeatable quest stays completed before it starts over.
     pub repeat_cooldown: u32,
     /// All must be done. A quest without tasks completes as soon as its
-    /// dependencies are met.
+    /// dependencies are met; without dependencies either, never by itself.
     pub tasks: Vec<Task>,
     pub rewards: Vec<Reward>,
 }

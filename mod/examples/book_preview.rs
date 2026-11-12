@@ -374,6 +374,7 @@ fn main() {
     (view.editor, view.editing, view.source) = (true, true, "world".to_owned());
     let at = pointing_at(&view, &book, &progress, &Action::Quest(0));
     view.right_click(&screen(&book, &progress, at));
+    view.right_release(&screen(&book, &progress, at));
     let mouse = pointing_at(&view, &book, &progress, &Action::OpenPanel(Subject::Quest("c/q".into())));
     pictures.push((
         "book-8-edit-menu",
@@ -463,7 +464,7 @@ fn main() {
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 
-    // 15. Linking: the yellow dot of the quest under the pointer, dragged onto another.
+    // 15. Linking: the right button held on a quest and dragged onto another.
     view.menu = None;
     view.sidebar_open = false;
     let book = showcase();
@@ -476,12 +477,12 @@ fn main() {
     view.sidebar_open = false;
     let from = book.find("shapes/small").expect("the small quest");
     let at = pointing_at(&view, &book, &progress, &Action::Quest(from));
-    let dot = view.scene(&screen(&book, &progress, at)).zones.iter().rev().find(|(_, a)| *a == Action::LinkFrom(from)).map(|(r, _)| [r[0] + 4.0, r[1] + 4.0]).expect("the dot");
-    view.click(&screen(&book, &progress, dot));
+    view.right_click(&screen(&book, &progress, at));
     let to = pointing_at(&view, &book, &progress, &Action::Quest(book.find("shapes/boss").expect("the boss")));
+    view.drag(&screen(&book, &progress, to), [0.0, 0.0]);
     pictures.push((
         "book-15-link-drag",
-        "Linking in edit mode: the quest under the pointer shows a yellow dot on its edge; dragged onto another quest, it makes that quest need this one (again to undo).",
+        "Linking in edit mode: the right button held on a quest and dragged draws the link as it will be; dropped on another quest, it makes that quest need this one (again to undo). A right click without moving opens the menu.",
         svg(&view.scene(&screen(&book, &progress, to)), to),
     ));
 

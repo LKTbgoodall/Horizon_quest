@@ -225,10 +225,14 @@ impl Book {
         self.file.reward_tables.iter().find(|table| table.id == id)
     }
 
-    /// Whether every task of the quest reached its goal.
+    /// Whether every task of the quest reached its goal. A quest without
+    /// tasks is a milestone, done with its dependencies, when it has some;
+    /// with none either (a quest just made in the editor) it is never done
+    /// by itself.
     pub fn tasks_done(&self, n: usize, progress: &Progress) -> bool {
         let quest = self.quest(n);
-        quest.tasks.iter().all(|task| progress.task(&child_id(&self.nodes[n].id, &task.id)) >= task.kind.goal())
+        (!quest.tasks.is_empty() || !quest.dependencies.is_empty())
+            && quest.tasks.iter().all(|task| progress.task(&child_id(&self.nodes[n].id, &task.id)) >= task.kind.goal())
     }
 
     /// Every node's status for this progress, as `player` sees it (rewards
@@ -416,8 +420,8 @@ mod tests {
         );
         let mut progress = Progress::default();
         assert!(!book.tasks_done(0, &progress));
-        // No task: nothing left to do.
-        assert!(book.tasks_done(1, &progress));
+        // No task: never done by itself.
+        assert!(!book.tasks_done(1, &progress));
         progress.tasks.insert("a/q/logs".into(), 8);
         assert!(!book.tasks_done(0, &progress));
         progress.tasks.insert("a/q/ok".into(), 1);

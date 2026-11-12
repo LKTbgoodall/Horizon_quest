@@ -43,6 +43,18 @@ static DATA: Mutex<Vec<(String, serde_json::Value)>> = Mutex::new(Vec::new());
 /// The id of our reload listener (API 400).
 const LISTENER: &str = "horizon_quests:quests";
 
+/// The advancements the data load found (id, icon item), for the editor's
+/// picker, and the id of the listener that reads them.
+static ADVANCEMENTS: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());
+const ADVANCEMENT_LISTENER: &str = "horizon_quests:advancements";
+
+/// What a book is told about edit mode: whether this player may edit, where
+/// the pack comes from, and the advancements an editor may pick.
+fn editor_message(allowed: bool, source: &str) -> ToClient {
+    let advancements = if allowed { ADVANCEMENTS.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).clone() } else { Vec::new() };
+    ToClient::Editor { allowed, source: source.to_owned(), advancements }
+}
+
 /// The open world's quest state; None while no world is open.
 static STATE: Mutex<Option<State>> = Mutex::new(None);
 
@@ -575,7 +587,7 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
                     let _ = sender.send(&ToClient::Progress { player: session::player_id(player), progress: progress.clone() });
                 }
                 let _ = sender.send(&ToClient::Party { name: s.session.party_of(player) });
-                let _ = sender.send(&ToClient::Editor { allowed, source: s.source.to_owned() });
+                let _ = sender.send(&editor_message(allowed, s.source));
                 s.editors.insert(player, allowed);
             }
         }
@@ -648,7 +660,7 @@ fn set_pack(s: &mut State, file: QuestFile) {
     for (player, sender) in &mut s.senders {
         let _ = sender.send(&ToClient::Book { file: file.clone() });
         let allowed = s.editors.get(player).copied().unwrap_or(false);
-        let _ = sender.send(&ToClient::Editor { allowed, source: s.source.to_owned() });
+        let _ = sender.send(&editor_message(allowed, s.source));
     }
 }
 
@@ -733,6 +745,7 @@ pub(super) fn config_dropped(file: &NativeConfigFile) {
 pub(super) fn reload_listeners(game: &mut Game<'_>, list: &mut Vec<NativeReloadListener>) {
     if game.native_on(meta::ID) {
         list.push(NativeReloadListener::json(LISTENER, validate::DATA_FOLDER));
+        list.push(NativeReloadListener::json(ADVANCEMENT_LISTENER, edit::ADVANCEMENT_FOLDER));
     }
 }
 
@@ -740,7 +753,14 @@ pub(super) fn reload_listeners(game: &mut Game<'_>, list: &mut Vec<NativeReloadL
 /// with a world open already (`/reload`), the pack is read again at once, as
 /// `/quests reload` does.
 pub(super) fn reload_listener_apply(game: &mut Game<'_>, listener: &NativeReloadListener, files: &[(String, serde_json::Value)]) {
-    if listener.id != LISTENER || !game.native_on(meta::ID) {
+    if !game.native_on(meta::ID) {
+        return;
+    }
+    if listener.id == ADVANCEMENT_LISTENER {
+        *ADVANCEMENTS.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = edit::advancements(files);
+        return;
+    }
+    if listener.id != LISTENER {
         return;
     }
     *DATA.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = files.to_vec();
@@ -825,7 +845,7 @@ fn run(game: &mut Game<'_>, player: &NativeServerPlayer, command: Command) -> Ve
         Command::Edit => {
             s.granted.insert(me);
             s.editors.insert(me, true);
-            let _ = s.senders.entry(me).or_default().send(&ToClient::Editor { allowed: true, source: s.source.to_owned() });
+            let _ = s.senders.entry(me).or_default().send(&editor_message(true, s.source));
             vec!["The pencil is in your quest book (bottom right): it turns edit mode on.".to_owned()]
         }
         Command::Complete { player, quest } => match target(&s.session, &player).and_then(|uuid| {

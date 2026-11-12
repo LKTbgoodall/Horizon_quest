@@ -4,6 +4,16 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.16.0
+- Bastien's remarks on 0.15.1:
+  - **Links by right-dragging**: hold the right button on a quest and move; the link is drawn in the book's line style, sliding, up to the pointer (yellow over a quest it can go to, grey over nothing); let go on a quest and it needs the first one (again to undo). A right click without moving opens the menu. The yellow dot and arrow are gone. Picked from a preview page of six ways (`build/link-drag.html`).
+  - The check of "Tick a box" in the + menu is as big as the item icons.
+  - **Drawn rewards edited in place**: "Random item" and "Item of their choice" open the item picker; the reward gets a reward table of its own whose first entry is that item. Its panel lists the table's entries (with their chance for a random draw): a row opens that entry's panel, whose x goes back to the reward; "+ Add an item" picks another. Another table can still be chosen when the pack has several.
+  - A quest without tasks and without dependencies (a quest just made in the editor) no longer completes by itself; one with dependencies still completes with them (milestones).
+  - Experience rewards: Points starts at 50, switching to Levels gives 1 level (and back, 50 points).
+  - Search lines: `@word` keeps the items of mods whose namespace holds that word (`@applied`), other words narrow them down.
+  - Advancement tasks: the advancement is picked from the server's advancements (read from the data packs' `advancement` folders, sent to editors with `Editor`), by name and icon; typed by hand only with an older server.
+
 ## 0.15.1
 - Bastien's remarks on 0.15.0:
   - **Links by dragging**: in edit mode the quest under the pointer shows a yellow dot on its right edge; drag it onto another quest (a yellow arrow follows the pointer) and that quest needs this one; the same drag again removes the link. The menu's "Pick what this quest needs / opens" stays.
