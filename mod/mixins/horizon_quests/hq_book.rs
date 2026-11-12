@@ -158,6 +158,8 @@ pub enum Action {
     AskUseModpack,
     UseModpack,
     CloseMenu,
+    /// Mark task or reward `0` done / claimed (`1`) or not, as an operator.
+    Mark(String, bool),
     /// Open a panel: a quest's settings, a task, a reward, a chapter...
     OpenPanel(Subject),
     /// A click on the open panel, on the picker.
@@ -324,12 +326,12 @@ pub enum Row {
 
 /// The chapter list: chapters without a group first, then each group of
 /// quests.json with its chapters, unless the group is folded (its id in
-/// `folded`). Hidden chapters are not listed.
-pub fn sidebar_rows(book: &Book, folded: &[String]) -> Vec<Row> {
+/// `folded`). Hidden chapters are listed only with `all` (edit mode).
+pub fn sidebar_rows(book: &Book, folded: &[String], all: bool) -> Vec<Row> {
     let file = book.file();
     let groups = &file.settings.groups;
     let group_of = |c: usize| file.chapters[c].group.as_deref().filter(|g| groups.iter().any(|group| group.id == *g));
-    let listed = || (0..file.chapters.len()).filter(|&c| !file.chapters[c].hidden);
+    let listed = || (0..file.chapters.len()).filter(move |&c| all || !file.chapters[c].hidden);
     let mut rows: Vec<Row> = listed().filter(|&c| group_of(c).is_none()).map(Row::Chapter).collect();
     for (g, group) in groups.iter().enumerate() {
         let members: Vec<usize> = listed().filter(|&c| group_of(c) == Some(group.id.as_str())).collect();
@@ -796,7 +798,7 @@ impl BookView {
     /// The book opens, or a new pack arrived: keep the place when there is
     /// one, else show the first chapter.
     pub fn open(&mut self, s: &Screen<'_>) {
-        let listed: Vec<usize> = sidebar_rows(s.book, &[])
+        let listed: Vec<usize> = sidebar_rows(s.book, &[], self.editing)
             .into_iter()
             .filter_map(|row| match row {
                 Row::Chapter(c) => Some(c),
@@ -811,9 +813,22 @@ impl BookView {
         }
     }
 
+    /// Every quest's status as the book shows it: in edit mode the quests
+    /// players do not see show too, marked `hidden`.
+    fn statuses(&self, s: &Screen<'_>) -> Vec<Status> {
+        let mut statuses = s.book.statuses(s.progress, s.player);
+        if self.editing {
+            for status in &mut statuses {
+                status.hidden = !status.visible;
+                status.visible = true;
+            }
+        }
+        statuses
+    }
+
     /// Turns to chapter `c`, fitted to the canvas.
     pub fn show_chapter(&mut self, s: &Screen<'_>, c: usize) {
-        let statuses = s.book.statuses(s.progress, s.player);
+        let statuses = self.statuses(s);
         self.chapter = c;
         self.selected = None;
         self.popup_scroll = 0.0;
@@ -949,6 +964,10 @@ impl BookView {
                 return Reaction::Send(ToServer::UseModpack);
             }
             Some(Action::CloseMenu) => self.menu = None,
+            Some(Action::Mark(id, done)) => {
+                self.menu = None;
+                return Reaction::Send(ToServer::Mark { id, done });
+            }
             Some(Action::OpenPanel(subject)) => {
                 self.menu = None;
                 self.typing = None;
@@ -1116,6 +1135,28 @@ impl BookView {
                 _ => None,
             };
             self.menu = menu;
+            return Reaction::Nothing;
+        }
+        // A task or reward of the open quest: mark it done / claimed or not.
+        if let Some(Action::OpenPanel(subject @ (Subject::Task(_) | Subject::Reward(_)))) = scene.action_at(s.mouse).cloned() {
+            let (id, done, title) = match &subject {
+                Subject::Task(id) => {
+                    let done = s.book.find_task(id).is_some_and(|(n, t)| {
+                        s.progress.is_completed(&s.book.nodes()[n].id) || s.progress.task(id) >= s.book.quest(n).tasks[t].kind.goal()
+                    });
+                    (id.clone(), done, "Task")
+                }
+                Subject::Reward(id) => (id.clone(), s.progress.has_claimed(id, s.player), "Reward"),
+                _ => return Reaction::Nothing,
+            };
+            let mark = match (title, done) {
+                ("Task", false) => "Mark as done",
+                ("Task", true) => "Mark as not done",
+                (_, false) => "Mark as claimed",
+                (_, true) => "Mark as not claimed",
+            };
+            let entries = vec![(mark.to_owned(), Action::Mark(id, !done)), ("Edit...".to_owned(), Action::OpenPanel(subject))];
+            self.menu = Some(Menu { at: s.mouse, title: Some(title.to_owned()), entries, icons: Vec::new() });
             return Reaction::Nothing;
         }
         let on_canvas = canvas::inside(scene.regions.canvas, s.mouse) && !self.over_list(s);
@@ -1505,7 +1546,7 @@ impl BookView {
 
     /// Everything to draw this frame, and where clicks land.
     pub fn scene(&self, s: &Screen<'_>) -> Scene {
-        let statuses = s.book.statuses(s.progress, s.player);
+        let statuses = self.statuses(s);
         let selected = self.shown_selection(s.book, &statuses);
         let regions = regions(s.rect);
         let popup = selected.map(|n| popup_layout(s, &self.item_names, self.clock, &statuses, n, regions.canvas, self.editing, self.typing.as_ref(), self.panel.is_some()).0);
@@ -1740,6 +1781,11 @@ impl BookView {
                     scene.draws.push(badge);
                 }
             }
+            if statuses[n].hidden {
+                // Players do not see it: a violet veil in its shape and a crossed eye.
+                scene.draws.extend(polygon_draws(node.shape, centre, radius, HIDDEN_VEIL));
+                scene.draws.extend(hidden_eye_draws([b[0] - 1.0, b[1] + b[3] - 6.0]));
+            }
             scene.zones.push((part, Action::Quest(n)));
         }
         hovered.filter(|_| canvas::inside(area, s.mouse))
@@ -1755,7 +1801,7 @@ impl BookView {
         scene.fill([area[0] + area[2] - 1.0, area[1], 1.0, area[3]], LIST_EDGE);
         // The list's background takes clicks: none fall through to the canvas.
         scene.zones.push((area, Action::Stay));
-        let rows = sidebar_rows(s.book, &self.folded);
+        let rows = sidebar_rows(s.book, &self.folded, self.editing);
         // In edit mode, two more rows at the end make a chapter or a group.
         let extra = if self.editing { 2 } else { 0 };
         scene.sidebar_max_scroll = ((rows.len() + extra) as f32 * LIST_ROW + 2.0 * PAD - area[3]).max(0.0);
@@ -1817,8 +1863,14 @@ impl BookView {
                         right -= size + 2.0;
                         scene.draws.push(alert_sign([right + 1.0, rect[1] + (LIST_ROW - size) / 2.0, size, size]));
                     }
-                    let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
-                    scene.text(fit_text(name, right - left, s.measure), [left, text_y], chapter_ink(s.book.chapter_completed(*c, s.progress), &states));
+                    let name = if chapter.title.is_empty() { chapter.id.clone() } else { chapter.title.clone() };
+                    // Edit mode lists hidden chapters too, marked.
+                    let (name, ink) = if chapter.hidden {
+                        (format!("{name} (hidden)"), HIDDEN_INK)
+                    } else {
+                        (name, chapter_ink(s.book.chapter_completed(*c, s.progress), &states))
+                    };
+                    scene.text(fit_text(&name, right - left, s.measure), [left, text_y], ink);
                     scene.zones.push((rect, Action::Chapter(*c)));
                 }
             }
@@ -2005,6 +2057,24 @@ impl BookView {
             scene.text(help, [right - help_w, y + 3.0], DIM_INK);
         }
     }
+}
+
+/// What players do not see, in edit mode: a quest's veil, a chapter's name.
+const HIDDEN_VEIL: u32 = 0x8C2A_1A44;
+const HIDDEN_INK: u32 = 0xB090_D8;
+/// An eye, 9 by 5; a red stroke crosses it.
+const EYE_PIXELS: [&str; 5] = ["..kkkkk..", ".kwwkwwk.", "kwwkkkwwk", ".kwwkwwk.", "..kkkkk.."];
+
+/// The crossed eye of a hidden quest, its top left at `at`.
+fn hidden_eye_draws(at: [f32; 2]) -> Vec<Draw> {
+    let mut draws = pixel_art(&EYE_PIXELS, at, 1.0, &|c| match c {
+        'k' => Some(0xFF1A_1024),
+        'w' => Some(0xFFE8_E0F8),
+        _ => None,
+    });
+    let (a, b) = ([at[0] + 8.5, at[1] - 1.0], [at[0] + 0.5, at[1] + 6.0]);
+    draws.push(Draw::Quad { corners: [[a[0] - 0.7, a[1]], [a[0] + 0.7, a[1]], [b[0] + 0.7, b[1]], [b[0] - 0.7, b[1]]], colour: 0xFFE0_3434 });
+    draws
 }
 
 /// A gear: the quest settings button in edit mode.
@@ -3738,6 +3808,31 @@ mod tests {
     }
 
     #[test]
+    fn edit_mode_shows_what_players_do_not_and_marks_tasks() {
+        let chapter = r#"{ "id": "c", "title": "C", "quests": [
+            { "id": "q", "title": "Q", "tasks": [ { "id": "t", "type": "checkmark" } ] },
+            { "id": "s", "title": "S", "x": 2, "visibility": "secret", "dependencies": ["q"] } ] }"#;
+        let loaded = super::super::hq_validate::load_pack(Some("{}"), &[("c.json", chapter)], &[]);
+        assert_eq!(loaded.problems, []);
+        let (book, progress) = (Book::new(loaded.file), Progress::default());
+        let mut view = opened(&book, &progress);
+        let secret = book.find("c/s").unwrap();
+        assert!(zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(secret)).is_none());
+        (view.editor, view.editing) = (true, true);
+        let statuses = view.statuses(&screen(&book, &progress, NOWHERE));
+        assert!(statuses[secret].visible && statuses[secret].hidden);
+        assert!(zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Quest(secret)).is_some());
+        // A right click on a task of the open quest: mark it done.
+        view.selected = book.find("c/q");
+        let task = Action::OpenPanel(Subject::Task("c/q/t".into()));
+        let at = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &task).expect("the task's icon");
+        view.right_click(&screen(&book, &progress, at));
+        assert_eq!(view.menu.as_ref().unwrap().entries[0], ("Mark as done".to_owned(), Action::Mark("c/q/t".into(), true)));
+        let reaction = click(&mut view, &book, &progress, &Action::Mark("c/q/t".into(), true));
+        assert_eq!(reaction, Reaction::Send(ToServer::Mark { id: "c/q/t".into(), done: true }));
+    }
+
+    #[test]
     fn a_click_on_a_panel_number_types_it() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
@@ -3936,9 +4031,9 @@ mod tests {
     fn the_chapter_list_has_ungrouped_chapters_then_groups() {
         // The hidden chapter and the group without chapters are not listed.
         let main = || Row::Group { id: "main".into(), title: "Main story".into() };
-        assert_eq!(sidebar_rows(&book(), &[]), [Row::Chapter(0), main(), Row::Chapter(1)]);
+        assert_eq!(sidebar_rows(&book(), &[], false), [Row::Chapter(0), main(), Row::Chapter(1)]);
         // A folded group keeps its heading, without its chapters.
-        assert_eq!(sidebar_rows(&book(), &["main".into()]), [Row::Chapter(0), main()]);
+        assert_eq!(sidebar_rows(&book(), &["main".into()], false), [Row::Chapter(0), main()]);
     }
 
     #[test]

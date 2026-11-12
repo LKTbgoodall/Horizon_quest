@@ -43,6 +43,9 @@ pub enum QuestState {
 pub struct Status {
     pub visible: bool,
     pub state: QuestState,
+    /// Shown only because the book is in edit mode: players do not see it
+    /// (secret, not discovered yet, or in a hidden chapter).
+    pub hidden: bool,
 }
 
 /// A pack ready to use. It expects one that hq_validate loaded: a dependency
@@ -238,7 +241,7 @@ impl Book {
     /// Every node's status for this progress, as `player` sees it (rewards
     /// are claimed per player).
     pub fn statuses(&self, progress: &Progress, player: &str) -> Vec<Status> {
-        let mut statuses = vec![Status { visible: false, state: QuestState::Locked }; self.nodes.len()];
+        let mut statuses = vec![Status { visible: false, state: QuestState::Locked, hidden: false }; self.nodes.len()];
         // In order: a quest's visibility can hang on its dependencies'.
         for &n in &self.order {
             let node = &self.nodes[n];
@@ -263,7 +266,7 @@ impl Book {
                     Visibility::UntilDepsComplete => open,
                     Visibility::Secret => false,
                 };
-            statuses[n] = Status { visible: shown && !self.chapter(node.chapter).hidden, state };
+            statuses[n] = Status { visible: shown && !self.chapter(node.chapter).hidden, state, hidden: false };
         }
         statuses
     }

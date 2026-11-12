@@ -612,6 +612,22 @@ pub(super) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data
                 let _ = s.senders.entry(player).or_default().send(&ToClient::Notice { text: line });
             }
         }
+        ToServer::Mark { id, done } => {
+            let mut guard = state();
+            let Some(s) = guard.as_mut() else {
+                return;
+            };
+            let result = if !may_edit(s) {
+                Err("Only operators can mark tasks and rewards.".to_owned())
+            } else if s.session.book().find_task(&id).is_some() {
+                s.session.mark_task(player, &id, done, session::now()).map(|effects| s.pending.extend(effects.into_iter().map(|e| (player, e))))
+            } else {
+                s.session.mark_reward(player, &id, done)
+            };
+            if let Err(line) = result {
+                let _ = s.senders.entry(player).or_default().send(&ToClient::Notice { text: line });
+            }
+        }
         ToServer::Check { .. } | ToServer::Claim { .. } | ToServer::ClaimAll => {
             // A request the engine takes as it is, on the next tick.
             if let Some(event) = net::request_event(&to_server)

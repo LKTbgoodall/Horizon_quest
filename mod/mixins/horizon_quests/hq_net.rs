@@ -54,6 +54,9 @@ pub enum ToServer {
     ClaimAll,
     /// An operator's change to the pack, from the book's edit mode.
     Edit { edit: Edit },
+    /// An operator marks task or reward `id` (full id) done / claimed, or
+    /// not, for their own team, from the book's edit mode.
+    Mark { id: String, done: bool },
     /// Copy the pack in use to the modpack's folder, for every world that
     /// has no quests of its own.
     SaveToModpack,
@@ -119,6 +122,7 @@ pub fn request_event(message: &ToServer) -> Option<QuestEvent> {
         ToServer::Hello { .. }
         | ToServer::Submit { .. }
         | ToServer::Edit { .. }
+        | ToServer::Mark { .. }
         | ToServer::SaveToModpack
         | ToServer::UseModpack => None,
     }

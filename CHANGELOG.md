@@ -4,6 +4,11 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.17.0
+- Bastien's requests:
+  - Edit mode shows what players do not see: secret or not yet shown quests, and quests of hidden chapters, under a violet veil with a crossed eye, so they can be edited; hidden chapters are listed in violet with "(hidden)".
+  - A right click on a task or reward of the open quest, in edit mode: mark the task done or not done, the reward claimed or not, for the operator's team (`ToServer::Mark`, `hq_progress::mark_task` / `mark_reward`).
+
 ## 0.16.2
 - Bastien's remarks on 0.16.1:
   - A drawn reward's list spans the panel, and each row of a random table ends with its chance as "- 25% +": always visible (the name is cut before it), - / + by 5, the wheel by 1, a click types it. "Even" gives every entry the same chance.

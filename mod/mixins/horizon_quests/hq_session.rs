@@ -522,6 +522,34 @@ impl Session {
         Ok(outcome.effects)
     }
 
+    /// An operator marks a task done or not done, from the book: the
+    /// effects of a quest completing, or why not.
+    pub fn mark_task(&mut self, uuid: u128, task: &str, done: bool, now: u64) -> Result<Vec<Effect>, String> {
+        let roll = engine::next_roll(&mut self.roll);
+        let book = self.book.clone();
+        let (team_id, team) = self.team_mut(uuid)?;
+        let id = player_id(uuid);
+        let who = Actor::new(&id, now).with_roll(roll);
+        let outcome = engine::mark_task(&book, &mut team.progress, &who, task, done).ok_or_else(|| format!("There is no task `{task}`."))?;
+        team.dirty |= outcome.changed;
+        if outcome.changed {
+            self.mark_unsynced(&team_id);
+        }
+        Ok(outcome.effects)
+    }
+
+    /// An operator marks a reward claimed or not by themself, from the book.
+    pub fn mark_reward(&mut self, uuid: u128, reward: &str, claimed: bool) -> Result<(), String> {
+        let book = self.book.clone();
+        let (team_id, team) = self.team_mut(uuid)?;
+        let id = player_id(uuid);
+        if engine::mark_reward(&book, &mut team.progress, &id, reward, claimed)? {
+            team.dirty = true;
+            self.mark_unsynced(&team_id);
+        }
+        Ok(())
+    }
+
     /// `/quests reset`: whether there was anything to reset.
     pub fn reset(&mut self, uuid: u128, quest: &str) -> Result<bool, String> {
         let book = self.book.clone();

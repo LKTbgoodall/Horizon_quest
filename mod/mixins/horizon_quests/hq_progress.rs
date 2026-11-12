@@ -488,6 +488,63 @@ pub fn force_complete(book: &Book, progress: &mut Progress, who: &Actor<'_>, que
     Some(out)
 }
 
+/// An operator marks task `task` done (its goal reached: its quest may
+/// complete, with its automatic rewards) or not done (its progress
+/// forgotten: a completed quest is open again, its claims forgotten).
+/// None when there is no such task.
+pub fn mark_task(book: &Book, progress: &mut Progress, who: &Actor<'_>, task: &str, done: bool) -> Option<Outcome> {
+    let (n, t) = book.find_task(task)?;
+    let quest = book.nodes()[n].id.clone();
+    let mut out = Outcome::default();
+    let mut roll = who.roll;
+    if done {
+        let goal = book.quest(n).tasks[t].kind.goal();
+        if progress.task(task) < goal {
+            progress.tasks.insert(task.to_owned(), goal);
+            progress.started.entry(quest).or_insert(who.now);
+            out.changed = true;
+        }
+        settle(book, progress, who.player, who.now, &mut roll, &mut out);
+    } else {
+        out.changed |= progress.tasks.remove(task).is_some();
+        if progress.completed.remove(&quest).is_some() {
+            out.changed = true;
+            for r in 0..book.quest(n).rewards.len() {
+                progress.claimed.remove(&book.reward_id(n, r));
+                progress.picked.remove(&book.reward_id(n, r));
+            }
+        }
+    }
+    Some(out)
+}
+
+/// An operator marks reward `reward` claimed by `player` (nothing is
+/// given) or not claimed (it can be claimed again). Its quest must be
+/// completed. Whether anything changed, or why not.
+pub fn mark_reward(book: &Book, progress: &mut Progress, player: &str, reward: &str, claimed: bool) -> Result<bool, String> {
+    let (n, _) = book.find_reward(reward).ok_or_else(|| format!("There is no reward `{reward}`."))?;
+    if !progress.is_completed(&book.nodes()[n].id) {
+        return Err("Its quest is not done: mark its tasks done first.".to_owned());
+    }
+    if claimed {
+        return Ok(progress.claimed.entry(reward.to_owned()).or_default().insert(player.to_owned()));
+    }
+    let mut changed = false;
+    if let Some(players) = progress.claimed.get_mut(reward) {
+        changed = players.remove(player);
+        if players.is_empty() {
+            progress.claimed.remove(reward);
+        }
+    }
+    if let Some(picks) = progress.picked.get_mut(reward) {
+        changed |= picks.remove(player).is_some();
+        if picks.is_empty() {
+            progress.picked.remove(reward);
+        }
+    }
+    Ok(changed)
+}
+
 /// An admin resets quest `quest` for a team: its tasks, its completion, its
 /// claims and how often it was repeated are forgotten. Quests completed
 /// after it stay completed. None when there is no such quest; else whether
@@ -991,6 +1048,29 @@ mod tests {
                 Effect::ChapterCompleted { chapter: "a".into() },
             ]
         );
+    }
+
+    #[test]
+    fn an_operator_marks_tasks_and_rewards() {
+        let chapter = r#"{ "id": "a", "title": "A", "quests": [
+            { "id": "q", "title": "t", "tasks": [ { "id": "logs", "type": "item", "item": "oak_log", "count": 4 } ],
+              "rewards": [ { "id": "r", "type": "xp", "points": 5, "auto_claim": "disabled" } ] } ] }"#;
+        let book = book("{}", &[chapter]);
+        let mut progress = Progress::default();
+        let who = Actor::new("steve", NOW);
+        // Done: the quest completes; its reward waits.
+        let out = mark_task(&book, &mut progress, &who, "a/q/logs", true).unwrap();
+        assert!(out.effects.contains(&quest_completed("a/q")), "{:?}", out.effects);
+        assert_eq!(mark_reward(&book, &mut progress, "steve", "a/q/r", true), Ok(true));
+        assert!(progress.has_claimed("a/q/r", "steve"));
+        assert_eq!(mark_reward(&book, &mut progress, "steve", "a/q/r", false), Ok(true));
+        assert!(!progress.has_claimed("a/q/r", "steve"));
+        // Not done: the quest is open again.
+        mark_reward(&book, &mut progress, "steve", "a/q/r", true).unwrap();
+        let out = mark_task(&book, &mut progress, &who, "a/q/logs", false).unwrap();
+        assert!(out.changed && !progress.is_completed("a/q") && !progress.has_claimed("a/q/r", "steve"));
+        assert!(mark_reward(&book, &mut progress, "steve", "a/q/r", true).is_err());
+        assert!(mark_task(&book, &mut progress, &who, "a/q/nope", true).is_none());
     }
 
     #[test]
