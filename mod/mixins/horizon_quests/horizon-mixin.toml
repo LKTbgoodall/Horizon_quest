@@ -1,6 +1,6 @@
 [mod]
 id = "horizon_quests"
-version = "0.11.0"
+version = "0.12.0"
 priority = 100
 
 # The commit it was built and tested on (native-build, 2026-11-10).
@@ -39,6 +39,18 @@ id = "edit"
 file = "crates/horizon-client/src/game.rs"
 name = "hq_edit"
 source = "hq_edit.rs"
+
+[[module]]
+id = "text"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_text"
+source = "hq_text.rs"
+
+[[module]]
+id = "form"
+file = "crates/horizon-client/src/game.rs"
+name = "hq_form"
+source = "hq_form.rs"
 
 [[module]]
 id = "logic"
@@ -192,6 +204,17 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "screen", ty = "&horizon_client::mod_api::NativeScreenView<'_>", value = "screen" },
   { name = "button", ty = "i32", value = "button" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "typed"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_char_typed_pre"
+helper = "typed.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "c", ty = "char", value = "c" },
   { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
 ]
 

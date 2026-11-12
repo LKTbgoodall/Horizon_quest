@@ -519,17 +519,24 @@ fn edit_here(s: &mut ClientState, change: &Edit) {
     }
 }
 
-/// A key over the book: Escape closes the window on top (the recipe view,
-/// the choice window, then the quest window), and the book once none is
-/// open.
+/// A key over the book: the quest form takes every key while it is up.
+/// Escape closes the window on top (the edit menu, the recipe view, the
+/// choice window, then the quest window), and the book once none is open.
 pub(super) fn screen_key(game: &Game<'_>, key: &str, canceled: &mut bool) {
-    if !ours(game) || key != "key.keyboard.escape" {
+    if !ours(game) {
         return;
     }
-    // One window at a time, the one on top first: the recipe view or the
-    // choice window, then the quest window. With none open, Escape closes
-    // the book as usual.
-    if with(|s| s.view.close_menu() || s.view.recipe.take().is_some() || s.view.choosing.take().is_some() || s.view.close_quest()) {
+    let escape = key == "key.keyboard.escape";
+    if with(|s| {
+        s.view.key(key) || (escape && (s.view.recipe.take().is_some() || s.view.choosing.take().is_some() || s.view.close_quest()))
+    }) {
+        *canceled = true;
+    }
+}
+
+/// A character typed over the book: into the quest form (API 104).
+pub(super) fn typed(game: &Game<'_>, c: char, canceled: &mut bool) {
+    if ours(game) && with(|s| s.view.typed(c)) {
         *canceled = true;
     }
 }

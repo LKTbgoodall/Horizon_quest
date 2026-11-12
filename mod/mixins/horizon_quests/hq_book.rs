@@ -14,6 +14,7 @@
 use std::collections::HashMap;
 use super::hq_canvas::{self as canvas, View};
 use super::hq_edit::{self as edit, Edit};
+use super::hq_form::{FormAction, QuestForm};
 use super::hq_logic::{Book, QuestState, Status};
 use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind};
 use super::hq_net::ToServer;
@@ -155,6 +156,10 @@ pub enum Action {
     AskUseModpack,
     UseModpack,
     CloseMenu,
+    /// Open the quest form for this quest (full id).
+    EditQuest(String),
+    /// A click on the quest form.
+    Form(FormAction),
 }
 
 /// What the glue does after a click.
@@ -725,6 +730,8 @@ pub struct BookView {
     pub editing: bool,
     /// Edit mode's menu, while open.
     pub menu: Option<Menu>,
+    /// Edit mode's quest form, while open.
+    pub form: Option<QuestForm>,
     /// The quest being dragged in edit mode.
     moving: Option<Moving>,
     /// Edit mode's link picking: a click on a quest makes quest `0` need it
@@ -849,6 +856,7 @@ impl BookView {
             Some(Action::ToggleEdit) => {
                 self.editing = self.editor && !self.editing;
                 self.menu = None;
+                self.form = None;
                 self.moving = None;
                 self.linking = None;
             }
@@ -880,6 +888,14 @@ impl BookView {
                 return Reaction::Send(ToServer::UseModpack);
             }
             Some(Action::CloseMenu) => self.menu = None,
+            Some(Action::EditQuest(quest)) => {
+                self.menu = None;
+                if let Some(n) = s.book.find(&quest) {
+                    self.select(None);
+                    self.form = Some(QuestForm::new(&quest, s.book.quest(n)));
+                }
+            }
+            Some(Action::Form(action)) => return self.form_click(s, &action),
             Some(Action::Stay) | None => {}
         }
         Reaction::Nothing
@@ -909,7 +925,7 @@ impl BookView {
     /// A right click: in edit mode, the menu for the quest under the
     /// pointer, or for the empty spot of the canvas.
     pub fn right_click(&mut self, s: &Screen<'_>) -> Reaction {
-        if !self.editing || self.menu.take().is_some() || self.recipe.is_some() || self.choosing.is_some() {
+        if !self.editing || self.menu.take().is_some() || self.recipe.is_some() || self.choosing.is_some() || self.form.is_some() {
             return Reaction::Nothing;
         }
         let scene = self.scene(s);
@@ -921,7 +937,7 @@ impl BookView {
             Some(Action::Quest(n)) => {
                 let (n, quest) = (*n, s.book.quest(*n));
                 let id = s.book.nodes()[n].id.clone();
-                let mut entries = vec![(
+                let mut entries = vec![("Edit...".to_owned(), Action::EditQuest(id.clone())), (
                     "Duplicate".to_owned(),
                     Action::Edit(Edit::DuplicateQuest { quest: id.clone(), x: quest.x + 1.0, y: quest.y }),
                 )];
@@ -968,6 +984,9 @@ impl BookView {
     pub fn pack_changed(&mut self, old: Option<&Book>, book: &Book, select: Option<&str>) {
         self.moving = None;
         self.menu = None;
+        if self.form.as_ref().is_some_and(|form| book.find(&form.quest).is_none()) {
+            self.form = None;
+        }
         let again = |n: usize| old.and_then(|old| old.nodes().get(n)).and_then(|node| book.find(&node.id));
         self.linking = self.linking.and_then(|(n, needs)| Some((again(n)?, needs)));
         let open = self.selected.and_then(|n| old?.nodes().get(n)).map(|node| node.id.clone());
@@ -978,6 +997,50 @@ impl BookView {
                 self.select(Some(n));
             }
             None => self.select(None),
+        }
+    }
+
+    /// A click on the quest form: Save sends its fields when they are right.
+    fn form_click(&mut self, s: &Screen<'_>, action: &FormAction) -> Reaction {
+        let Some(form) = &mut self.form else {
+            return Reaction::Nothing;
+        };
+        match action {
+            FormAction::Cancel => self.form = None,
+            FormAction::Save => match form.info() {
+                Ok(info) => {
+                    let quest = form.quest.clone();
+                    self.form = None;
+                    return Reaction::Edit(Edit::SetQuestInfo { quest, info });
+                }
+                Err(e) => form.error = e,
+            },
+            _ => form.click(action, s.measure),
+        }
+        Reaction::Nothing
+    }
+
+    /// A key pressed over the book: whether the book took it (the game
+    /// must then not see it). With the quest form up it takes every key:
+    /// letters typed there must not close the book or open the inventory.
+    pub fn key(&mut self, name: &str) -> bool {
+        if let Some(form) = &mut self.form {
+            if !form.key(name) {
+                self.form = None;
+            }
+            return true;
+        }
+        name == "key.keyboard.escape" && self.close_menu()
+    }
+
+    /// A character typed over the book: into the quest form's field.
+    pub fn typed(&mut self, c: char) -> bool {
+        match &mut self.form {
+            Some(form) => {
+                form.typed(c);
+                true
+            }
+            None => false,
         }
     }
 
@@ -994,7 +1057,7 @@ impl BookView {
     /// the pointer leaves it.
     pub fn hover(&mut self, s: &Screen<'_>) {
         let regions = regions(s.rect);
-        if canvas::inside(regions.strip, s.mouse) && self.recipe.is_none() && self.choosing.is_none() {
+        if canvas::inside(regions.strip, s.mouse) && self.recipe.is_none() && self.choosing.is_none() && self.form.is_none() {
             self.sidebar_open = true;
         } else if !canvas::inside(regions.sidebar, s.mouse) {
             self.sidebar_open = false;
@@ -1018,7 +1081,8 @@ impl BookView {
         }
         let scene = self.scene(s);
         let over_popup = scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse));
-        if self.recipe.is_none()
+        if self.form.is_none()
+            && self.recipe.is_none()
             && self.choosing.is_none()
             && !over_popup
             && !self.over_list(s)
@@ -1035,7 +1099,9 @@ impl BookView {
         let scene = self.scene(s);
         let regions = scene.regions;
         let moved = |scroll: f32, by: f32, max: f32| (scroll - steps as f32 * by).clamp(0.0, max.max(0.0));
-        if !steps.is_finite() || self.recipe.is_some() || self.choosing.is_some() {
+        if let Some(form) = &mut self.form {
+            form.scroll = moved(form.scroll, 3.0 * TEXT, QuestForm::max_scroll(regions.canvas));
+        } else if !steps.is_finite() || self.recipe.is_some() || self.choosing.is_some() {
         } else if self.over_list(s) {
             self.sidebar_scroll = moved(self.sidebar_scroll, LIST_ROW, scene.sidebar_max_scroll);
         } else if scene.popup.is_some_and(|popup| canvas::inside(popup, s.mouse)) {
@@ -1075,7 +1141,13 @@ impl BookView {
         if let Some(reward) = self.choosing.as_deref().filter(|_| self.recipe.is_none()) {
             tip = draw_choice(&mut scene, s, &self.item_names, reward);
         }
-        if let Some(recipe) = &self.recipe {
+        if let Some(form) = &self.form {
+            // Over everything: nothing under it takes clicks.
+            scene.zones.push((s.rect, Action::Form(FormAction::Stay)));
+            let (draws, zones) = form.layout(regions.canvas, s.mouse, self.clock, &self.item_names, s.measure);
+            scene.draws.extend(draws);
+            scene.zones.extend(zones.into_iter().map(|(rect, action)| (rect, Action::Form(action))));
+        } else if let Some(recipe) = &self.recipe {
             draw_recipe(&mut scene, s, recipe);
         } else if let Some(menu) = &self.menu {
             draw_menu(&mut scene, s, menu);
@@ -2804,7 +2876,7 @@ mod tests {
         let menu = view.menu.clone().unwrap();
         assert_eq!(menu.title.as_deref(), Some("Then this"));
         let labels: Vec<&str> = menu.entries.iter().map(|(l, _)| l.as_str()).collect();
-        assert_eq!(labels, ["Duplicate", "Pick what this quest needs...", "Pick what this quest opens...", "Delete"]);
+        assert_eq!(labels, ["Edit...", "Duplicate", "Pick what this quest needs...", "Pick what this quest opens...", "Delete"]);
         // Picking what "next" needs: it needs "start" already, so a click unlinks it.
         click(&mut view, &book, &progress, &Action::Link(next, true));
         let reaction = click(&mut view, &book, &progress, &Action::Quest(start));
@@ -2874,6 +2946,35 @@ mod tests {
         view.linking = Some((book.find("a/far").unwrap(), true));
         view.pack_changed(Some(&book), &smallest, None);
         assert_eq!(view.linking, Some((smallest.find("a/far").unwrap(), true)));
+    }
+
+    #[test]
+    fn the_quest_form_takes_the_keys_and_saves_an_edit() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        (view.editor, view.editing) = (true, true);
+        assert!(!view.typed('x') && !view.key("key.keyboard.k"));
+        view.right_click(&screen(&book, &progress, node_at(&view, &book, &progress, "a/next")));
+        click(&mut view, &book, &progress, &Action::EditQuest("a/next".into()));
+        assert!(view.form.is_some() && view.menu.is_none());
+        // Every key is the form's: "k" must not close the book.
+        assert!(view.key("key.keyboard.k"));
+        assert!(view.typed('!'));
+        let reaction = click(&mut view, &book, &progress, &Action::Form(FormAction::Save));
+        let Reaction::Edit(Edit::SetQuestInfo { quest, info }) = reaction else {
+            panic!("no edit: {reaction:?}");
+        };
+        assert_eq!((quest.as_str(), info.title.as_str()), ("a/next", "Then this!"));
+        assert!(view.form.is_none());
+        // Escape leaves the field, then closes the form.
+        click_open_form(&mut view, &book, &progress);
+        assert!(view.key("key.keyboard.escape") && view.form.is_some());
+        assert!(view.key("key.keyboard.escape") && view.form.is_none());
+    }
+
+    fn click_open_form(view: &mut BookView, book: &Book, progress: &Progress) {
+        view.right_click(&screen(book, progress, node_at(view, book, progress, "a/next")));
+        click(view, book, progress, &Action::EditQuest("a/next".into()));
     }
 
     #[test]

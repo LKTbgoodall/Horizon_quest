@@ -4,6 +4,12 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.12.0
+- **The quest form**: in edit mode, right-click a quest, **Edit...**. Title, subtitle, description (several lines), icon (an item id, with a list of matching items to click while typing, and the icon shown beside it), shape, size, when it shows, what it needs (and how many), optional, tasks in order, repeatable, cooldown. Save checks the values (a wrong one is named in red and nothing is sent); the server checks again and saves.
+- Text fields of our own (`hq_text`): the game lends no text box to a mod screen. Characters come through `native_screen_char_typed_pre` (API 104), keys (Backspace, Delete, arrows, Home, End, Enter, Tab, Escape) through the key hook. While the form is up the book takes every key, so typing never closes the book or opens the inventory. No paste: Horizon has no clipboard helper.
+- `Edit::SetQuestInfo` (protocol 4, unchanged since 0.11.0 was not released).
+- Book previews 8 and 9: edit mode with a quest's menu, and the quest form.
+
 ## 0.11.0
 - **Edit mode**, as in FTB Quests: an operator's book has a pencil button (bottom right). It turns edit mode on (orange band, a dot on each grid cell). There:
   - drag a quest to move it (it lands on the nearest half cell); a click without moving still opens it;

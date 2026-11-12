@@ -7,7 +7,7 @@
 //
 // Ids stay as they are once made: progress files refer to full ids. A new
 // quest gets a fresh id from its title (`new_quest`, `new_quest_2`...).
-use super::hq_model::{Quest, QuestFile, Task, TaskKind, dependency_id, quest_id};
+use super::hq_model::{DependencyMode, Quest, QuestFile, Shape, Task, TaskKind, Visibility, dependency_id, quest_id};
 use super::hq_validate::{self as validate, Severity};
 use serde::{Deserialize, Serialize};
 
@@ -44,6 +44,63 @@ pub enum Edit {
     DeleteQuest { quest: String },
     /// Makes `quest` need `needs` (`on`), or stop needing it.
     Link { quest: String, needs: String, on: bool },
+    /// The quest form's fields: everything but the place, the links, the
+    /// tasks and the rewards.
+    SetQuestInfo { quest: String, info: QuestInfo },
+}
+
+/// What the quest form edits.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct QuestInfo {
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub description: Vec<String>,
+    pub icon: Option<String>,
+    pub shape: Option<Shape>,
+    pub size: Option<f32>,
+    pub visibility: Visibility,
+    pub dependency_mode: DependencyMode,
+    pub min_required: Option<u32>,
+    pub optional: bool,
+    pub sequential_tasks: bool,
+    pub repeatable: bool,
+    pub repeat_cooldown: u32,
+}
+
+impl QuestInfo {
+    pub fn of(quest: &Quest) -> Self {
+        Self {
+            title: quest.title.clone(),
+            subtitle: quest.subtitle.clone(),
+            description: quest.description.clone(),
+            icon: quest.icon.clone(),
+            shape: quest.shape,
+            size: quest.size,
+            visibility: quest.visibility,
+            dependency_mode: quest.dependency_mode,
+            min_required: quest.min_required,
+            optional: quest.optional,
+            sequential_tasks: quest.sequential_tasks,
+            repeatable: quest.repeatable,
+            repeat_cooldown: quest.repeat_cooldown,
+        }
+    }
+
+    fn write(&self, quest: &mut Quest) {
+        quest.title = self.title.clone();
+        quest.subtitle = self.subtitle.clone();
+        quest.description = self.description.clone();
+        quest.icon = self.icon.clone();
+        quest.shape = self.shape;
+        quest.size = self.size;
+        quest.visibility = self.visibility;
+        quest.dependency_mode = self.dependency_mode;
+        quest.min_required = self.min_required;
+        quest.optional = self.optional;
+        quest.sequential_tasks = self.sequential_tasks;
+        quest.repeatable = self.repeatable;
+        quest.repeat_cooldown = self.repeat_cooldown;
+    }
 }
 
 /// The chapter and place of quest `id` (a full id).
@@ -141,6 +198,14 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
                 let short = needs.strip_prefix(&format!("{here}/")).unwrap_or(needs);
                 deps.push(short.to_owned());
             }
+            Ok(None)
+        }
+        Edit::SetQuestInfo { quest, info } => {
+            if info.size.is_some_and(|size| !(0.25..=4.0).contains(&size)) {
+                return Err("A quest's size goes from 0.25 to 4.".to_owned());
+            }
+            let (c, q) = locate(file, quest).ok_or_else(|| missing(quest))?;
+            info.write(&mut file.chapters[c].quests[q]);
             Ok(None)
         }
     }
@@ -247,6 +312,23 @@ mod tests {
         apply(&mut file, &Edit::Link { quest: "two/c".into(), needs: "one/a".into(), on: true }).unwrap();
         assert_eq!(file.chapters[1].quests[0].dependencies, vec!["one/b".to_owned(), "one/a".to_owned()]);
         assert!(apply(&mut file, &Edit::Link { quest: "one/a".into(), needs: "one/a".into(), on: true }).is_err());
+        check(&file).unwrap();
+    }
+
+    #[test]
+    fn the_form_changes_the_info_and_keeps_tasks_links_and_place() {
+        let mut file = pack();
+        let mut info = QuestInfo::of(&file.chapters[0].quests[1]);
+        info.title = "Bee".into();
+        info.description = vec!["One".into(), "".into(), "Two".into()];
+        info.shape = Some(Shape::Diamond);
+        info.icon = Some("minecraft:stone".into());
+        apply(&mut file, &Edit::SetQuestInfo { quest: "one/b".into(), info: info.clone() }).unwrap();
+        let b = &file.chapters[0].quests[1];
+        assert_eq!(QuestInfo::of(b), info);
+        assert_eq!((b.dependencies.len(), b.tasks.len()), (1, 1));
+        info.size = Some(9.0);
+        assert!(apply(&mut file, &Edit::SetQuestInfo { quest: "one/b".into(), info }).is_err());
         check(&file).unwrap();
     }
 

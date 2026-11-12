@@ -7,8 +7,19 @@ A quest pack is a few JSON files: one for the pack's settings, one per chapter, 
 The server uses the first of these that exists:
 
 1. **The world's own folder**: `saves/<world>/horizon-quests/quests/`, with a `quests.json` in it.
-2. **Data packs**: the folder `data/<namespace>/horizon_quests/` of any enabled data pack of the world (including content mods). Every namespace's chapters and tables make one pack. The settings are the first namespace's `quests.json`.
-3. **The built-in example pack**, unless the server's config says `example_chapter = false`.
+2. **The modpack's folder**: `config/horizon_quests/quests/` of the instance (or server), used by every world that has no folder of its own.
+3. **Data packs**: the folder `data/<namespace>/horizon_quests/` of any enabled data pack of the world (including content mods). Every namespace's chapters and tables make one pack. The settings are the first namespace's `quests.json`.
+4. **The built-in example pack**, unless the server's config says `example_chapter = false`.
+
+## Editing in game
+
+An operator (and the owner of a single-player world) has a **pencil** at the bottom right of the book. It turns on edit mode:
+- drag a quest to move it; right-click an empty spot for **New quest here**;
+- right-click a quest: **Edit...** (the quest form: title, subtitle, description, icon with suggestions, shape, size, when it shows, what it needs, optional, tasks in order, repeatable, cooldown), **Duplicate**, **Pick what this quest needs... / opens...** (then click quests to link or unlink them), **Delete**.
+
+Every change is checked like a file would be, then saved as the world's own folder (above) and shown in every player's book. To share the result with every world of a modpack, right-click an empty spot: **Save these quests for the modpack** writes them to `config/horizon_quests/quests/`. **Use the modpack's quests** puts the world's own folder aside (renamed, never deleted). `/quests edit` shows the pencil to an operator who does not see it.
+
+Files written by the editor are complete JSON: hand edits still work on them.
 
 A pack folder looks like this (the same inside a data pack's `horizon_quests/` folder):
 

@@ -365,6 +365,27 @@ fn main() {
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 
+    // 8. Edit mode: the pencil on, the grid, a right click on a quest.
+    view.choosing = None;
+    view.close_quest();
+    (view.editor, view.editing, view.source) = (true, true, "world".to_owned());
+    let at = pointing_at(&view, &book, &progress, &Action::Quest(0));
+    view.right_click(&screen(&book, &progress, at));
+    let mouse = pointing_at(&view, &book, &progress, &Action::EditQuest("c/q".into()));
+    pictures.push((
+        "book-8-edit-menu",
+        "Edit mode (an operator clicked the pencil): orange band, grid dots, and the menu of a right click on a quest.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+
+    // 9. The quest form.
+    click(&mut view, &book, &progress, &Action::EditQuest("c/q".into()));
+    pictures.push((
+        "book-9-quest-form",
+        "Edit... opens the quest form: text fields (the cursor in the title), choices that cycle on a click, yes / no flags.",
+        svg(&view.scene(&screen(&book, &progress, AWAY)), AWAY),
+    ));
+
     let vault = root.join("../vault/04 - Design/previews");
     let page_dir = root.join("target/preview");
     std::fs::create_dir_all(&vault).expect("the previews folder");
