@@ -4,6 +4,12 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.13.0
+- **Tasks and rewards in edit mode**: in a quest's window, a click on a task or a reward opens its form, and a green **+** at the end of each column adds one. The form's **Type** cycles through the eight task types (item or `#tag` with "handed in", checkmark, kill, craft, level, dimension, place from / to, advancement) or the seven reward types (item with an optional random maximum, experience points, levels, command with `{player}`, a message on screen, a random draw or a choice from a reward table); the rows follow the type and keep what was typed when switching back and forth. Rewards also have a title, "claimed by itself" (as the pack says, never, always) and "for the whole party". **Delete** removes a task or reward.
+- New ids come from the type (`item`, `item_2`...); an edited task or reward keeps its id, so progress on it stays.
+- One form engine for quests, tasks and rewards (`hq_form::Form`, rows built per type). `Edit::SaveTask`, `RemoveTask`, `SaveReward`, `RemoveReward`.
+- Book previews 10 and 11.
+
 ## 0.12.0
 - **The quest form**: in edit mode, right-click a quest, **Edit...**. Title, subtitle, description (several lines), icon (an item id, with a list of matching items to click while typing, and the icon shown beside it), shape, size, when it shows, what it needs (and how many), optional, tasks in order, repeatable, cooldown. Save checks the values (a wrong one is named in red and nothing is sent); the server checks again and saves.
 - Text fields of our own (`hq_text`): the game lends no text box to a mod screen. Characters come through `native_screen_char_typed_pre` (API 104), keys (Backspace, Delete, arrows, Home, End, Enter, Tab, Escape) through the key hook. While the form is up the book takes every key, so typing never closes the book or opens the inventory. No paste: Horizon has no clipboard helper.

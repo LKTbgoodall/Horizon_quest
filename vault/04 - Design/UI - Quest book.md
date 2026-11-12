@@ -103,7 +103,12 @@ The quest form (v0.12.0):
   - quest: Duplicate (one cell right), Pick what this quest needs... / opens... (link picking: `linking`, each quest clicked toggles the link, Escape or a click elsewhere ends it), Delete (asks first).
 - The glue sends each `Reaction::Edit` and applies it to its own pack at once (`edit_here`: `hq_edit::apply` + `check`); `pack_changed` keeps the open quest and link picking across packs by id.
 - **Quest form** (v0.12.0, `hq_form::QuestForm`, menu entry "Edit..."): a window over the canvas (`QuestForm::rect`, 360 wide at most), rows of label + control (`ROWS`): text fields (`hq_text::TextField`: blinking cursor, the cursor's line scrolled into sight, click to place the cursor), choices cycling on a click (`< square >`), yes / no flags; icon suggestions from the item names under the icon field (`suggestions`, `PickIcon`); the wheel scrolls the rows; bottom bar with the hint or the error, Cancel, Save (`info()` → `Edit::SetQuestInfo`). While it is up, `BookView::key` takes every key (the glue cancels the press, so `native_key` never sees K) and `typed` every character (new hook `typed.rs`, `native_screen_char_typed_pre`). No paste (no clipboard helper).
-- To come: tasks and rewards (v0.13), chapters, groups, tables (v0.14).
+- **Tasks and rewards** (v0.13.0): `popup_layout(.., editing)` turns each task and reward icon's action into `EditTask` / `EditReward` ("Click to edit") and adds a green "+" (`PLUS_ICON`, `plus_icon`). The form engine is generic since then: `hq_form::Form` with rows (`Row`: text, choice, flag; `items` for item suggestions), a `Target` (quest, task, reward), `save()` → the `Edit`, `delete()` for an existing task or reward (red Delete button). A task or reward form's "Type" row rebuilds the rows (`task_rows`, `reward_rows`) and `memory` keeps the values of every type tried.
+- To come: chapters, groups, tables, pack settings (v0.14).
+
+Edit mode's quest window and the task form (v0.13.0):
+![[book-10-edit-quest-window.svg]]
+![[book-11-task-form.svg]]
 
 ## Optional fallback: chest-menu book (not planned)
 If vanilla-client support is ever wanted: pure pages in `hq_book_menu` (`layout()` / `click()`, like `smp_market_menu`), opened with `native_open_menu` (6 rows), the bottom row for navigation (`BACK=45`, `PREV=47`, `NEXT=51`, `CLOSE=53`), and the tracked quest in `native_sidebar`. See [[Example - smp mod (patterns to reuse)]] §4.

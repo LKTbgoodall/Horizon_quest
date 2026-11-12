@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 use super::hq_canvas::{self as canvas, View};
 use super::hq_edit::{self as edit, Edit};
-use super::hq_form::{FormAction, QuestForm};
+use super::hq_form::{Form, FormAction, Target};
 use super::hq_logic::{Book, QuestState, Status};
 use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind};
 use super::hq_net::ToServer;
@@ -158,6 +158,9 @@ pub enum Action {
     CloseMenu,
     /// Open the quest form for this quest (full id).
     EditQuest(String),
+    /// Open the form for task `1` of quest `0` (full id), or for a new one.
+    EditTask(String, Option<String>),
+    EditReward(String, Option<String>),
     /// A click on the quest form.
     Form(FormAction),
 }
@@ -730,8 +733,8 @@ pub struct BookView {
     pub editing: bool,
     /// Edit mode's menu, while open.
     pub menu: Option<Menu>,
-    /// Edit mode's quest form, while open.
-    pub form: Option<QuestForm>,
+    /// Edit mode's form (a quest, a task, a reward), while open.
+    pub form: Option<Form>,
     /// The quest being dragged in edit mode.
     moving: Option<Moving>,
     /// Edit mode's link picking: a click on a quest makes quest `0` need it
@@ -892,7 +895,20 @@ impl BookView {
                 self.menu = None;
                 if let Some(n) = s.book.find(&quest) {
                     self.select(None);
-                    self.form = Some(QuestForm::new(&quest, s.book.quest(n)));
+                    self.form = Some(Form::quest(&quest, s.book.quest(n)));
+                }
+            }
+            Some(Action::EditTask(quest, task)) => {
+                if let Some(n) = s.book.find(&quest) {
+                    let found = task.and_then(|t| s.book.quest(n).tasks.iter().find(|x| x.id == t));
+                    self.form = Some(Form::task(&quest, found));
+                }
+            }
+            Some(Action::EditReward(quest, reward)) => {
+                if let Some(n) = s.book.find(&quest) {
+                    let found = reward.and_then(|r| s.book.quest(n).rewards.iter().find(|x| x.id == r));
+                    let tables = s.book.file().reward_tables.iter().map(|table| table.id.clone()).collect();
+                    self.form = Some(Form::reward(&quest, found, tables));
                 }
             }
             Some(Action::Form(action)) => return self.form_click(s, &action),
@@ -984,7 +1000,10 @@ impl BookView {
     pub fn pack_changed(&mut self, old: Option<&Book>, book: &Book, select: Option<&str>) {
         self.moving = None;
         self.menu = None;
-        if self.form.as_ref().is_some_and(|form| book.find(&form.quest).is_none()) {
+        let quest_of = |form: &Form| match &form.target {
+            Target::Quest(quest) | Target::Task { quest, .. } | Target::Reward { quest, .. } => quest.clone(),
+        };
+        if self.form.as_ref().is_some_and(|form| book.find(&quest_of(form)).is_none()) {
             self.form = None;
         }
         let again = |n: usize| old.and_then(|old| old.nodes().get(n)).and_then(|node| book.find(&node.id));
@@ -1007,14 +1026,18 @@ impl BookView {
         };
         match action {
             FormAction::Cancel => self.form = None,
-            FormAction::Save => match form.info() {
-                Ok(info) => {
-                    let quest = form.quest.clone();
+            FormAction::Save => match form.save() {
+                Ok(change) => {
                     self.form = None;
-                    return Reaction::Edit(Edit::SetQuestInfo { quest, info });
+                    return Reaction::Edit(change);
                 }
                 Err(e) => form.error = e,
             },
+            FormAction::Delete => {
+                let change = form.delete();
+                self.form = None;
+                return change.map_or(Reaction::Nothing, Reaction::Edit);
+            }
             _ => form.click(action, s.measure),
         }
         Reaction::Nothing
@@ -1100,7 +1123,8 @@ impl BookView {
         let regions = scene.regions;
         let moved = |scroll: f32, by: f32, max: f32| (scroll - steps as f32 * by).clamp(0.0, max.max(0.0));
         if let Some(form) = &mut self.form {
-            form.scroll = moved(form.scroll, 3.0 * TEXT, QuestForm::max_scroll(regions.canvas));
+            let max = form.max_scroll(regions.canvas);
+            form.scroll = moved(form.scroll, 3.0 * TEXT, max);
         } else if !steps.is_finite() || self.recipe.is_some() || self.choosing.is_some() {
         } else if self.over_list(s) {
             self.sidebar_scroll = moved(self.sidebar_scroll, LIST_ROW, scene.sidebar_max_scroll);
@@ -1116,7 +1140,7 @@ impl BookView {
         let statuses = s.book.statuses(s.progress, s.player);
         let selected = self.shown_selection(s.book, &statuses);
         let regions = regions(s.rect);
-        let popup = selected.map(|n| popup_layout(s, &self.item_names, self.clock, &statuses, n, regions.canvas).0);
+        let popup = selected.map(|n| popup_layout(s, &self.item_names, self.clock, &statuses, n, regions.canvas, self.editing).0);
         let mut scene = Scene {
             regions,
             draws: Vec::new(),
@@ -1196,7 +1220,7 @@ impl BookView {
                 intersect(b, area).is_some_and(|part| canvas::inside(part, s.mouse))
             })
             .last();
-        let over_popup = selected.is_some_and(|n| canvas::inside(popup_layout(s, &self.item_names, self.clock, statuses, n, area).0, s.mouse));
+        let over_popup = selected.is_some_and(|n| canvas::inside(popup_layout(s, &self.item_names, self.clock, statuses, n, area, self.editing).0, s.mouse));
         let hovered = hovered.filter(|_| !over_popup);
         let focus = self.linking.map(|(n, _)| n).or(hovered).or(selected);
 
@@ -1409,7 +1433,7 @@ impl BookView {
         scene.text(title, [title_x, y + 5.0], INK);
 
         // Tasks on the left, rewards on the right.
-        let content = popup_layout(s, &self.item_names, self.clock, statuses, n, scene.regions.canvas).1;
+        let content = popup_layout(s, &self.item_names, self.clock, statuses, n, scene.regions.canvas, self.editing).1;
         let top = y + 1.0 + bar + 1.0;
         let half = (w - 2.0) / 2.0;
         let columns_h = content.columns_h;
@@ -1623,11 +1647,37 @@ fn popup_width(area: [f32; 4]) -> f32 {
 
 /// Quest `n`'s window: its place over the canvas `area`, as tall as what it
 /// holds (at most `POPUP_SIZE`, and the canvas), and its content.
-fn popup_layout(s: &Screen<'_>, names: &HashMap<String, String>, clock: u32, statuses: &[Status], n: usize, area: [f32; 4]) -> ([f32; 4], PopupContent) {
+fn popup_layout(
+    s: &Screen<'_>,
+    names: &HashMap<String, String>,
+    clock: u32,
+    statuses: &[Status],
+    n: usize,
+    area: [f32; 4],
+    editing: bool,
+) -> ([f32; 4], PopupContent) {
     let [x, y, w, h] = area;
     let pw = popup_width(area);
     let half = (pw - 2.0) / 2.0;
-    let (tasks, rewards) = (task_icons(s, names, n), reward_icons(s, names, clock, n));
+    let (mut tasks, mut rewards) = (task_icons(s, names, n), reward_icons(s, names, clock, n));
+    if editing {
+        // In edit mode a click edits a task or reward, and a "+" adds one.
+        let quest = s.book.quest(n);
+        let id = &s.book.nodes()[n].id;
+        let to_edit = |icon: &mut Icon, action: Action| {
+            icon.action = action;
+            icon.tip.retain(|(_, colour)| *colour != CLICK_INK);
+            icon.tip.push(("Click to edit".to_owned(), CLICK_INK));
+        };
+        for (icon, task) in tasks.iter_mut().zip(&quest.tasks) {
+            to_edit(icon, Action::EditTask(id.clone(), Some(task.id.clone())));
+        }
+        for (icon, reward) in rewards.iter_mut().zip(&quest.rewards) {
+            to_edit(icon, Action::EditReward(id.clone(), Some(reward.id.clone())));
+        }
+        tasks.push(plus_icon("Add a task", Action::EditTask(id.clone(), None)));
+        rewards.push(plus_icon("Add a reward", Action::EditReward(id.clone(), None)));
+    }
     let per_row = ((half - 2.0 * PAD) / ICON_CELL).floor().max(1.0) as usize;
     let rows = tasks.len().max(rewards.len()).min(ICONS_MAX).div_ceil(per_row).max(1);
     let max_h = POPUP_SIZE[1].min(h - 2.0 * PAD).max(0.0);
@@ -1705,6 +1755,13 @@ enum Mark {
     Alert,
     /// A random reward (not claimable yet): what it gives is not known.
     Question,
+}
+
+/// The "+" that ends a column of the quest window in edit mode.
+const PLUS_ICON: &str = "horizon_quests:plus";
+
+fn plus_icon(tip: &str, action: Action) -> Icon {
+    Icon { item: PLUS_ICON.to_owned(), count: String::new(), action, tip: vec![(tip.to_owned(), CLICK_INK)], veil: None, mark: None }
 }
 
 /// The item that stands for a task.
@@ -2353,7 +2410,10 @@ fn draw_icons(scene: &mut Scene, s: &Screen<'_>, area: [f32; 4], heading: &str, 
             scene.fill(cell, ROW_HOVER);
             tip = Some(icon.tip.clone());
         }
-        if icon.item == CHECK_TASK_ICON || icon.item == CHECK_TASK_DONE {
+        if icon.item == PLUS_ICON {
+            scene.fill([at[0] + 2.0, at[1] + 7.0, 12.0, 2.0], 0xFF60_D060);
+            scene.fill([at[0] + 7.0, at[1] + 2.0, 2.0, 12.0], 0xFF60_D060);
+        } else if icon.item == CHECK_TASK_ICON || icon.item == CHECK_TASK_DONE {
             scene.draws.extend(check_task_draws(at, icon.item == CHECK_TASK_DONE));
         } else {
             scene.draws.push(Draw::Item { item: icon.item.clone(), at, size: 16.0 });
@@ -2975,6 +3035,38 @@ mod tests {
     fn click_open_form(view: &mut BookView, book: &Book, progress: &Progress) {
         view.right_click(&screen(book, progress, node_at(view, book, progress, "a/next")));
         click(view, book, progress, &Action::EditQuest("a/next".into()));
+    }
+
+    #[test]
+    fn in_edit_mode_the_quest_window_edits_and_adds_tasks_and_rewards() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        view.selected = book.find("a/start");
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(zone(&scene, &Action::Check("a/start/ok".into())).is_some());
+        assert!(zone(&scene, &Action::EditTask("a/start".into(), None)).is_none());
+        (view.editor, view.editing) = (true, true);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert!(zone(&scene, &Action::Check("a/start/ok".into())).is_none());
+        for action in [
+            Action::EditTask("a/start".into(), Some("ok".into())),
+            Action::EditTask("a/start".into(), None),
+            Action::EditReward("a/start".into(), Some("xp".into())),
+            Action::EditReward("a/start".into(), None),
+        ] {
+            assert!(zone(&scene, &action).is_some(), "{action:?}");
+        }
+        // Editing the reward: Delete asks the server to remove it.
+        click(&mut view, &book, &progress, &Action::EditReward("a/start".into(), Some("xp".into())));
+        let reaction = click(&mut view, &book, &progress, &Action::Form(FormAction::Delete));
+        assert_eq!(reaction, Reaction::Edit(Edit::RemoveReward { quest: "a/start".into(), reward: "xp".into() }));
+        // A new task: Save sends the form's task with no id yet.
+        view.selected = book.find("a/start");
+        click(&mut view, &book, &progress, &Action::EditTask("a/start".into(), None));
+        let Reaction::Edit(Edit::SaveTask { quest, old, task }) = click(&mut view, &book, &progress, &Action::Form(FormAction::Save)) else {
+            panic!("no task saved");
+        };
+        assert_eq!((quest.as_str(), old, task.id.as_str()), ("a/start", None, ""));
     }
 
     #[test]

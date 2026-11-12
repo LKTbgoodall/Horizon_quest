@@ -386,6 +386,24 @@ fn main() {
         svg(&view.scene(&screen(&book, &progress, AWAY)), AWAY),
     ));
 
+    // 10. In edit mode the quest window edits tasks and rewards; a "+" adds one.
+    view.form = None;
+    click(&mut view, &book, &progress, &Action::Quest(0));
+    // In edit mode a quest opens when the button comes up without moving.
+    view.release(&screen(&book, &progress, AWAY));
+    let mouse = pointing_at(&view, &book, &progress, &Action::EditTask("c/q".into(), None));
+    pictures.push((
+        "book-10-edit-quest-window",
+        "In edit mode a click on a task or a reward edits it, and the green + at the end of each column adds one.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+    click(&mut view, &book, &progress, &Action::EditTask("c/q".into(), Some("w".into())));
+    pictures.push((
+        "book-11-task-form",
+        "The task form: its type cycles on a click, and the rows follow the type. Delete removes the task.",
+        svg(&view.scene(&screen(&book, &progress, AWAY)), AWAY),
+    ));
+
     let vault = root.join("../vault/04 - Design/previews");
     let page_dir = root.join("target/preview");
     std::fs::create_dir_all(&vault).expect("the previews folder");
