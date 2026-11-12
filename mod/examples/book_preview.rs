@@ -463,6 +463,28 @@ fn main() {
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 
+    // 15. Linking: the yellow dot of the quest under the pointer, dragged onto another.
+    view.menu = None;
+    view.sidebar_open = false;
+    let book = showcase();
+    let progress = Progress::default();
+    let mut view = BookView::default();
+    view.open(&screen(&book, &progress, AWAY));
+    (view.editor, view.editing, view.source) = (true, true, "world".to_owned());
+    view.sidebar_open = true;
+    click(&mut view, &book, &progress, &Action::Chapter(1));
+    view.sidebar_open = false;
+    let from = book.find("shapes/small").expect("the small quest");
+    let at = pointing_at(&view, &book, &progress, &Action::Quest(from));
+    let dot = view.scene(&screen(&book, &progress, at)).zones.iter().rev().find(|(_, a)| *a == Action::LinkFrom(from)).map(|(r, _)| [r[0] + 4.0, r[1] + 4.0]).expect("the dot");
+    view.click(&screen(&book, &progress, dot));
+    let to = pointing_at(&view, &book, &progress, &Action::Quest(book.find("shapes/boss").expect("the boss")));
+    pictures.push((
+        "book-15-link-drag",
+        "Linking in edit mode: the quest under the pointer shows a yellow dot on its edge; dragged onto another quest, it makes that quest need this one (again to undo).",
+        svg(&view.scene(&screen(&book, &progress, to)), to),
+    ));
+
     let vault = root.join("../vault/04 - Design/previews");
     let page_dir = root.join("target/preview");
     std::fs::create_dir_all(&vault).expect("the previews folder");

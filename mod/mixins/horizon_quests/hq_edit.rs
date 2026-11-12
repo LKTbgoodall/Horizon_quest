@@ -9,7 +9,7 @@
 // quest gets a fresh id from its title (`new_quest`, `new_quest_2`...).
 use super::hq_model::{
     Chapter, DependencyMode, Group, Progression, Quest, QuestFile, Reward, RewardKind, RewardTable, Settings, Shape, TableEntry, Task,
-    TaskKind, Visibility, child_id, dependency_id, quest_id,
+    Visibility, child_id, dependency_id, quest_id,
 };
 use super::hq_validate::{self as validate, Severity};
 use serde::{Deserialize, Serialize};
@@ -36,8 +36,7 @@ const FAR: f32 = 10_000.0;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum Edit {
-    /// A new quest in chapter `chapter` (its id) at (`x`, `y`): one
-    /// checkmark task, so it does not complete on its own.
+    /// A new quest in chapter `chapter` (its id) at (`x`, `y`), empty.
     NewQuest { chapter: String, x: f32, y: f32 },
     MoveQuest { quest: String, x: f32, y: f32 },
     /// A copy of the quest, with its tasks, rewards and dependencies, at
@@ -286,8 +285,7 @@ pub fn apply(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
             let (x, y) = place(*x, *y)?;
             let c = chapter_at(file, chapter)?;
             let id = fresh_id(file, c, NEW_QUEST);
-            let task = Task { id: "check".to_owned(), title: None, kind: TaskKind::Checkmark };
-            file.chapters[c].quests.push(Quest { id: id.clone(), title: NEW_QUEST.to_owned(), x, y, tasks: vec![task], ..Quest::default() });
+            file.chapters[c].quests.push(Quest { id: id.clone(), title: NEW_QUEST.to_owned(), x, y, ..Quest::default() });
             Ok(Some(quest_id(chapter, &id)))
         }
         Edit::MoveQuest { quest, x, y } => {
@@ -504,7 +502,7 @@ pub fn snap(at: [f32; 2]) -> [f32; 2] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::hq_model::Chapter;
+    use super::super::hq_model::{Chapter, TaskKind};
 
     fn pack() -> QuestFile {
         let quest = |id: &str, deps: &[&str]| Quest {
@@ -520,7 +518,7 @@ mod tests {
     }
 
     #[test]
-    fn a_new_quest_gets_a_fresh_id_and_a_checkmark() {
+    fn a_new_quest_gets_a_fresh_id_and_nothing_else() {
         let mut file = pack();
         let first = apply(&mut file, &Edit::NewQuest { chapter: "one".into(), x: 2.0, y: 1.5 }).unwrap();
         let second = apply(&mut file, &Edit::NewQuest { chapter: "one".into(), x: 3.0, y: 1.5 }).unwrap();
@@ -528,7 +526,7 @@ mod tests {
         assert_eq!(second.as_deref(), Some("one/new_quest_2"));
         let made = &file.chapters[0].quests[2];
         assert_eq!((made.x, made.y, made.title.as_str()), (2.0, 1.5, NEW_QUEST));
-        assert_eq!(made.tasks[0].kind, TaskKind::Checkmark);
+        assert!(made.tasks.is_empty() && made.rewards.is_empty());
         check(&file).unwrap();
     }
 

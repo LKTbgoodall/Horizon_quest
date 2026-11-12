@@ -4,6 +4,18 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.15.1
+- Bastien's remarks on 0.15.0:
+  - **Links by dragging**: in edit mode the quest under the pointer shows a yellow dot on its right edge; drag it onto another quest (a yellow arrow follows the pointer) and that quest needs this one; the same drag again removes the link. The menu's "Pick what this quest needs / opens" stays.
+  - A click on a panel's number types it (Enter, Escape or a click elsewhere keeps it); - / + and the wheel still step it.
+  - "Up to" (item rewards) starts at "exactly" and goes up from the count; it could not be changed before (it went below the count, which the server refused). A count that reaches it ends the range.
+  - "Auto claim: Pack's / Never / Always" became one switch, "Given at once" (it shows what the pack's setting gives when the reward names none). Not shown for a choice.
+  - One "Experience" reward in the + menu, with **Points | Levels** in its panel (also for table entries).
+  - "Tick a box" shows the check in the + menu, "Random from a table" a question mark.
+  - The shape row's first button says "Default" (the chapter's shape) instead of an "A" on a square.
+  - A new quest is empty: no checkmark task.
+- Book preview 15 (dragging a link).
+
 ## 0.15.0
 - **Editing in place**, after Bastien found the forms "horrible": the big forms are gone. In edit mode the quest window is the editor:
   - the title, subtitle and description are typed where they are shown (the description wraps; Enter starts a paragraph; Enter, Escape or a click elsewhere keeps the text);

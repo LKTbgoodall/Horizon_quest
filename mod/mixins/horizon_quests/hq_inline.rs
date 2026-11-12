@@ -23,13 +23,15 @@ use std::collections::HashMap;
 pub enum Control {
     /// A line to type in; `hint` shows while it is empty.
     Text { key: &'static str, label: &'static str, value: String, hint: &'static str },
-    /// A number with − and + (and the wheel); `zero` names the value 0
-    /// ("all", "none") when it means something else.
+    /// A number with − and + (and the wheel), typed after a click on it;
+    /// `zero` names the lowest value ("auto", "none", "exactly") when it
+    /// means something else.
     Number { key: &'static str, label: &'static str, value: f32, step: f32, min: f32, max: f32, zero: Option<&'static str> },
     Toggle { key: &'static str, label: &'static str, on: bool },
     /// Buttons side by side, one of them chosen.
     Segments { key: &'static str, label: &'static str, options: Vec<String>, at: Option<usize> },
-    /// The node shapes, drawn; with "auto" first when `auto` is some.
+    /// The node shapes, drawn; with a "Default" button first when `auto`
+    /// is some (the shape it then has).
     Shapes { key: &'static str, label: &'static str, at: Option<Shape>, auto: Option<Shape> },
     /// An item slot: a click opens the picker. `mob` shows an entity by its egg.
     Item { key: &'static str, label: &'static str, item: String, mob: bool },
@@ -43,6 +45,8 @@ pub enum PanelAction {
     /// Start typing in a text control.
     Type(&'static str),
     Step(&'static str, f32),
+    /// A number typed: its new value.
+    Set(&'static str, f32),
     Toggle(&'static str),
     Segment(&'static str, usize),
     Shape(&'static str, Option<Shape>),
@@ -69,7 +73,7 @@ const SHAPES: [Shape; 4] = [Shape::Square, Shape::Circle, Shape::Diamond, Shape:
 
 /// Sizes and colours, close to the quest window's.
 /// A panel's width: the book moves the quest window aside to make room.
-pub const PANEL_W: f32 = 196.0;
+pub const PANEL_W: f32 = 212.0;
 const LABEL_W: f32 = 72.0;
 const BAR: f32 = 13.0;
 const ROW: f32 = 14.0;
@@ -124,12 +128,14 @@ fn control<'a>(controls: &'a [Control], key: &str) -> Option<&'a Control> {
 
 /// The new value of number control `key` after `action`, if it is a step on it.
 fn new_number(controls: &[Control], action: &PanelAction) -> Option<(&'static str, f32)> {
-    let PanelAction::Step(key, by) = action else {
-        return None;
+    let (key, by, set) = match action {
+        PanelAction::Step(key, by) => (*key, *by, None),
+        PanelAction::Set(key, value) => (*key, 0.0, Some(*value)),
+        _ => return None,
     };
     match control(controls, key)? {
         Control::Number { value, step, min, max, .. } => {
-            let moved = stepped(*value, by * step).clamp(*min, *max);
+            let moved = set.unwrap_or_else(|| stepped(*value, by * step)).clamp(*min, *max);
             Some((key, moved))
         }
         _ => None,
@@ -342,7 +348,15 @@ pub fn task_pick(task: &mut Task, key: &str, id: &str) {
 
 // ---------------------------------------------------------------- rewards
 
-const AUTO_CLAIMS: [(AutoClaim, &str); 3] = [(AutoClaim::Default, "Pack's"), (AutoClaim::Disabled, "Never"), (AutoClaim::Enabled, "Always")];
+/// Whether a reward is given as soon as its quest is done (else the player
+/// clicks it); `pack` is the pack's setting, for a reward that names none.
+fn given_at_once(auto: AutoClaim, pack: bool) -> bool {
+    match auto {
+        AutoClaim::Default => pack,
+        AutoClaim::Enabled => true,
+        AutoClaim::Disabled => false,
+    }
+}
 
 /// What a reward (or a table entry) gives, as controls.
 fn kind_controls(kind: &RewardKind, tables: &[String]) -> Vec<Control> {
@@ -351,18 +365,33 @@ fn kind_controls(kind: &RewardKind, tables: &[String]) -> Vec<Control> {
         RewardKind::Item { item, count, max_count } => vec![
             Control::Item { key: "item", label: "Item", item: item.clone(), mob: false },
             number("count", "How many", *count, 9999.0),
+            // From the count up: the count itself means exactly that many.
             Control::Number {
                 key: "max",
                 label: "Up to",
-                value: max_count.unwrap_or(0) as f32,
+                value: max_count.unwrap_or(*count).max(*count) as f32,
                 step: 1.0,
-                min: 0.0,
+                min: *count as f32,
                 max: 9999.0,
                 zero: Some("exactly"),
             },
         ],
-        RewardKind::Xp { points } => vec![number("points", "Points", *points, 100_000.0)],
-        RewardKind::XpLevels { levels } => vec![number("levels", "Levels", *levels, 1000.0)],
+        RewardKind::Xp { .. } | RewardKind::XpLevels { .. } => {
+            let (amount, levels) = match kind {
+                RewardKind::XpLevels { levels } => (*levels, true),
+                RewardKind::Xp { points } => (*points, false),
+                _ => (0, false),
+            };
+            vec![
+                Control::Segments {
+                    key: "unit",
+                    label: "Experience",
+                    options: vec!["Points".to_owned(), "Levels".to_owned()],
+                    at: Some(usize::from(levels)),
+                },
+                number("amount", "How much", amount, if levels { 1000.0 } else { 100_000.0 }),
+            ]
+        }
         RewardKind::Command { command } => {
             vec![Control::Text { key: "command", label: "Command", value: command.clone(), hint: "give {player} diamond" }]
         }
@@ -381,10 +410,22 @@ fn kind_change(kind: &mut RewardKind, tables: &[String], action: &PanelAction) {
     let controls = kind_controls(kind, tables);
     let number = new_number(&controls, action);
     match (kind, number, action) {
-        (RewardKind::Item { count, .. }, Some(("count", v)), _) => *count = v as u32,
-        (RewardKind::Item { max_count, .. }, Some(("max", v)), _) => *max_count = (v >= 1.0).then_some(v as u32),
+        (RewardKind::Item { count, max_count, .. }, Some(("count", v)), _) => {
+            *count = v as u32;
+            // A range that no longer goes above the count is gone.
+            *max_count = max_count.filter(|max| *max > *count);
+        }
+        (RewardKind::Item { count, max_count, .. }, Some(("max", v)), _) => *max_count = (v as u32 > *count).then_some(v as u32),
         (RewardKind::Xp { points }, Some((_, v)), _) => *points = v as u32,
         (RewardKind::XpLevels { levels }, Some((_, v)), _) => *levels = v as u32,
+        (kind @ RewardKind::Xp { .. }, _, PanelAction::Segment("unit", 1)) => {
+            let RewardKind::Xp { points } = *kind else { return };
+            *kind = RewardKind::XpLevels { levels: points.clamp(1, 1000) };
+        }
+        (kind @ RewardKind::XpLevels { .. }, _, PanelAction::Segment("unit", 0)) => {
+            let RewardKind::XpLevels { levels } = *kind else { return };
+            *kind = RewardKind::Xp { points: levels };
+        }
         (RewardKind::Random { table } | RewardKind::Choice { table }, _, PanelAction::Segment(_, i)) => {
             if let Some(found) = tables.get(*i) {
                 *table = found.clone();
@@ -411,25 +452,24 @@ fn kind_text(kind: &mut RewardKind, key: &str, text: &str) -> Result<(), String>
 }
 
 /// A reward's controls: what it gives, its title, when it is claimed, for whom.
-pub fn reward_controls(title: Option<&str>, auto: AutoClaim, team: bool, kind: &RewardKind, tables: &[String]) -> Vec<Control> {
+/// `pack` is the pack's "rewards claimed by themselves" setting.
+pub fn reward_controls(title: Option<&str>, auto: AutoClaim, team: bool, kind: &RewardKind, tables: &[String], pack: bool) -> Vec<Control> {
     let mut controls = kind_controls(kind, tables);
     controls.push(Control::Text { key: "title", label: "Title", value: title.unwrap_or("").to_owned(), hint: "automatic" });
-    controls.push(Control::Segments {
-        key: "auto",
-        label: "Auto claim",
-        options: AUTO_CLAIMS.iter().map(|(_, l)| (*l).to_owned()).collect(),
-        at: AUTO_CLAIMS.iter().position(|(a, _)| *a == auto),
-    });
+    // A choice is always picked by a click.
+    if !matches!(kind, RewardKind::Choice { .. }) {
+        controls.push(Control::Toggle { key: "auto", label: "Given at once", on: given_at_once(auto, pack) });
+    }
     controls.push(Control::Toggle { key: "team", label: "Whole party", on: team });
     controls.push(Control::Danger { key: "delete", label: "Delete this reward" });
     controls
 }
 
 /// A reward's parts after `action`; false when nothing changed.
-pub fn reward_change(auto: &mut AutoClaim, team: &mut bool, kind: &mut RewardKind, tables: &[String], action: &PanelAction) -> bool {
+pub fn reward_change(auto: &mut AutoClaim, team: &mut bool, kind: &mut RewardKind, tables: &[String], pack: bool, action: &PanelAction) -> bool {
     let before = (*auto, *team, kind.clone());
     match action {
-        PanelAction::Segment("auto", i) => *auto = AUTO_CLAIMS.get(*i).map_or(*auto, |(a, _)| *a),
+        PanelAction::Toggle("auto") => *auto = if given_at_once(*auto, pack) { AutoClaim::Disabled } else { AutoClaim::Enabled },
         PanelAction::Toggle("team") => *team = !*team,
         _ => kind_change(kind, tables, action),
     }
@@ -677,7 +717,8 @@ pub fn subject_panel(book: &Book, subject: &Subject) -> Option<(String, Vec<Cont
         Subject::Reward(r) => {
             let (n, i) = book.find_reward(r)?;
             let reward = &book.quest(n).rewards[i];
-            ("Reward".to_owned(), reward_controls(reward.title.as_deref(), reward.auto_claim, reward.team, &reward.kind, &table_ids(book)))
+            let pack = book.settings().auto_claim_rewards;
+            ("Reward".to_owned(), reward_controls(reward.title.as_deref(), reward.auto_claim, reward.team, &reward.kind, &table_ids(book), pack))
         }
         Subject::Chapter(c) => {
             let chapter = book.file().chapters.iter().find(|ch| ch.id == *c)?;
@@ -736,7 +777,8 @@ pub fn subject_action(book: &Book, subject: &Subject, action: &PanelAction) -> O
             if delete {
                 return Some(Edit::RemoveReward { quest, reward: reward.id });
             }
-            let changed = reward_change(&mut reward.auto_claim, &mut reward.team, &mut reward.kind, &table_ids(book), action);
+            let pack = book.settings().auto_claim_rewards;
+            let changed = reward_change(&mut reward.auto_claim, &mut reward.team, &mut reward.kind, &table_ids(book), pack, action);
             let old = Some(reward.id.clone());
             changed.then_some(Edit::SaveReward { quest, old, reward })
         }
@@ -761,8 +803,18 @@ pub fn subject_action(book: &Book, subject: &Subject, action: &PanelAction) -> O
     }
 }
 
-/// The edit text typed into `subject`'s control `key` asks for.
+/// The edit text typed into `subject`'s control `key` asks for. A number
+/// typed sets it (nothing typed: its lowest value).
 pub fn subject_text(book: &Book, subject: &Subject, key: &str, text: &str) -> Result<Option<Edit>, String> {
+    if let Some((_, controls)) = subject_panel(book, subject)
+        && let Some(Control::Number { key: number, label, min, .. }) = control(&controls, key)
+    {
+        let value = match text.trim() {
+            "" => *min,
+            typed => typed.replace(',', ".").parse::<f32>().map_err(|_| format!("{label}: a number."))?,
+        };
+        return Ok(subject_action(book, subject, &PanelAction::Set(number, value)));
+    }
     Ok(match subject {
         Subject::Task(t) => task_of(book, t).map(|(quest, mut task)| -> Result<Edit, String> {
             task_text(&mut task, key, text)?;
@@ -785,11 +837,13 @@ pub fn subject_text(book: &Book, subject: &Subject, key: &str, text: &str) -> Re
     })
 }
 
-/// What text control `key` of `subject` holds now, to start typing from.
+/// What text or number control `key` of `subject` holds now, to start
+/// typing from.
 pub fn subject_value(book: &Book, subject: &Subject, key: &str) -> String {
     subject_panel(book, subject)
         .and_then(|(_, controls)| match control(&controls, key) {
             Some(Control::Text { value, .. }) => Some(value.clone()),
+            Some(Control::Number { value, .. }) => Some(number_text(*value)),
             _ => None,
         })
         .unwrap_or_default()
@@ -851,6 +905,11 @@ pub fn picked(book: &Book, purpose: &Purpose, subject: Option<&Subject>, id: &st
     }
 }
 
+/// Menu icons drawn by the book rather than as items: the checkmark task's
+/// round button, and a question mark (a random reward).
+pub const CHECK_ICON: &str = "horizon_quests:check_task";
+pub const QUESTION_ICON: &str = "horizon_quests:question";
+
 /// The "add a task" menu of quest `quest`: (label, icon, what it does).
 pub fn add_task_menu(quest: &str) -> Vec<(String, String, Add)> {
     let pick = |kind, mobs| Add::Pick(Purpose::NewTask { quest: quest.to_owned(), kind }, mobs);
@@ -860,7 +919,7 @@ pub fn add_task_menu(quest: &str) -> Vec<(String, String, Add)> {
         ("Hand in items", "minecraft:hopper", pick(NewTask::HandIn, false)),
         ("Craft items", "minecraft:crafting_table", pick(NewTask::Craft, false)),
         ("Kill mobs", "minecraft:iron_sword", pick(NewTask::Kill, true)),
-        ("Tick a box", "minecraft:lever", make(TaskKind::Checkmark)),
+        ("Tick a box", CHECK_ICON, make(TaskKind::Checkmark)),
         ("Reach a level", "minecraft:experience_bottle", make(TaskKind::XpLevels { levels: 10 })),
         ("Visit a dimension", "minecraft:obsidian", make(TaskKind::Dimension { dimension: "minecraft:the_nether".into() })),
         ("Reach a place", "minecraft:compass", make(TaskKind::Location { dimension: None, from: [0, -64, 0], to: [16, 320, 16] })),
@@ -880,13 +939,12 @@ pub fn add_reward_menu(book: &Book, quest: &str) -> Vec<(String, String, Add)> {
     };
     let mut menu = vec![
         ("Items", "minecraft:chest", Add::Pick(Purpose::NewReward(quest.to_owned()), false)),
-        ("Experience points", "minecraft:experience_bottle", make(RewardKind::Xp { points: 50 })),
-        ("Experience levels", "minecraft:enchanting_table", make(RewardKind::XpLevels { levels: 1 })),
+        ("Experience", "minecraft:experience_bottle", make(RewardKind::Xp { points: 50 })),
         ("Run a command", "minecraft:command_block", make(RewardKind::Command { command: "say {player} did it!".into() })),
         ("Show a message", "minecraft:paper", make(RewardKind::Toast { text: "Well done!".into() })),
     ];
     if let Some(table) = table_ids(book).into_iter().next() {
-        menu.push(("Random from a table", "minecraft:ender_chest", make(RewardKind::Random { table: table.clone() })));
+        menu.push(("Random from a table", QUESTION_ICON, make(RewardKind::Random { table: table.clone() })));
         menu.push(("Choice from a table", "minecraft:barrel", make(RewardKind::Choice { table })));
     }
     menu.into_iter().map(|(label, icon, add)| (label.to_owned(), icon.to_owned(), add)).collect()
@@ -1034,7 +1092,7 @@ pub fn panel(
                 }
                 zones.push((field, PanelAction::Type(key)));
             }
-            Control::Number { key, value, zero, .. } => {
+            Control::Number { key, value, zero, min, .. } => {
                 let minus = [field_x, row_y, 12.0, ROW - 2.0];
                 let plus = [field_x + field_w - 12.0, row_y, 12.0, ROW - 2.0];
                 for (button, sign, by) in [(minus, "-", -1.0), (plus, "+", 1.0)] {
@@ -1042,16 +1100,33 @@ pub fn panel(
                     text(&mut draws, sign.to_owned(), [button[0] + 4.0, button[1] + 2.0], INK);
                     zones.push((button, PanelAction::Step(key, by)));
                 }
+                let lowest = *value <= *min;
                 let shown = match zero {
-                    Some(name) if *value == 0.0 => (*name).to_owned(),
+                    Some(name) if lowest => (*name).to_owned(),
                     _ => number_text(*value),
                 };
                 let middle = [minus[0] + 14.0, row_y, field_w - 28.0, ROW - 2.0];
                 fill(&mut draws, middle, SLOT);
-                let tw = measure(&shown);
-                let ink = if zero.is_some() && *value == 0.0 { DIM_INK } else { INK };
-                text(&mut draws, fit_text(&shown, middle[2] - 4.0, measure), [middle[0] + ((middle[2] - tw) / 2.0).max(2.0), row_y + 2.0], ink);
-                // The wheel over the number steps it too (the book reads this zone).
+                match typing.filter(|(k, _)| k == key).map(|(_, f)| f) {
+                    Some(f) => {
+                        frame(&mut draws, middle, FOCUS_EDGE);
+                        let (typed, _, cursor) = f.shown(0, middle[2] - 6.0, measure);
+                        let at = [middle[0] + 3.0, row_y + 2.0];
+                        text(&mut draws, typed, at, INK);
+                        if let Some(cx) = cursor.filter(|_| (clock / 10) % 2 == 0) {
+                            fill(&mut draws, [at[0] + cx, at[1] - 1.0, 1.0, 9.0], CURSOR);
+                        }
+                    }
+                    None => {
+                        if canvas::inside(middle, mouse) {
+                            frame(&mut draws, middle, SLOT_EDGE);
+                        }
+                        let tw = measure(&shown);
+                        let ink = if zero.is_some() && lowest { DIM_INK } else { INK };
+                        text(&mut draws, fit_text(&shown, middle[2] - 4.0, measure), [middle[0] + ((middle[2] - tw) / 2.0).max(2.0), row_y + 2.0], ink);
+                    }
+                }
+                // A click types the number; the wheel over it steps it (the book reads this zone).
                 zones.push((middle, PanelAction::Step(key, 0.0)));
             }
             Control::Toggle { key, on, .. } => {
@@ -1082,20 +1157,19 @@ pub fn panel(
                 }
                 choices.extend(SHAPES.iter().map(|s| Some(*s)));
                 for choice in choices {
-                    let button = [bx, row_y, 19.0, 19.0];
+                    let button = if choice.is_none() { [bx, row_y, measure("Default") + 8.0, 19.0] } else { [bx, row_y, 18.0, 19.0] };
                     let chosen = *at == choice;
                     fill(&mut draws, button, if chosen { CHIP_ON } else if canvas::inside(button, mouse) { CHIP_HOVER } else { CHIP });
                     if chosen {
                         frame(&mut draws, button, CHIP_ON_EDGE);
                     }
-                    let shape = choice.or(*auto).unwrap_or(Shape::Square);
-                    draws.push(shape_draw(shape, [button[0] + 2.5, button[1] + 2.5], 14.0));
-                    if choice.is_none() {
-                        // "Auto": the shape it gets, marked with an A.
-                        text(&mut draws, "A".to_owned(), [button[0] + 13.0, button[1] + 11.0], 0xFF_E080);
+                    match choice {
+                        // "Default": the chapter's (or the pack's) shape.
+                        None => text(&mut draws, "Default".to_owned(), [button[0] + 4.0, button[1] + 6.0], if chosen { INK } else { LABEL_INK }),
+                        Some(shape) => draws.push(shape_draw(shape, [button[0] + 2.0, button[1] + 2.5], 14.0)),
                     }
                     zones.push((button, PanelAction::Shape(key, choice)));
-                    bx += 21.0;
+                    bx += button[2] + 2.0;
                 }
             }
             Control::Item { key, item, mob, .. } => {
@@ -1292,13 +1366,27 @@ mod tests {
         let tables = vec!["a".to_owned(), "b".to_owned()];
         let (mut auto, mut team) = (AutoClaim::Default, false);
         let mut kind = RewardKind::Item { item: "minecraft:bread".into(), count: 2, max_count: None };
-        reward_change(&mut auto, &mut team, &mut kind, &tables, &PanelAction::Step("max", 1.0));
-        assert_eq!(kind, RewardKind::Item { item: "minecraft:bread".into(), count: 2, max_count: Some(1) });
-        reward_change(&mut auto, &mut team, &mut kind, &tables, &PanelAction::Segment("auto", 2));
-        reward_change(&mut auto, &mut team, &mut kind, &tables, &PanelAction::Toggle("team"));
+        // "Up to" starts at the count: one step up is a range 2-3.
+        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Step("max", 1.0));
+        assert_eq!(kind, RewardKind::Item { item: "minecraft:bread".into(), count: 2, max_count: Some(3) });
+        // A count that reaches the top ends the range.
+        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Set("count", 5.0));
+        assert_eq!(kind, RewardKind::Item { item: "minecraft:bread".into(), count: 5, max_count: None });
+        // "Given at once": with the pack's setting off, a click turns it on.
+        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Toggle("auto"));
+        reward_change(&mut auto, &mut team, &mut kind, &tables, false, &PanelAction::Toggle("team"));
         assert_eq!((auto, team), (AutoClaim::Enabled, true));
+        reward_change(&mut auto, &mut team, &mut kind, &tables, true, &PanelAction::Toggle("auto"));
+        assert_eq!(auto, AutoClaim::Disabled);
+        // Experience: points and levels are one reward with a unit.
+        let mut xp = RewardKind::Xp { points: 30 };
+        reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Segment("unit", 1));
+        assert_eq!(xp, RewardKind::XpLevels { levels: 30 });
+        reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Set("amount", 3.0));
+        reward_change(&mut auto, &mut team, &mut xp, &tables, false, &PanelAction::Segment("unit", 0));
+        assert_eq!(xp, RewardKind::Xp { points: 3 });
         let mut draw = RewardKind::Random { table: "a".into() };
-        reward_change(&mut auto, &mut team, &mut draw, &tables, &PanelAction::Segment("table", 1));
+        reward_change(&mut auto, &mut team, &mut draw, &tables, false, &PanelAction::Segment("table", 1));
         assert_eq!(draw, RewardKind::Random { table: "b".into() });
         let mut title = None;
         let mut command = RewardKind::Command { command: "say hi".into() };

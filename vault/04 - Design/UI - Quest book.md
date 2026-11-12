@@ -115,6 +115,9 @@ The quest form (v0.12.0):
 The chapter list in edit mode (v0.14.0):
 ![[book-14-edit-chapters.svg]]
 
+Linking by dragging the yellow dot (v0.15.1):
+![[book-15-link-drag.svg]]
+
 Edit mode's quest window and the task form (v0.13.0):
 
 
