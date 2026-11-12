@@ -775,6 +775,9 @@ pub struct BookView {
     /// The panel to go back to when the open one closes: the reward whose
     /// table entry is being edited.
     pub panel_back: Option<Subject>,
+    /// What - / + and the wheel move a table's chances by, in percent (0:
+    /// not chosen yet, the default).
+    pub chance_step: f32,
     pub picker: Option<(Picker, Purpose)>,
     pub typing: Option<(Typed, TextField)>,
     /// The book's rect at the last frame: where typed text wraps.
@@ -811,6 +814,11 @@ impl BookView {
         if self.selected.is_some_and(|n| n >= s.book.nodes().len()) {
             self.selected = None;
         }
+    }
+
+    /// What a step of a table's chances is, in percent.
+    fn step_of_chances(&self) -> f32 {
+        if self.chance_step > 0.0 { self.chance_step } else { inline::DEFAULT_CHANCE_STEP }
     }
 
     /// Every quest's status as the book shows it: in edit mode the quests
@@ -1296,12 +1304,13 @@ impl BookView {
             }
             PanelAction::RowStep(key, i, by) if by == 0.0 => {
                 if let Some(table) = inline::subject_table(s.book, &subject) {
-                    let value = inline::row_chance(s.book, &table, i).to_string();
-                    self.typing = Some((Typed::Row(key, i), TextField::new(&value, 5)));
+                    let value = inline::chance_text(inline::row_chance(s.book, &table, i)).trim_end_matches('%').to_owned();
+                    self.typing = Some((Typed::Row(key, i), TextField::new(&value, 6)));
                 }
             }
+            PanelAction::ChanceStep(_, step) => self.chance_step = step,
             PanelAction::RowStep(_, i, by) => {
-                match inline::row_chance_edit(s.book, &subject, i, by, None) {
+                match inline::row_chance_edit(s.book, &subject, i, by * self.step_of_chances(), None) {
                     Ok(Some(change)) => return Reaction::Edit(change),
                     Ok(None) => {}
                     Err(e) => self.notice = e,
@@ -1528,7 +1537,7 @@ impl BookView {
         if let Some(Action::Panel(PanelAction::Step(key, _))) = scene.action_at(s.mouse).cloned() {
             return self.panel_click(s, PanelAction::Step(key, steps.signum() as f32));
         }
-        // Over a chance in a list: the wheel moves it by one percent.
+        // Over a chance in a list: the wheel moves it by a step.
         if let Some(Action::Panel(PanelAction::RowStep(key, i, _))) = scene.action_at(s.mouse).cloned() {
             return self.panel_click(s, PanelAction::RowStep(key, i, steps.signum() as f32));
         }
@@ -1577,8 +1586,14 @@ impl BookView {
         // Edit mode's panel beside the quest window, the picker over everything.
         let mut over_panel = false;
         if let Some(subject) = &self.panel
-            && let Some((title, controls)) = inline::subject_panel(s.book, subject)
+            && let Some((title, mut controls)) = inline::subject_panel(s.book, subject)
         {
+            // The step chosen for chances shows as chosen.
+            for control in &mut controls {
+                if let inline::Control::Rows { step, .. } = control {
+                    *step = self.step_of_chances();
+                }
+            }
             let anchor = popup.unwrap_or([regions.canvas[0], regions.canvas[1] + PAD, 0.0, 0.0]);
             let row_key = match &self.typing {
                 Some((Typed::Row(key, i), _)) => format!("{key}#{i}"),
@@ -3833,6 +3848,22 @@ mod tests {
     }
 
     #[test]
+    fn a_chance_moves_by_the_step_chosen() {
+        let chapter = r#"{ "id": "c", "title": "C", "quests": [ { "id": "q", "title": "Q", "rewards": [ { "id": "r", "type": "random", "table": "loot" } ] } ] }"#;
+        let table = r#"{ "id": "loot", "entries": [ { "type": "xp", "points": 5, "weight": 1 }, { "type": "xp", "points": 9, "weight": 3 } ] }"#;
+        let loaded = super::super::hq_validate::load_pack(Some("{}"), &[("c.json", chapter)], &[("loot.json", table)]);
+        let (book, progress) = (Book::new(loaded.file), Progress::default());
+        let mut view = opened(&book, &progress);
+        (view.editor, view.editing) = (true, true);
+        view.panel = Some(Subject::Reward("c/q/r".into()));
+        click(&mut view, &book, &progress, &Action::Panel(PanelAction::ChanceStep("entries", 0.1)));
+        assert_eq!(view.chance_step, 0.1);
+        let reaction = click(&mut view, &book, &progress, &Action::Panel(PanelAction::RowStep("entries", 0, 1.0)));
+        assert!(matches!(&reaction, Reaction::Edit(Edit::SetChance { index: 0, percent, .. }) if (*percent - 25.1).abs() < 0.01), "{reaction:?}");
+        assert_eq!(inline::chance_text(12.5), "12.5%");
+    }
+
+    #[test]
     fn a_click_on_a_panel_number_types_it() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
@@ -3933,7 +3964,7 @@ mod tests {
             inline::Control::Rows { rows, .. } => Some(rows.clone()),
             _ => None,
         });
-        assert_eq!(rows, Some(vec![("minecraft:experience_bottle".to_owned(), "5 XP".to_owned(), Some(100))]));
+        assert_eq!(rows, Some(vec![("minecraft:experience_bottle".to_owned(), "5 XP".to_owned(), Some(100.0))]));
         click(&mut view, &book, &progress, &Action::Panel(PanelAction::Row("entries", 0)));
         assert_eq!(view.panel, Some(Subject::Entry("loot".into(), 0)));
         click(&mut view, &book, &progress, &Action::Panel(PanelAction::Close));

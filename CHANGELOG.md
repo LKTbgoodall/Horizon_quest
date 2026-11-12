@@ -4,6 +4,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 
+## 0.17.1
+- Bastien: a Step row under a random table's list, 0.1 / 0.5 / 1 / 2 / 5 percent, for - / + and the wheel. Chances are kept to a tenth of a percent: set chances make the weights add up to 1000.
+
 ## 0.17.0
 - Bastien's requests:
   - Edit mode shows what players do not see: secret or not yet shown quests, and quests of hidden chapters, under a violet veil with a crossed eye, so they can be edited; hidden chapters are listed in violet with "(hidden)".

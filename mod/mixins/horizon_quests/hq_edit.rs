@@ -76,10 +76,10 @@ pub enum Edit {
     /// Replaces entry `index` of the table, or adds `entry` at the end.
     SaveEntry { table: String, index: Option<usize>, entry: TableEntry },
     RemoveEntry { table: String, index: usize },
-    /// Gives entry `index` of a random table a `percent` chance: the
-    /// weights become percentages, the other entries keeping their shares
-    /// of the rest.
-    SetChance { table: String, index: usize, percent: u32 },
+    /// Gives entry `index` of a random table a `percent` chance (to a tenth):
+    /// the weights become tenths of a percent (1000 in all), the other
+    /// entries keeping their shares of the rest.
+    SetChance { table: String, index: usize, percent: f32 },
     /// Every entry of the table the same chance.
     EvenChances { table: String },
     /// Gives the table an id made from `name`; the rewards that draw from
@@ -319,14 +319,20 @@ fn used_tables(file: &QuestFile) -> Vec<String> {
         .collect()
 }
 
-/// Weights giving entry `index` `percent` of 100, the others sharing the
-/// rest as their `weights` did (equally when they were all 0).
-pub fn chances(weights: &[u32], index: usize, percent: u32) -> Vec<u32> {
+/// What the weights of a table add up to once chances are set: tenths of a
+/// percent.
+pub const CHANCE_TOTAL: u32 = 1000;
+
+/// Weights giving entry `index` `percent` (to a tenth) of `CHANCE_TOTAL`,
+/// the others sharing the rest as their `weights` did (equally when they
+/// were all 0).
+pub fn chances(weights: &[u32], index: usize, percent: f32) -> Vec<u32> {
     if weights.len() <= 1 {
-        return vec![100; weights.len()];
+        return vec![CHANCE_TOTAL; weights.len()];
     }
-    let percent = percent.clamp(1, 99);
-    let rest = 100 - percent;
+    let tenths = if percent.is_finite() { (percent * 10.0).round() as u32 } else { 0 };
+    let percent = tenths.clamp(1, CHANCE_TOTAL - 1);
+    let rest = CHANCE_TOTAL - percent;
     let others: u32 = weights.iter().enumerate().filter(|(i, _)| *i != index).map(|(_, w)| *w).sum();
     let count = weights.len() as u32 - 1;
     let mut out: Vec<u32> = weights
@@ -345,7 +351,7 @@ pub fn chances(weights: &[u32], index: usize, percent: u32) -> Vec<u32> {
     // Rounding: the largest other entry takes what is missing or over.
     let sum: u32 = out.iter().sum();
     if let Some(big) = (0..out.len()).filter(|&i| i != index).max_by_key(|&i| out[i]) {
-        out[big] = (out[big] + 100).saturating_sub(sum).max(if sum > 100 { 0 } else { 1 });
+        out[big] = (out[big] + CHANCE_TOTAL).saturating_sub(sum);
     }
     out
 }
@@ -666,18 +672,19 @@ mod tests {
 
     #[test]
     fn chances_are_percentages_and_unused_tables_go() {
-        assert_eq!(chances(&[1, 1, 2], 0, 50), [50, 17, 33]);
-        assert_eq!(chances(&[1, 1, 2], 0, 50).iter().sum::<u32>(), 100);
-        assert_eq!(chances(&[5], 0, 30), [100]);
-        assert_eq!(chances(&[0, 0, 0], 2, 40), [30, 30, 40]);
-        assert_eq!(chances(&[3, 1], 1, 100), [1, 99]);
+        assert_eq!(chances(&[1, 1, 2], 0, 50.0), [500, 167, 333]);
+        assert_eq!(chances(&[1, 1, 2], 0, 12.3).iter().sum::<u32>(), 1000);
+        assert_eq!(chances(&[1, 1, 2], 0, 12.3)[0], 123);
+        assert_eq!(chances(&[5], 0, 30.0), [1000]);
+        assert_eq!(chances(&[0, 0, 0], 2, 40.0), [300, 300, 400]);
+        assert_eq!(chances(&[3, 1], 1, 100.0), [1, 999]);
         let mut file = pack();
         apply(&mut file, &Edit::NewTableReward { quest: "one/a".into(), choice: false, item: "minecraft:apple".into() }).unwrap();
         let entry = TableEntry { weight: 1, title: None, kind: RewardKind::Xp { points: 5 } };
         apply(&mut file, &Edit::SaveEntry { table: "a_loot".into(), index: None, entry }).unwrap();
-        apply(&mut file, &Edit::SetChance { table: "a_loot".into(), index: 1, percent: 25 }).unwrap();
+        apply(&mut file, &Edit::SetChance { table: "a_loot".into(), index: 1, percent: 25.0 }).unwrap();
         let weights: Vec<u32> = file.reward_tables.iter().find(|t| t.id == "a_loot").unwrap().entries.iter().map(|e| e.weight).collect();
-        assert_eq!(weights, [75, 25]);
+        assert_eq!(weights, [750, 250]);
         apply(&mut file, &Edit::EvenChances { table: "a_loot".into() }).unwrap();
         assert!(file.reward_tables.iter().find(|t| t.id == "a_loot").unwrap().entries.iter().all(|e| e.weight == 1));
         // Renamed: the reward follows; a name taken or empty is refused.
