@@ -6,7 +6,7 @@ verified_on: 2026-11-10
 
 ## Project
 - Repository: https://github.com/LKTbgoodall/Horizon_quest
-- Sister project (same author, mob-powered tech mod): `D:devmod_minecraftcagebound` (Cagebound, ex-Organa)
+- Sister project (same author, mob-powered tech mod): `D:\dev\mod_minecraft\cagebound` (Cagebound, ex-Organa)
 
 ## Horizon: website
 - Home: https://playhorizon.dev
