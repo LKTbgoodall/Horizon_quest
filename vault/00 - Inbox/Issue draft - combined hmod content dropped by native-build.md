@@ -1,7 +1,7 @@
 ---
 tags: [inbox, horizon, issue-draft]
 date: 2026-11-13
-status: draft, not sent (Bastien decides)
+status: sent 2026-11-13 as horizon-rust/horizon#15933
 ---
 # Issue draft for horizon-rust/horizon: a combined `.hmod`'s content is dropped by `native-build`
 
