@@ -2129,14 +2129,16 @@ const THROB_RED: u32 = 0xFFB0_2828;
 /// The quest window's two arrows, at the ends of its columns' heading row
 /// (`row`: x, y, width): left, the quests it needs, in the lines' cyan;
 /// right, those it opens, in their yellow. A click lists them
-/// (`Action::Related`). Dim when there is none; the left one throbs red
+/// (`Action::Related`). Dim when there is none the player sees (hidden
+/// quests do not count); the left one throbs red
 /// while the quest is locked. `ticks`: the clock, with the frame's part of a
 /// tick. Returns the tooltip of the one under the pointer.
 fn draw_arrows(scene: &mut Scene, s: &Screen<'_>, statuses: &[Status], n: usize, row: [f32; 3], ticks: f32) -> Option<Vec<(String, u32)>> {
     let node = &s.book.nodes()[n];
     let mut tip = None;
     for needs in [true, false] {
-        let count = if needs { node.dependencies.len() } else { node.dependents.len() };
+        let others = if needs { &node.dependencies } else { &node.dependents };
+        let count = others.iter().filter(|&&m| statuses[m].visible).count();
         let x = if needs { row[0] + 2.0 } else { row[0] + row[2] - 2.0 - ARROW_BOX };
         let rect = [x, row[1] + 2.0, ARROW_BOX, ARROW_BOX];
         let over = canvas::inside(rect, s.mouse);
@@ -2213,22 +2215,14 @@ fn quest_menu(s: &Screen<'_>, n: usize, at: [f32; 2]) -> Menu {
 
 /// The menu of the quests quest `n` needs (`needs`) or opens, from any
 /// chapter: each with its icon (checked once done) and, from another
-/// chapter, that chapter's name. Quests the player does not see are only
-/// counted. None when there is none.
+/// chapter, that chapter's name. Quests the player does not see are left
+/// out, not even counted. None when there is none to show.
 fn related_menu(s: &Screen<'_>, statuses: &[Status], n: usize, needs: bool, at: [f32; 2]) -> Option<Menu> {
     let book = s.book;
     let node = &book.nodes()[n];
     let others = if needs { &node.dependencies } else { &node.dependents };
-    if others.is_empty() {
-        return None;
-    }
     let (mut entries, mut icons, mut done) = (Vec::new(), Vec::new(), Vec::new());
-    let mut hidden = 0;
-    for &m in others {
-        if !statuses[m].visible {
-            hidden += 1;
-            continue;
-        }
+    for &m in others.iter().filter(|&&m| statuses[m].visible) {
         let other = &book.nodes()[m];
         let mut label = quest_title(book.quest(m)).to_owned();
         if other.chapter != node.chapter {
@@ -2241,11 +2235,8 @@ fn related_menu(s: &Screen<'_>, statuses: &[Status], n: usize, needs: bool, at: 
         icons.push(quest_icon(book.quest(m)).to_owned());
         done.push(s.progress.is_completed(&other.id));
     }
-    if hidden > 0 {
-        let more = if entries.is_empty() { "" } else { "+ " };
-        entries.push((format!("{more}{hidden} hidden"), Action::Stay));
-        icons.push(String::new());
-        done.push(false);
+    if entries.is_empty() {
+        return None;
     }
     let quest = book.quest(n);
     // As hq_logic counts: `min_required` (done ones) wins over the mode.
@@ -2339,9 +2330,7 @@ fn draw_menu(scene: &mut Scene, s: &Screen<'_>, menu: &Menu) {
     }
     for (i, (label, action)) in menu.entries.iter().enumerate() {
         let rect = [x + 1.0, row_y, w - 2.0, row_h];
-        // An entry that does nothing is a note: dim, never lit.
-        let note = *action == Action::Stay;
-        if canvas::inside(rect, s.mouse) && !note {
+        if canvas::inside(rect, s.mouse) {
             scene.fill(rect, ROW_HOVER);
         }
         let danger = matches!(
@@ -2360,15 +2349,14 @@ fn draw_menu(scene: &mut Scene, s: &Screen<'_>, menu: &Menu) {
                 let dst = [x + PAD, row_y + 1.0, 12.0, 12.0];
                 scene.draws.push(mark_sprite(MarkCell::Question, dst, mark_pixel_draws(Mark::Question, [dst[0] - 10.0, dst[1] + 3.5])));
             }
-            Some("") | None => {}
             Some(icon) => scene.draws.push(Draw::Item { item: icon.to_owned(), at: [x + PAD, row_y + 1.5], size: 12.0 }),
+            None => {}
         }
         if menu.done.get(i).copied().unwrap_or(false) {
             // The quest window's check, a little left: the label follows close.
             scene.draws.extend(mark_draws(Mark::Check, [x + PAD - 3.0, row_y + 4.0]));
         }
-        let ink = if danger { DANGER_INK } else if note { DIM_INK } else { INK };
-        scene.text(label.clone(), [x + PAD + 1.0 + indent, row_y + (row_h - 8.0) / 2.0], ink);
+        scene.text(label.clone(), [x + PAD + 1.0 + indent, row_y + (row_h - 8.0) / 2.0], if danger { DANGER_INK } else { INK });
         scene.zones.push((rect, action.clone()));
         row_y += row_h;
     }
@@ -4706,7 +4694,7 @@ mod tests {
     }
 
     #[test]
-    fn the_arrows_list_what_a_quest_needs_and_opens_without_the_hidden_ones() {
+    fn the_arrows_list_what_a_quest_needs_and_opens_and_never_the_hidden_ones() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         click(&mut view, &book, &progress, &Action::Quest(1));
@@ -4715,17 +4703,18 @@ mod tests {
         assert_eq!(menu.title.as_deref(), Some("Needs"));
         assert_eq!(menu.entries, [("Start here".to_owned(), Action::GoTo(0))]);
         assert_eq!((menu.icons, menu.done), (vec!["minecraft:book".to_owned()], vec![false]));
-        // "A surprise" waits for this one: players do not see it yet.
+        // "A surprise" waits for this one: players do not see it yet, so
+        // the right arrow has nothing to show, not even a count.
         view.menu = None;
-        click(&mut view, &book, &progress, &Action::Related(1, false));
-        let menu = view.menu.clone().expect("the opens menu");
-        assert_eq!(menu.title.as_deref(), Some("Opens"));
-        assert_eq!(menu.entries, [("1 hidden".to_owned(), Action::Stay)]);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        assert_eq!(zone(&scene, &Action::Related(1, false)), None);
         // In edit mode every quest is listed.
         view.menu = None;
         view.editing = true;
         click(&mut view, &book, &progress, &Action::Related(1, false));
-        assert_eq!(view.menu.clone().unwrap().entries, [("A surprise".to_owned(), Action::GoTo(2))]);
+        let menu = view.menu.clone().expect("the opens menu");
+        assert_eq!(menu.title.as_deref(), Some("Opens"));
+        assert_eq!(menu.entries, [("A surprise".to_owned(), Action::GoTo(2))]);
     }
 
     #[test]

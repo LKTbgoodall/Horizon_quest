@@ -7,6 +7,9 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 - `tools/build-mod.sh --combined` (the Linux twin of `-Combined`); a launcher path with spaces in its menu entry is read whole.
 - `tools/check-glue.sh`: `HORIZON_SOURCE` points it at a checkout of the pinned revision the launcher has not built with yet.
 
+## 0.18.1
+- Bastien: hidden quests are not even counted behind the arrows. The "N hidden" line is gone, and an arrow whose quests are all hidden is dim and does nothing, as if there were none.
+
 ## 0.18.0
 - **Arrows in the quest window**, as in FTB Quests (Bastien): at the ends of the Tasks / Rewards row, a cyan arrow (what the quest needs) and a yellow one (what it opens), the colours of the book's focus lines. A click lists those quests, from any chapter, with their icons, a check on the done ones and the chapter's name for another chapter; a click on one turns to its chapter, centres it and opens it. Quests the player cannot see are only counted ("N hidden"); edit mode lists them all. The list's title says what is needed ("Needs", "Needs one of", "Needs 2 done of"...). The left arrow throbs red while the quest is locked; an arrow with nothing behind it is dim.
 - The "Needs: [ ] ..." lines under "Locked" are gone: the left arrow replaces them.
