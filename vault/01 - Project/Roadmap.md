@@ -83,7 +83,7 @@ updated: 2026-11-12
   - [ ] v0.13.0: tasks and rewards: add (the "+" of FTB), edit, remove, per type: coded 2026-11-12, to test in game
   - [ ] v0.15.0: **editing in place** (Bastien: the forms were horrible, typing ids too): the quest window is the editor, item / mob picker, panels with visual controls for quests, tasks, rewards, chapters, entries, settings; coded 2026-11-12, to test in game ([[ADR-017 Edit in place]])
   - [ ] v0.14.0: chapters and groups (new, edit, move, delete), reward tables and entries, pack settings: coded 2026-11-12, to test in game. Everything a pack file holds is now editable in game
-  - [ ] v0.20.0: the chapter list edited with the mouse: grips, chapters and groups dragged into place (between groups too), a "+" on each group heading, empty groups listed in edit mode: coded 2026-11-13, to test in game
+  - [x] v0.20.0: the chapter list edited with the mouse: grips, chapters and groups dragged into place (between groups too), a "+" on each group heading, empty groups listed in edit mode: coded and tested in game by Bastien 2026-11-13 ("everything works")
 - [ ] FTB Quests import (JSON5/SNBT)
 - [ ] API for other mods (custom tasks and rewards)
 - [ ] Structure task (if a hook appears)
