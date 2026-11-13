@@ -86,3 +86,4 @@ updated: 2026-11-12
 - [ ] FTB Quests import (JSON5/SNBT)
 - [ ] API for other mods (custom tasks and rewards)
 - [ ] Structure task (if a hook appears)
+- [ ] **Build dioramas in a quest window** (Bastien, 2026-11-13: "to look into, later"): only for the quests that ask for a build (his example: a Draconic Evolution energy storage, seen layer by layer), not for every quest. A turning 3D scene of real blocks in the quest window, with a way to step through the layers. Relies on `native_draw_scene` (never compiled by us: try it with `check-glue` first). Preview: concept D of `vault/04 - Design/previews/next-level-concepts.html`
