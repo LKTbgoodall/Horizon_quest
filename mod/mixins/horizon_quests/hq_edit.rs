@@ -58,16 +58,28 @@ pub enum Edit {
     /// of its own, whose first entry is one `item`.
     NewTableReward { quest: String, choice: bool, item: String },
     RemoveReward { quest: String, reward: String },
-    /// A new empty chapter at the end, its id from its title.
-    NewChapter { title: String },
+    /// A new empty chapter at the end of `group` (none: of the chapters
+    /// without a group), its id from its title.
+    NewChapter {
+        title: String,
+        #[serde(default)]
+        group: Option<String>,
+    },
     SetChapter { chapter: String, info: ChapterInfo },
     /// Moves the chapter before (`by` < 0) or after the next chapter of
     /// its group in the list.
     MoveChapter { chapter: String, by: i32 },
+    /// Puts the chapter in `group` (none: no group), just before chapter
+    /// `before`, or at the end of the group without one: a chapter dragged
+    /// in the list.
+    PlaceChapter { chapter: String, group: Option<String>, before: Option<String> },
     /// Removes the chapter, its quests, and other chapters' links to them.
     DeleteChapter { chapter: String },
     NewGroup { title: String },
     SetGroup { group: String, title: String },
+    /// Puts the group just before group `before`, or last: a group dragged
+    /// in the list.
+    PlaceGroup { group: String, before: Option<String> },
     /// Removes the group; its chapters stay, without a group.
     DeleteGroup { group: String },
     SetSettings { settings: PackSettings },
@@ -213,6 +225,13 @@ fn locate(file: &QuestFile, id: &str) -> Option<(usize, usize)> {
 
 fn chapter_at(file: &QuestFile, chapter: &str) -> Result<usize, String> {
     file.chapters.iter().position(|c| c.id == chapter).ok_or_else(|| format!("There is no chapter {chapter} any more."))
+}
+
+/// The loader orders chapters by `order`: number them as they stand.
+fn renumber(file: &mut QuestFile) {
+    for (i, chapter) in file.chapters.iter_mut().enumerate() {
+        chapter.order = i as i32;
+    }
 }
 
 fn table_at(file: &QuestFile, table: &str) -> Result<usize, String> {
@@ -449,10 +468,13 @@ fn apply_one(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
             remove_child(&mut file.chapters[c].quests[q].rewards, reward, |r| &mut r.id, "reward")?;
             Ok(None)
         }
-        Edit::NewChapter { title } => {
+        Edit::NewChapter { title, group } => {
+            if group.as_ref().is_some_and(|g| !file.settings.groups.iter().any(|known| known.id == *g)) {
+                return Err("That group is not there any more.".to_owned());
+            }
             let id = fresh(title, |id| file.chapters.iter().any(|c| c.id == id));
-            let order = file.chapters.iter().map(|c| c.order).max().unwrap_or(0);
-            file.chapters.push(Chapter { id: id.clone(), title: title.clone(), order, ..Chapter::default() });
+            file.chapters.push(Chapter { id: id.clone(), title: title.clone(), group: group.clone(), ..Chapter::default() });
+            renumber(file);
             Ok(Some(id))
         }
         Edit::SetChapter { chapter, info } => {
@@ -472,10 +494,27 @@ fn apply_one(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
                 return Ok(None);
             };
             file.chapters.swap(c, other);
-            // The loader orders chapters by `order`: number them as they stand.
-            for (i, chapter) in file.chapters.iter_mut().enumerate() {
-                chapter.order = i as i32;
+            renumber(file);
+            Ok(None)
+        }
+        Edit::PlaceChapter { chapter, group, before } => {
+            if group.as_ref().is_some_and(|g| !file.settings.groups.iter().any(|known| known.id == *g)) {
+                return Err("That group is not there any more.".to_owned());
             }
+            let c = chapter_at(file, chapter)?;
+            if before.as_deref() == Some(chapter.as_str()) {
+                return Ok(None);
+            }
+            let mut moved = file.chapters.remove(c);
+            moved.group = group.clone();
+            // Before `before`, else after the group's last chapter, else last.
+            let at = match before {
+                Some(b) => file.chapters.iter().position(|o| o.id == *b),
+                None => file.chapters.iter().rposition(|o| o.group == *group).map(|i| i + 1),
+            };
+            let at = at.unwrap_or(file.chapters.len());
+            file.chapters.insert(at, moved);
+            renumber(file);
             Ok(None)
         }
         Edit::DeleteChapter { chapter } => {
@@ -502,6 +541,17 @@ fn apply_one(file: &mut QuestFile, edit: &Edit) -> Result<Option<String>, String
         Edit::SetGroup { group, title } => {
             let found = file.settings.groups.iter_mut().find(|g| g.id == *group).ok_or_else(|| format!("There is no group {group} any more."))?;
             found.title = title.clone();
+            Ok(None)
+        }
+        Edit::PlaceGroup { group, before } => {
+            let groups = &mut file.settings.groups;
+            let g = groups.iter().position(|o| o.id == *group).ok_or_else(|| format!("There is no group {group} any more."))?;
+            if before.as_deref() == Some(group.as_str()) {
+                return Ok(None);
+            }
+            let moved = groups.remove(g);
+            let at = before.as_ref().and_then(|b| groups.iter().position(|o| o.id == *b)).unwrap_or(groups.len());
+            groups.insert(at, moved);
             Ok(None)
         }
         Edit::DeleteGroup { group } => {
@@ -830,7 +880,7 @@ mod tests {
     #[test]
     fn chapters_are_made_moved_within_their_group_and_deleted_with_their_links() {
         let mut file = pack();
-        let made = apply(&mut file, &Edit::NewChapter { title: "Three".into() }).unwrap();
+        let made = apply(&mut file, &Edit::NewChapter { title: "Three".into(), group: None }).unwrap();
         assert_eq!(made.as_deref(), Some("three"));
         check(&file).unwrap();
         let ids = |file: &QuestFile| file.chapters.iter().map(|c| c.id.clone()).collect::<Vec<_>>();
@@ -852,6 +902,40 @@ mod tests {
         apply(&mut file, &Edit::DeleteChapter { chapter: "three".into() }).unwrap();
         assert!(apply(&mut file, &Edit::DeleteChapter { chapter: "two".into() }).is_err());
         check(&file).unwrap();
+    }
+
+    #[test]
+    fn chapters_and_groups_are_placed_where_they_are_dropped() {
+        let mut file = pack();
+        let ids = |file: &QuestFile| file.chapters.iter().map(|c| (c.id.clone(), c.group.clone())).collect::<Vec<_>>();
+        let side = || Some("side".to_owned());
+        apply(&mut file, &Edit::NewGroup { title: "Side".into() }).unwrap();
+        apply(&mut file, &Edit::NewGroup { title: "Main".into() }).unwrap();
+        // A chapter made from a group's "+" goes at the end of that group.
+        apply(&mut file, &Edit::NewChapter { title: "Three".into(), group: side() }).unwrap();
+        assert_eq!(ids(&file)[2], ("three".to_owned(), side()));
+        assert!(apply(&mut file, &Edit::NewChapter { title: "Four".into(), group: Some("gone".into()) }).is_err());
+        // Dropped into a group, at its end, then before one of its chapters.
+        apply(&mut file, &Edit::PlaceChapter { chapter: "one".into(), group: side(), before: None }).unwrap();
+        assert_eq!(ids(&file), [("two".to_owned(), None), ("three".to_owned(), side()), ("one".to_owned(), side())]);
+        apply(&mut file, &Edit::PlaceChapter { chapter: "one".into(), group: side(), before: Some("three".into()) }).unwrap();
+        assert_eq!(ids(&file), [("two".to_owned(), None), ("one".to_owned(), side()), ("three".to_owned(), side())]);
+        // Out of any group; the orders follow the list.
+        apply(&mut file, &Edit::PlaceChapter { chapter: "three".into(), group: None, before: Some("two".into()) }).unwrap();
+        assert_eq!(ids(&file), [("three".to_owned(), None), ("two".to_owned(), None), ("one".to_owned(), side())]);
+        assert_eq!(file.chapters.iter().map(|c| c.order).collect::<Vec<_>>(), [0, 1, 2]);
+        // Dropped on itself: nothing moves.
+        let before = file.clone();
+        apply(&mut file, &Edit::PlaceChapter { chapter: "two".into(), group: None, before: Some("two".into()) }).unwrap();
+        assert_eq!(file, before);
+        check(&file).unwrap();
+        // Groups: before another, or last.
+        let groups = |file: &QuestFile| file.settings.groups.iter().map(|g| g.id.clone()).collect::<Vec<_>>();
+        apply(&mut file, &Edit::PlaceGroup { group: "main".into(), before: Some("side".into()) }).unwrap();
+        assert_eq!(groups(&file), ["main", "side"]);
+        apply(&mut file, &Edit::PlaceGroup { group: "main".into(), before: None }).unwrap();
+        assert_eq!(groups(&file), ["side", "main"]);
+        assert!(apply(&mut file, &Edit::PlaceGroup { group: "gone".into(), before: None }).is_err());
     }
 
     #[test]

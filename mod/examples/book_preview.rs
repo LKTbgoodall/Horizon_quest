@@ -71,6 +71,10 @@ fn zone(view: &BookView, book: &Book, progress: &Progress, action: &Action) -> [
 fn click(view: &mut BookView, book: &Book, progress: &Progress, action: &Action) {
     let at = zone(view, book, progress, action);
     view.click(&screen(book, progress, at));
+    // A chapter list row in edit mode acts when the button comes up.
+    if matches!(action, Action::Chapter(_) | Action::Group(_)) {
+        view.release(&screen(book, progress, at));
+    }
 }
 
 fn play(book: &Book, progress: &mut Progress, events: &[QuestEvent]) {
@@ -499,6 +503,24 @@ fn main() {
     pictures.push((
         "book-16-needs-arrow",
         "The quest window's arrows, at the ends of the Tasks / Rewards row: left (cyan, throbbing red while locked) lists what the quest needs, right (yellow) what it opens. A click opens the list; a click on a quest goes to it, in its chapter. Hidden quests are only counted.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+
+    // 17. The chapter list in edit mode: a chapter dragged by its grip into another group.
+    (view.editor, view.editing, view.source) = (true, true, "world".to_owned());
+    view.close_quest();
+    view.menu = None;
+    view.sidebar_open = true;
+    let diamonds = (0..book.file().chapters.len()).find(|&c| book.file().chapters[c].id == "diamonds").expect("the diamonds chapter");
+    let farm = (0..book.file().chapters.len()).find(|&c| book.file().chapters[c].id == "farming").expect("the farm chapter");
+    let from = zone(&view, &book, &progress, &Action::Chapter(diamonds));
+    view.click(&screen(&book, &progress, from));
+    let farm_at = zone(&view, &book, &progress, &Action::Chapter(farm));
+    let mouse = [farm_at[0] - 20.0, farm_at[1] - 7.0];
+    view.drag(&screen(&book, &progress, mouse), [mouse[0] - from[0], mouse[1] - from[1]]);
+    pictures.push((
+        "book-17-chapter-drag",
+        "The chapter list in edit mode: a grip on the left of each row; a chapter or a group dragged shows an orange line where it will go (indented inside a group), released there it moves. The \"+\" at the end of a group's heading makes a chapter in that group; empty groups are listed so chapters can be dropped in.",
         svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
     ));
 

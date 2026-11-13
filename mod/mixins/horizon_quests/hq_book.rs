@@ -18,7 +18,7 @@ use super::hq_inline::{self as inline, Add, PanelAction, PickAction, Picker, Pur
 use super::hq_edit::QuestInfo;
 use super::hq_text::{Key, TextField};
 use super::hq_logic::{Book, QuestState, Status};
-use super::hq_model::{DependencyMode, ItemMatch, Progress, Quest, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind, child_id};
+use super::hq_model::{DependencyMode, ItemMatch, Progress, Quest, QuestFile, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind, child_id};
 use super::hq_net::ToServer;
 use std::collections::VecDeque;
 
@@ -242,6 +242,16 @@ struct Moving {
     moved: bool,
 }
 
+/// A row of the chapter list taken by the pointer in edit mode: a drag puts
+/// it elsewhere in the list, a press and release in place does what a click
+/// on the row does (turn to the chapter, fold the group).
+#[derive(Clone, Debug, PartialEq)]
+struct ListDrag {
+    row: Row,
+    pressed: [f32; 2],
+    moved: bool,
+}
+
 /// The book's parts on screen, as `[x, y, w, h]`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Regions {
@@ -343,7 +353,8 @@ pub enum Row {
 
 /// The chapter list: chapters without a group first, then each group of
 /// quests.json with its chapters, unless the group is folded (its id in
-/// `folded`). Hidden chapters are listed only with `all` (edit mode).
+/// `folded`). Hidden chapters, and groups without chapters, are listed only
+/// with `all` (edit mode).
 pub fn sidebar_rows(book: &Book, folded: &[String], all: bool) -> Vec<Row> {
     let file = book.file();
     let groups = &file.settings.groups;
@@ -353,7 +364,7 @@ pub fn sidebar_rows(book: &Book, folded: &[String], all: bool) -> Vec<Row> {
     for (g, group) in groups.iter().enumerate() {
         let members: Vec<usize> = listed().filter(|&c| group_of(c) == Some(group.id.as_str())).collect();
         // Two groups of the same id: the first one has the chapters.
-        if !members.is_empty() && !groups[..g].iter().any(|earlier| earlier.id == group.id) {
+        if (all || !members.is_empty()) && !groups[..g].iter().any(|earlier| earlier.id == group.id) {
             let title = if group.title.is_empty() { group.id.clone() } else { group.title.clone() };
             rows.push(Row::Group { id: group.id.clone(), title });
             if !folded.contains(&group.id) {
@@ -362,6 +373,45 @@ pub fn sidebar_rows(book: &Book, folded: &[String], all: bool) -> Vec<Row> {
         }
     }
     rows
+}
+
+/// Where row `dragged` of the chapter list goes when dropped at `slot` of
+/// `rows` (0: above the first row, `rows.len()`: below the last), as an
+/// edit; `None` when it would stay where it is. A chapter goes before the
+/// chapter it is dropped above, in that chapter's group, or at the end of
+/// the group (or of the chapters without one) whose rows it is dropped
+/// under; a group goes before the next group heading, or last.
+pub fn list_drop(book: &Book, rows: &[Row], dragged: &Row, slot: usize) -> Option<Edit> {
+    let file = book.file();
+    let slot = slot.min(rows.len());
+    let heading = |row: &Row| match row {
+        Row::Group { id, .. } => Some(id.clone()),
+        Row::Chapter(_) => None,
+    };
+    // The group whose rows row `i` is among (none: above every heading).
+    let section = |i: usize| rows[..=i].iter().rev().find_map(heading);
+    let change = match dragged {
+        Row::Chapter(c) => {
+            let chapter = file.chapters.get(*c)?.id.clone();
+            let (group, before) = match rows.get(slot) {
+                Some(Row::Chapter(d)) => (section(slot), Some(file.chapters.get(*d)?.id.clone())),
+                _ => (slot.checked_sub(1).and_then(section), None),
+            };
+            Edit::PlaceChapter { chapter, group, before }
+        }
+        Row::Group { id, .. } => Edit::PlaceGroup { group: id.clone(), before: rows[slot..].iter().find_map(heading) },
+    };
+    // What the list shows: the groups in order, each with its chapters.
+    let shown = |file: &QuestFile| {
+        let mut sections = vec![None];
+        sections.extend(file.settings.groups.iter().map(|g| Some(g.id.clone())));
+        sections.into_iter().map(|g| (file.chapters.iter().filter(|c| c.group == g).map(|c| c.id.clone()).collect::<Vec<_>>(), g)).collect::<Vec<_>>()
+    };
+    let mut after = file.clone();
+    match edit::apply(&mut after, &change) {
+        Ok(_) if shown(&after) != shown(file) => Some(change),
+        _ => None,
+    }
 }
 
 /// The corners of a shape of this radius round `centre`, turning
@@ -801,6 +851,8 @@ pub struct BookView {
     rect: [f32; 4],
     /// The quest being dragged in edit mode.
     moving: Option<Moving>,
+    /// The chapter list's row being dragged in edit mode.
+    list_drag: Option<ListDrag>,
     /// Edit mode's link picking: a click on a quest makes quest `0` need it
     /// (`true`) or need quest `0` (`false`), or stops doing so.
     linking: Option<(usize, bool)>,
@@ -911,6 +963,23 @@ impl BookView {
         self.select(Some(n));
     }
 
+    /// Folds group `id` of the chapter list, or unfolds it.
+    fn toggle_fold(&mut self, id: String) {
+        if let Some(i) = self.folded.iter().position(|g| *g == id) {
+            self.folded.remove(i);
+        } else {
+            self.folded.push(id);
+        }
+    }
+
+    /// The gap between rows of the chapter list nearest the pointer: 0
+    /// above the first of `len` rows, `len` below the last.
+    fn list_slot(&self, s: &Screen<'_>, len: usize) -> usize {
+        let top = regions(s.rect).sidebar[1] + PAD - self.sidebar_scroll;
+        let at = ((s.mouse[1] - top) / LIST_ROW).round();
+        if at.is_finite() { at.clamp(0.0, len as f32) as usize } else { len }
+    }
+
     /// Opens quest `n`'s window, or closes it.
     fn select(&mut self, selected: Option<usize>) {
         if self.selected != selected {
@@ -936,14 +1005,14 @@ impl BookView {
             return self.finish_typing(s);
         }
         match action {
-            Some(Action::Chapter(c)) => self.show_chapter(s, c),
-            Some(Action::Group(id)) => {
-                if let Some(i) = self.folded.iter().position(|g| *g == id) {
-                    self.folded.remove(i);
-                } else {
-                    self.folded.push(id);
-                }
+            // In edit mode a row is taken: a drag moves it, a release in place clicks it.
+            Some(Action::Chapter(c)) if self.editing => self.list_drag = Some(ListDrag { row: Row::Chapter(c), pressed: s.mouse, moved: false }),
+            Some(Action::Group(id)) if self.editing => {
+                let title = s.book.file().settings.groups.iter().find(|g| g.id == id).map(|g| g.title.clone()).unwrap_or_default();
+                self.list_drag = Some(ListDrag { row: Row::Group { id, title }, pressed: s.mouse, moved: false });
             }
+            Some(Action::Chapter(c)) => self.show_chapter(s, c),
+            Some(Action::Group(id)) => self.toggle_fold(id),
             Some(Action::Quest(n)) if self.linking.is_some_and(|(from, _)| from != n) => {
                 let Some((from, needs)) = self.linking else {
                     return Reaction::Nothing;
@@ -999,6 +1068,7 @@ impl BookView {
                 self.menu = None;
                 self.close_editors();
                 self.moving = None;
+                self.list_drag = None;
                 self.linking = None;
                 self.link_drag = None;
             }
@@ -1128,6 +1198,22 @@ impl BookView {
     /// The left button came up: a quest dragged in edit mode is dropped on
     /// the nearest half cell, one pressed and released in place opens.
     pub fn release(&mut self, s: &Screen<'_>) -> Reaction {
+        // A row of the chapter list: dropped where the line showed, or clicked.
+        if let Some(drag) = self.list_drag.take() {
+            if !drag.moved {
+                match drag.row {
+                    Row::Chapter(c) if c < s.book.file().chapters.len() => self.show_chapter(s, c),
+                    Row::Group { id, .. } => self.toggle_fold(id),
+                    Row::Chapter(_) => {}
+                }
+                return Reaction::Nothing;
+            }
+            if !self.over_list(s) {
+                return Reaction::Nothing;
+            }
+            let rows = sidebar_rows(s.book, &self.folded, true);
+            return list_drop(s.book, &rows, &drag.row, self.list_slot(s, rows.len())).map_or(Reaction::Nothing, Reaction::Edit);
+        }
         let Some(moving) = self.moving.take() else {
             return Reaction::Nothing;
         };
@@ -1273,6 +1359,7 @@ impl BookView {
     /// `select` (a full id) opens that quest instead. A drag and the menu stop.
     pub fn pack_changed(&mut self, old: Option<&Book>, book: &Book, select: Option<&str>) {
         self.moving = None;
+        self.list_drag = None;
         self.menu = None;
         let file = book.file();
         if self.panel.as_ref().is_some_and(|subject| !inline::subject_exists(book, subject)) {
@@ -1521,6 +1608,7 @@ impl BookView {
     /// one of them was on.
     pub fn close_menu(&mut self) -> bool {
         self.moving = None;
+        self.list_drag = None;
         self.menu.take().is_some() || self.linking.take().is_some()
     }
 
@@ -1533,7 +1621,7 @@ impl BookView {
         let regions = regions(s.rect);
         if canvas::inside(regions.strip, s.mouse) && self.recipe.is_none() && self.choosing.is_none() && self.picker.is_none() {
             self.sidebar_open = true;
-        } else if !canvas::inside(regions.sidebar, s.mouse) {
+        } else if !canvas::inside(regions.sidebar, s.mouse) && self.list_drag.is_none() {
             self.sidebar_open = false;
         }
         // What appeared this frame starts sliding into place now.
@@ -1591,6 +1679,10 @@ impl BookView {
             return;
         }
         if self.link_drag.is_some() {
+            return;
+        }
+        if let Some(drag) = &mut self.list_drag {
+            drag.moved |= (s.mouse[0] - drag.pressed[0]).abs().max((s.mouse[1] - drag.pressed[1]).abs()) > 3.0;
             return;
         }
         if self.moving.is_some() {
@@ -1933,7 +2025,7 @@ impl BookView {
         scene.sidebar_max_scroll = ((rows.len() + extra) as f32 * LIST_ROW + 2.0 * PAD - area[3]).max(0.0);
         if self.editing {
             let adds = [
-                ("+ New chapter", Edit::NewChapter { title: "New chapter".to_owned() }),
+                ("+ New chapter", Edit::NewChapter { title: "New chapter".to_owned(), group: None }),
                 ("+ New group", Edit::NewGroup { title: "New group".to_owned() }),
             ];
             for (k, (label, change)) in adds.into_iter().enumerate() {
@@ -1948,6 +2040,9 @@ impl BookView {
             }
         }
         let (x, w) = (area[0] + 2.0, area[2] - 5.0);
+        // Edit mode: a grip on the left of each row, which is dragged.
+        let dragging = self.list_drag.as_ref().filter(|d| d.moved);
+        let grip = if self.editing { 7.0 } else { 0.0 };
         let mut in_group = false;
         for (i, row) in rows.iter().enumerate() {
             in_group |= matches!(row, Row::Group { .. });
@@ -1956,23 +2051,38 @@ impl BookView {
                 continue;
             }
             let text_y = rect[1] + (LIST_ROW - 8.0) / 2.0;
+            let hovered = canvas::inside(rect, s.mouse) && dragging.is_none();
+            let x = x + grip;
+            let w = w - grip;
             match row {
                 Row::Group { id, title } => {
-                    if canvas::inside(rect, s.mouse) {
+                    if hovered {
                         scene.fill(rect, LIST_HOVER);
                     }
                     let open = !self.folded.contains(id);
                     scene.draws.push(Draw::Quad { corners: arrow([x + 3.0, rect[1] + LIST_ROW / 2.0], 5.0, open), colour: LIST_ARROW });
                     let left = x + 12.0;
-                    scene.text(fit_text(title, x + w - 2.0 - left, s.measure), [left, text_y], GROUP_INK);
+                    // Edit mode: a "+" at the end makes a chapter in the group.
+                    let right = if self.editing { x + w - LIST_ROW } else { x + w - 2.0 };
+                    scene.text(fit_text(title, right - left, s.measure), [left, text_y], GROUP_INK);
                     scene.zones.push((rect, Action::Group(id.clone())));
+                    if self.editing {
+                        let plus = [x + w - LIST_ROW + 1.0, rect[1] + 1.0, LIST_ROW - 2.0, LIST_ROW - 2.0];
+                        if canvas::inside(plus, s.mouse) && dragging.is_none() {
+                            scene.fill(plus, LIST_CURRENT);
+                            outline(scene, plus, EDIT_EDGE);
+                        }
+                        let mark = (s.measure)("+");
+                        scene.text("+", [plus[0] + (plus[2] - mark) / 2.0 + 0.5, text_y], EDIT_INK);
+                        scene.zones.push((plus, Action::Edit(Edit::NewChapter { title: "New chapter".to_owned(), group: Some(id.clone()) })));
+                    }
                 }
                 Row::Chapter(c) => {
                     let chapter = s.book.chapter(*c);
                     if *c == self.chapter {
                         scene.fill(rect, LIST_CURRENT);
                         outline(scene, rect, LIST_OUTLINE);
-                    } else if canvas::inside(rect, s.mouse) {
+                    } else if hovered {
                         scene.fill(rect, LIST_HOVER);
                     }
                     let mut left = x + if in_group { 8.0 } else { 3.0 };
@@ -2000,6 +2110,36 @@ impl BookView {
                     scene.zones.push((rect, Action::Chapter(*c)));
                 }
             }
+            // Over the row's background: the current chapter's is filled.
+            if self.editing {
+                grip_draws(scene, [rect[0] + 1.0, rect[1] + LIST_ROW / 2.0], if hovered { GRIP_HOT } else { GRIP });
+            }
+            // The row being dragged is dimmed where it was.
+            if dragging.is_some_and(|d| d.row == *row) {
+                scene.fill(rect, DRAGGED_VEIL);
+            }
+        }
+        // Where it would go: a line between two rows (indented in a group),
+        // and its name by the pointer.
+        if let Some(drag) = dragging.filter(|_| canvas::inside(area, s.mouse)) {
+            let slot = self.list_slot(s, rows.len());
+            if let Some(change) = list_drop(s.book, &rows, &drag.row, slot) {
+                let indent = if matches!(change, Edit::PlaceChapter { group: Some(_), .. }) { 8.0 } else { 0.0 };
+                let y = area[1] + PAD + slot as f32 * LIST_ROW - self.sidebar_scroll;
+                let line = [x + grip + indent, y - 1.0, w - grip - indent, 2.0];
+                scene.fill(line, EDIT_EDGE);
+                scene.fill([line[0], y - 3.0, 2.0, 6.0], EDIT_EDGE);
+            }
+            let name = match &drag.row {
+                Row::Group { id, title } => if title.is_empty() { id.clone() } else { title.clone() },
+                Row::Chapter(c) => s.book.file().chapters.get(*c).map(|ch| if ch.title.is_empty() { ch.id.clone() } else { ch.title.clone() }).unwrap_or_default(),
+            };
+            let label = fit_text(&name, w - grip, s.measure);
+            // Below the pointer's tip, off the line.
+            let box_ = [s.mouse[0] + 8.0, s.mouse[1] + 5.0, (s.measure)(&label) + 8.0, LIST_ROW];
+            scene.fill(box_, LIST_CURRENT);
+            outline(scene, box_, EDIT_EDGE);
+            scene.text(label, [box_[0] + 4.0, box_[1] + (LIST_ROW - 8.0) / 2.0], GROUP_INK);
         }
     }
 
@@ -2464,6 +2604,20 @@ const CURSOR_INK: u32 = 0xFFE0_E0E8;
 /// Edit mode's band, the "Editing" line, the menu's look.
 const EDIT_BAND: u32 = 0xFF3C_2C14;
 const EDIT_INK: u32 = 0xFF_B040;
+/// The same orange, opaque, for the chapter list's drop line and boxes.
+const EDIT_EDGE: u32 = 0xFFFF_B040;
+/// The grip of a chapter list row in edit mode, and over its row.
+const GRIP: u32 = 0xFF5E_626E;
+const GRIP_HOT: u32 = 0xFFB0_B4C0;
+/// Over the chapter list's row being dragged, where it was.
+const DRAGGED_VEIL: u32 = 0xA01A_1C22;
+
+/// A grip of two columns of three dots, its left middle at `at`.
+fn grip_draws(scene: &mut Scene, at: [f32; 2], colour: u32) {
+    for (dx, dy) in [(0.0, -3.0), (2.0, -3.0), (0.0, -1.0), (2.0, -1.0), (0.0, 1.0), (2.0, 1.0)] {
+        scene.fill([at[0] + dx, at[1] + dy, 1.0, 1.0], colour);
+    }
+}
 const DANGER_INK: u32 = 0xFF_6A5A;
 const MENU_BACK: u32 = 0xF814_1820;
 const MENU_ROW: f32 = 12.0;
@@ -4300,11 +4454,11 @@ mod tests {
         let mut view = opened(&book, &progress);
         view.sidebar_open = true;
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        assert!(zone(&scene, &Action::Edit(Edit::NewChapter { title: "New chapter".into() })).is_none());
+        assert!(zone(&scene, &Action::Edit(Edit::NewChapter { title: "New chapter".into(), group: None })).is_none());
         (view.editor, view.editing) = (true, true);
-        let new_chapter = Action::Edit(Edit::NewChapter { title: "New chapter".into() });
+        let new_chapter = Action::Edit(Edit::NewChapter { title: "New chapter".into(), group: None });
         let reaction = click(&mut view, &book, &progress, &new_chapter);
-        assert_eq!(reaction, Reaction::Edit(Edit::NewChapter { title: "New chapter".into() }));
+        assert_eq!(reaction, Reaction::Edit(Edit::NewChapter { title: "New chapter".into(), group: None }));
         // A right click on a chapter row: its menu.
         view.sidebar_open = true;
         let row = zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Chapter(1)).unwrap();
@@ -4317,7 +4471,7 @@ mod tests {
 
         // A new chapter made: the book turns to it; a pack where chapters moved keeps the one shown.
         let mut file = book.file().clone();
-        edit::apply(&mut file, &Edit::NewChapter { title: "Gamma".into() }).unwrap();
+        edit::apply(&mut file, &Edit::NewChapter { title: "Gamma".into(), group: None }).unwrap();
         let bigger = Book::new(file.clone());
         view.pack_changed(Some(&book), &bigger, Some("gamma"));
         assert_eq!(bigger.file().chapters[view.chapter].id, "gamma");
@@ -4463,6 +4617,57 @@ mod tests {
         assert_eq!(sidebar_rows(&book(), &[], false), [Row::Chapter(0), main(), Row::Chapter(1)]);
         // A folded group keeps its heading, without its chapters.
         assert_eq!(sidebar_rows(&book(), &["main".into()], false), [Row::Chapter(0), main()]);
+    }
+
+    #[test]
+    fn in_edit_mode_chapter_list_rows_are_dragged_into_place() {
+        let (book, progress) = (book(), Progress::default());
+        let rows = sidebar_rows(&book, &[], true);
+        let empty = || Row::Group { id: "empty".into(), title: "Empty".into() };
+        let main = || Row::Group { id: "main".into(), title: "Main story".into() };
+        assert_eq!(rows, [Row::Chapter(0), Row::Chapter(2), empty(), main(), Row::Chapter(1)]);
+        // Players do not see a group without chapters.
+        assert!(!sidebar_rows(&book, &[], false).contains(&empty()));
+        let place = |chapter: &str, group: Option<&str>, before: Option<&str>| {
+            Some(Edit::PlaceChapter { chapter: chapter.into(), group: group.map(Into::into), before: before.map(Into::into) })
+        };
+        // Under a heading: into that group; above a chapter: before it, in its group.
+        assert_eq!(list_drop(&book, &rows, &Row::Chapter(0), 3), place("a", Some("empty"), None));
+        assert_eq!(list_drop(&book, &rows, &Row::Chapter(1), 0), place("b", None, Some("a")));
+        assert_eq!(list_drop(&book, &rows, &Row::Chapter(0), 2), place("a", None, None));
+        // Where it already is: nothing.
+        for (row, slot) in [(Row::Chapter(0), 0), (Row::Chapter(0), 1), (Row::Chapter(1), 5), (Row::Chapter(1), 4), (empty(), 3), (main(), 5)] {
+            assert_eq!(list_drop(&book, &rows, &row, slot), None, "{row:?} at {slot}");
+        }
+        // A group goes before the next heading, or last.
+        assert_eq!(list_drop(&book, &rows, &main(), 2), Some(Edit::PlaceGroup { group: "main".into(), before: Some("empty".into()) }));
+        assert_eq!(list_drop(&book, &rows, &empty(), 5), Some(Edit::PlaceGroup { group: "empty".into(), before: None }));
+
+        let mut view = opened(&book, &progress);
+        view.sidebar_open = true;
+        (view.editor, view.editing) = (true, true);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let (alpha, beta) = (zone(&scene, &Action::Chapter(0)).unwrap(), zone(&scene, &Action::Chapter(1)).unwrap());
+        // Pressed and released in place, a row does what a click does.
+        assert_eq!(view.click(&screen(&book, &progress, beta)), Reaction::Nothing);
+        assert_eq!(view.release(&screen(&book, &progress, beta)), Reaction::Nothing);
+        assert_eq!(view.chapter, 1);
+        // Dragged above Alpha: out of its group, first; the list stays open meanwhile.
+        view.click(&screen(&book, &progress, beta));
+        let above = [alpha[0], alpha[1] - 6.0];
+        view.drag(&screen(&book, &progress, above), [0.0, above[1] - beta[1]]);
+        view.hover(&screen(&book, &progress, above));
+        assert!(view.sidebar_open);
+        assert!(texts(&view.scene(&screen(&book, &progress, above))).contains(&"Beta"));
+        assert_eq!(view.release(&screen(&book, &progress, above)), Reaction::Edit(place("b", None, Some("a")).unwrap()));
+        // Dropped outside the list: nothing.
+        view.click(&screen(&book, &progress, beta));
+        view.drag(&screen(&book, &progress, [400.0, 100.0]), [300.0, 0.0]);
+        view.sidebar_open = true;
+        assert_eq!(view.release(&screen(&book, &progress, [400.0, 100.0])), Reaction::Nothing);
+        // A group's "+" makes a chapter in that group.
+        let new = Edit::NewChapter { title: "New chapter".into(), group: Some("empty".into()) };
+        assert_eq!(click(&mut view, &book, &progress, &Action::Edit(new.clone())), Reaction::Edit(new));
     }
 
     #[test]

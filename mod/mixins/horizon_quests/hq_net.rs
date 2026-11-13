@@ -19,7 +19,7 @@ use std::fmt;
 pub const CHANNEL: &str = "horizon_quests:book";
 /// The version of these messages. A book and a server of different versions
 /// do not talk.
-pub const PROTOCOL: u32 = 4;
+pub const PROTOCOL: u32 = 5;
 
 /// The most bytes one mod message carries.
 pub const MAX_FRAME: usize = 30_000;
