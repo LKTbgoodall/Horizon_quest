@@ -13,7 +13,7 @@ The server uses the first of these that exists:
 
 ## Editing in game
 
-An operator (and the owner of a single-player world) has a **pencil** at the bottom right of the book. It turns on edit mode:
+An operator (and the owner of a single-player world) has a **pencil** on the rail at the right of the book. It turns on edit mode:
 - drag a quest to move it; right-click an empty spot for **New quest here**;
 - open a quest: click its title, subtitle or description to type there, its icon to choose one from the item grid, the gear for its settings (shape, size, when it shows, what it needs, optional, tasks in order, repeatable, cooldown), applied at once;
 - right-click a quest: **Settings...**, **Duplicate**, **Pick what this quest needs... / opens...** (then click quests to link or unlink them), **Delete**.

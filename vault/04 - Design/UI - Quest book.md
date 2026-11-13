@@ -2,7 +2,7 @@
 tags: [design, ui]
 status: draft
 date: 2026-11-10
-updated: 2026-11-10
+updated: 2026-11-13
 ---
 # UI: the quest book
 
@@ -13,7 +13,8 @@ Reference: [[FTB editor and UI]] · API: [[Horizon hooks and API]] §5 · Decisi
 
 > [!important] Coded, pure, in `hq_book.rs` (2026-11-10): not seen in game yet
 > `BookView::scene(&Screen)` returns a **draw list** (`Fill`, `Quad`, `Text`, `Item`) and **click zones**; `click`, `drag` and `scroll` handle input. The glue will only carry the draws out. What it does, as built:
-> - Regions (since v0.8.10): no top band; a strip of 18 px on the left (the closed chapter list, opened on hover as a panel of 30 % of the width, 110 to 170 px, over the canvas), the canvas, the quest window over it, and one bottom band of 14 px (chapter name and tally, "Claim all (n)", the last notice, the party, help, close).
+> - **Regions since v0.19.0**: no band at the top or the bottom. The left strip of 18 px (the closed chapter list), the canvas as tall as the window, and a **rail of 18 px on the right** (`Regions::rail`, `canvas::RAIL`): close, pencil, "?" (help as a tooltip), the party's sign, "claim all" with its count, then the chapter's progress as a bar filling from the bottom (`draw_rail`; `Action::Tip` for the parts that only tell). The chapter's name and tally are a tag at the canvas's top left, the notice and the mode's help tags at its bottom left (`draw_tags`, `tag`). Slides: `Anim` (set in `hover`, once a frame) remembers when the quest window, the chapter list, a menu and an edit panel appeared; `scene` draws them in place then moves the draws back along their way (`shift`, `arrived`, 4 ticks eased); zones never move. Shared looks: `raised`, `sunken`, `rounded`, `cross`, `tone` (used by `hq_inline` too).
+> - Regions (v0.8.10 to v0.18.1, history): no top band; a strip of 18 px on the left (the closed chapter list, opened on hover as a panel of 30 % of the width, 110 to 170 px, over the canvas), the canvas, the quest window over it, and one bottom band of 14 px (chapter name and tally, "Claim all (n)", the last notice, the party, help, close).
 > - Chapter list: ungrouped chapters, then each group with its chapters; icon, title, `done/total`; hidden chapters are not listed.
 > - Canvas: dependency lines (grey, green once the dependency is completed; only inside the chapter), nodes as fans of quads for the 5 shapes, frame in the state's colour (locked grey, available white, in progress yellow, rewards waiting blue, done green), gold ring when selected, item icon, tooltip with the title on hover. Opening a chapter fits it to the canvas (never zoomed in past 1).
 > - Panel: title bar with a close button; subtitle, state, "Needs:" for a locked quest, description (wrapped), tasks with `[x]` marks, counts and **Check** / **Submit** buttons, rewards with **Claim** buttons or "(claimed)". Scrolls with the wheel. Opening it does not move the quests on screen.

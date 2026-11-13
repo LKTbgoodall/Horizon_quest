@@ -7,6 +7,12 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 - `tools/build-mod.sh --combined` (the Linux twin of `-Combined`); a launcher path with spaces in its menu entry is read whole.
 - `tools/check-glue.sh`: `HORIZON_SOURCE` points it at a checkout of the pinned revision the launcher has not built with yet.
 
+## 0.19.0
+- **The bottom band is gone: a rail on the right** (Bastien: "on the right side, not at the bottom"). From the top: close, the pencil (operators), "?" (the help, said when pointed at), the party's sign (its name when pointed at), "claim all" with the number of quests whose rewards wait (it throbs red), then the chapter's progress as a bar that fills from the bottom down the rest of the rail. The canvas is as tall as the window. The chapter's name and tally (and "Editing (...)" in edit mode) are written at the canvas's top left; the last notice, and what to do while picking, typing or linking, at its bottom left.
+- **Small animations**: the quest window rises into place, the chapter list slides in from the left, menus and edit panels drop in (4 ticks, eased; click zones are in place at once); the rail's bar glides to the chapter's new share; "claim all" throbs.
+- **Edit mode's buttons and settings redrawn** (same colours): rounded raised buttons with a light top and a dark bottom line, drawn "-" / "+" / close signs instead of letters, sunken text and number fields, a switch with a track and a knob, chosen choices underlined in blue, a line under a panel's title, a red close button under the pointer. The book's own close buttons are drawn crosses too.
+- `Regions::footer` and `canvas::FOOTER` became `Regions::rail` and `canvas::RAIL`; new `Action::Tip`.
+
 ## 0.18.1
 - Bastien: hidden quests are not even counted behind the arrows. The "N hidden" line is gone, and an arrow whose quests are all hidden is dim and does nothing, as if there were none.
 

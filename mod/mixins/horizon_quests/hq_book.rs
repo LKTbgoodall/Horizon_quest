@@ -117,6 +117,9 @@ pub enum Draw {
 /// What a click does. Nodes are `Book` node indexes; ids are full ids.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Action {
+    /// Something on the rail that only says what it is when pointed at
+    /// ("help", "party", "progress"): a click does nothing.
+    Tip(&'static str),
     Chapter(usize),
     /// Fold or unfold a group of the chapter list (its id).
     Group(String),
@@ -247,22 +250,24 @@ pub struct Regions {
     /// The closed list's strip, left of the canvas.
     pub strip: [f32; 4],
     pub canvas: [f32; 4],
-    pub footer: [f32; 4],
+    /// The rail of buttons on the canvas's right: close, edit, help, the
+    /// party, "claim all" and the chapter's progress.
+    pub rail: [f32; 4],
 }
 
 /// The parts of a book filling `rect`. The quest window goes over the
 /// canvas (`Scene::popup`).
 pub fn regions(rect: [f32; 4]) -> Regions {
     let [x, y, w, h] = rect;
-    let body_y = y;
-    let body_h = (h - canvas::FOOTER).max(0.0);
-    let sidebar_w = (w * 0.3).clamp(110.0, 170.0).min(w.max(0.0));
-    let strip_w = STRIP.min(w.max(0.0));
+    let (w, h) = (w.max(0.0), h.max(0.0));
+    let sidebar_w = (w * 0.3).clamp(110.0, 170.0).min(w);
+    let strip_w = STRIP.min(w);
+    let rail_w = canvas::RAIL.min(w - strip_w);
     Regions {
-        sidebar: [x, body_y, sidebar_w, body_h],
-        strip: [x, body_y, strip_w, body_h],
-        canvas: [x + strip_w, body_y, (w - strip_w).max(0.0), body_h],
-        footer: [x, y + h - canvas::FOOTER, w, canvas::FOOTER],
+        sidebar: [x, y, sidebar_w, h],
+        strip: [x, y, strip_w, h],
+        canvas: [x + strip_w, y, w - strip_w - rail_w, h],
+        rail: [x + w - rail_w, y, rail_w, h],
     }
 }
 
@@ -302,8 +307,13 @@ impl Scene {
     fn button(&mut self, s: &Screen<'_>, label: &str, right: f32, y: f32, action: Action) -> f32 {
         let w = (s.measure)(label) + 6.0;
         let rect = [right - w, y, w, TEXT];
-        self.fill(rect, if canvas::inside(rect, s.mouse) { BUTTON_HOVER } else { BUTTON });
-        self.text(label, [rect[0] + 3.0, y + 1.0], INK);
+        self.draws.extend(raised(rect, if canvas::inside(rect, s.mouse) { BUTTON_HOVER } else { BUTTON }));
+        // A close button's "x" is drawn, like the rail's.
+        if label == "x" {
+            self.draws.extend(cross(rect, 0xFFFF_FFFF));
+        } else {
+            self.text(label, [rect[0] + 3.0, y + 1.0], INK);
+        }
         self.zones.push((rect, action));
         rect[0]
     }
@@ -802,7 +812,31 @@ pub struct BookView {
     right_press: Option<(usize, [f32; 2])>,
     /// Whether a chapter was fitted to the canvas yet.
     fitted: bool,
+    /// Since when what moves into place has been there (`hover`).
+    anim: Anim,
 }
+
+/// When the things that slide into place appeared, in clock ticks (`None`:
+/// not there), and the rail's progress bar on its way to a new share.
+#[derive(Clone, Debug, Default, PartialEq)]
+struct Anim {
+    /// The quest whose window is open, and since when.
+    popup: Option<(usize, u32)>,
+    list: Option<u32>,
+    menu: Option<u32>,
+    panel: Option<u32>,
+    /// The bar: the chapter it is about, the share it left, the share it
+    /// goes to, and since when.
+    bar_chapter: usize,
+    bar_from: f32,
+    bar_to: f32,
+    bar_since: Option<u32>,
+}
+
+/// How long a window, a list or a menu takes to slide into place, and the
+/// rail's bar to reach a new share, in ticks.
+const SLIDE_TICKS: f32 = 4.0;
+const BAR_TICKS: f32 = 12.0;
 
 impl BookView {
     /// The book opens, or a new pack arrived: keep the place when there is
@@ -1086,7 +1120,7 @@ impl BookView {
                     self.menu = Some(Menu { at: s.mouse, title: Some(format!("Table {id}")), entries, icons: Vec::new(), done: Vec::new() });
                 }
             }
-            Some(Action::Stay) | None => {}
+            Some(Action::Stay | Action::Tip(_)) | None => {}
         }
         Reaction::Nothing
     }
@@ -1502,6 +1536,45 @@ impl BookView {
         } else if !canvas::inside(regions.sidebar, s.mouse) {
             self.sidebar_open = false;
         }
+        // What appeared this frame starts sliding into place now.
+        let now = self.clock;
+        self.anim.popup = match (self.selected, self.anim.popup) {
+            (Some(n), Some((m, since))) if n == m => Some((n, since)),
+            (Some(n), _) => Some((n, now)),
+            (None, _) => None,
+        };
+        let since = |there: bool, was: Option<u32>| there.then(|| was.unwrap_or(now));
+        self.anim.list = since(self.sidebar_open, self.anim.list);
+        self.anim.menu = since(self.menu.is_some(), self.anim.menu);
+        self.anim.panel = since(self.panel.is_some(), self.anim.panel);
+        // The rail's bar sets off for the chapter's new share; another
+        // chapter's bar starts from nothing.
+        let share = chapter_share(s.book, self.chapter, s.progress);
+        if self.anim.bar_chapter != self.chapter || (self.anim.bar_to - share).abs() > 1e-4 {
+            self.anim.bar_from = if self.anim.bar_chapter == self.chapter { self.bar_shown(self.anim.bar_to) } else { 0.0 };
+            self.anim.bar_chapter = self.chapter;
+            self.anim.bar_to = share;
+            self.anim.bar_since = Some(now);
+        }
+    }
+
+    /// How far something that appeared at `since` has come, 0 (just there)
+    /// to 1 (in place), easing out over `ticks`; in place when `since` is
+    /// unknown.
+    fn arrived(&self, since: Option<u32>, ticks: f32) -> f32 {
+        let Some(since) = since else { return 1.0 };
+        let age = self.clock.wrapping_sub(since) as f32 + self.partial_tick.clamp(0.0, 1.0);
+        let left = 1.0 - (age / ticks).clamp(0.0, 1.0);
+        1.0 - left * left * left
+    }
+
+    /// The share the rail's bar shows of a chapter whose share is `share`:
+    /// on its way there since `hover` saw it change.
+    fn bar_shown(&self, share: f32) -> f32 {
+        if self.anim.bar_chapter != self.chapter || (self.anim.bar_to - share).abs() > 1e-4 {
+            return share;
+        }
+        self.anim.bar_from + (share - self.anim.bar_from) * self.arrived(self.anim.bar_since, BAR_TICKS)
     }
 
     /// Whether the open chapter list is under the pointer.
@@ -1593,16 +1666,27 @@ impl BookView {
         };
         scene.fill(s.rect, SHADE);
         let hovered = self.draw_canvas(&mut scene, s, &statuses, selected).filter(|_| !self.over_list(s));
-        // The open list replaces its strip (the panel is see-through).
+        self.draw_tags(&mut scene, s);
+        // The open list replaces its strip (the panel is see-through), and
+        // slides in from the left.
         if self.sidebar_open {
+            let from = scene.draws.len();
             self.draw_sidebar(&mut scene, s, &statuses);
+            shift(&mut scene.draws[from..], [(self.arrived(self.anim.list, SLIDE_TICKS) - 1.0) * LIST_SLIDE, 0.0]);
         } else {
             draw_strip(&mut scene, s);
         }
-        self.draw_bands(&mut scene, s, &statuses);
+        let rail_tip = self.draw_rail(&mut scene, s, &statuses);
         let mut tip = hovered.map(|n| vec![(quest_title(s.book.quest(n)).to_owned(), INK)]);
         if let (Some(n), Some(popup)) = (selected, popup) {
+            // The quest window rises into place.
+            let from = scene.draws.len();
             tip = self.draw_popup(&mut scene, s, &statuses, n, popup);
+            let since = self.anim.popup.filter(|(m, _)| *m == n).map(|(_, since)| since);
+            shift(&mut scene.draws[from..], [0.0, (1.0 - self.arrived(since, SLIDE_TICKS)) * WINDOW_SLIDE]);
+        }
+        if rail_tip.is_some() {
+            tip = rail_tip;
         }
         if let Some(reward) = self.choosing.as_deref().filter(|_| self.recipe.is_none()) {
             tip = draw_choice(&mut scene, s, &self.item_names, reward);
@@ -1628,8 +1712,9 @@ impl BookView {
                 Some((Typed::Row(_, _), field)) => Some((row_key.as_str(), field)),
                 _ => None,
             };
-            let (rect, draws, zones) = inline::panel(&title, &controls, anchor, regions.canvas, typing, s.mouse, self.clock, s.measure);
+            let (rect, mut draws, zones) = inline::panel(&title, &controls, anchor, regions.canvas, typing, s.mouse, self.clock, s.measure);
             over_panel = canvas::inside(rect, s.mouse);
+            shift(&mut draws, [0.0, (1.0 - self.arrived(self.anim.panel, SLIDE_TICKS)) * WINDOW_SLIDE]);
             scene.draws.extend(draws);
             scene.zones.extend(zones.into_iter().map(|(r, a)| (r, Action::Panel(a))));
         }
@@ -1645,7 +1730,9 @@ impl BookView {
         if let Some(recipe) = &self.recipe {
             draw_recipe(&mut scene, s, recipe);
         } else if let Some(menu) = &self.menu {
+            let from = scene.draws.len();
             draw_menu(&mut scene, s, menu);
+            shift(&mut scene.draws[from..], [0.0, (self.arrived(self.anim.menu, SLIDE_TICKS) - 1.0) * MENU_SLIDE]);
         } else if let Some(lines) = tip.filter(|_| self.moving.as_ref().is_none_or(|m| !m.moved)) {
             draw_tooltip(&mut scene, s, &lines);
         }
@@ -2034,68 +2121,252 @@ impl BookView {
         tip
     }
 
-    /// The header (chapter title, tally, close) and the footer (claim all,
-    /// notice, help), over anything under them.
-    fn draw_bands(&self, scene: &mut Scene, s: &Screen<'_>, statuses: &[Status]) {
-        // One band at the bottom: the chapter's name and tally, "Claim all"
-        // and the last notice on the left; close, the party and the help on
-        // the right.
-        let footer = scene.regions.footer;
-        let [x, y, w, _] = footer;
-        scene.fill(footer, if self.editing { EDIT_BAND } else { BAND });
-        let mut right = scene.button(s, "x", x + w - 4.0, y + 2.0, Action::Close) - 6.0;
-        if self.editor {
-            right = pencil_button(scene, s, right, y + 2.0, self.editing) - 6.0;
-        }
-        let mut left = x + 6.0;
+    /// What the canvas says over itself: top left, "Editing (...)" in edit
+    /// mode, the chapter's name and its tally; bottom left, the last notice
+    /// and, while picking, typing or linking, what to do.
+    fn draw_tags(&self, scene: &mut Scene, s: &Screen<'_>) {
+        let [x, y, w, h] = scene.regions.canvas;
+        let mut parts = Vec::new();
         if self.editing {
-            let label = format!("Editing ({})", source_name(&self.source));
-            scene.text(label.clone(), [left, y + 3.0], EDIT_INK);
-            left += (s.measure)(&label) + 10.0;
+            parts.push((format!("Editing ({})", source_name(&self.source)), EDIT_INK));
         }
         if let Some(chapter) = s.book.file().chapters.get(self.chapter) {
             let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
-            let title = fit_text(name, w / 3.0, s.measure);
-            let title_w = (s.measure)(&title);
-            scene.text(title, [left, y + 3.0], INK);
-            left += title_w + 6.0;
+            parts.push((fit_text(name, w / 3.0, s.measure), INK));
             let (done, total) = s.book.chapter_tally(self.chapter, s.progress);
-            let tally = format!("{done}/{total}");
-            let tally_w = (s.measure)(&tally);
-            scene.text(tally, [left, y + 3.0], DIM_INK);
-            left += tally_w + 10.0;
+            parts.push((format!("{done}/{total}"), DIM_INK));
         }
-        let waiting = statuses.iter().filter(|status| status.state == QuestState::RewardsWaiting).count();
-        if waiting > 0 {
-            let label = format!("Claim all ({waiting})");
-            let width = (s.measure)(&label) + 6.0;
-            scene.button(s, &label, left + width, y + 2.0, Action::ClaimAll);
-            left += width + 6.0;
+        // The open chapter list says the chapter itself, and would cover this.
+        if !self.sidebar_open {
+            tag(scene, s, &parts, [x + 3.0, y + 3.0], if self.editing { EDIT_TAG } else { TAG_BACK });
         }
-        if let Some(party) = &self.party {
-            let label = format!("Party {party}");
-            let width = (s.measure)(&label);
-            // Only when the rest keeps some room.
-            if width < (right - left) / 3.0 {
-                right -= width;
-                scene.text(label, [right, y + 3.0], GOLD_INK);
-                right -= 10.0;
+        let mut line = y + h - TEXT - 4.0;
+        let width = (w - 12.0).max(0.0);
+        if !self.notice.is_empty() {
+            tag(scene, s, &[(fit_text(&self.notice, width, s.measure), GOLD_INK)], [x + 3.0, line], TAG_BACK);
+            line -= TEXT + 3.0;
+        }
+        if let Some(help) = self.mode_help() {
+            tag(scene, s, &[(fit_text(help, width, s.measure), DIM_INK)], [x + 3.0, line], TAG_BACK);
+        }
+    }
+
+    /// What to do while the picker is open, a text is typed or links are
+    /// picked: said on the canvas, since it does not last.
+    fn mode_help(&self) -> Option<&'static str> {
+        match self.linking {
+            _ if self.picker.is_some() => Some("type to search | wheel: more | Esc: close"),
+            _ if self.typing.is_some() => Some("click outside, Enter or Esc: done"),
+            Some((_, true)) => Some("click the quests this one needs | Esc: done"),
+            Some((_, false)) => Some("click the quests this one opens | Esc: done"),
+            None => None,
+        }
+    }
+
+    /// The rail on the right, from the top: close, the pencil (editors),
+    /// help, the party, "claim all" while rewards wait, then the chapter's
+    /// progress as a bar down to the bottom. Returns what the thing under
+    /// the pointer says.
+    fn draw_rail(&self, scene: &mut Scene, s: &Screen<'_>, statuses: &[Status]) -> Option<Vec<(String, u32)>> {
+        let rail @ [x, y, w, h] = scene.regions.rail;
+        if w < RAIL_BUTTON || h < RAIL_BUTTON {
+            return None;
+        }
+        scene.fill(rail, if self.editing { EDIT_BAND } else { STRIP_BACK });
+        scene.fill([x, y, 1.0, h], LIST_EDGE);
+        let left = x + 1.0 + ((w - 1.0 - RAIL_BUTTON) / 2.0).floor();
+        let mut top = y + 3.0;
+        let mut next = || {
+            let rect = [left, top, RAIL_BUTTON, RAIL_BUTTON];
+            top += RAIL_STEP;
+            rect
+        };
+        let mut tip = None;
+
+        let rect = next();
+        let hot = canvas::inside(rect, s.mouse);
+        scene.draws.extend(raised(rect, if hot { CLOSE_HOVER } else { BUTTON }));
+        scene.draws.extend(cross(rect, 0xFFFF_FFFF));
+        scene.zones.push((rect, Action::Close));
+        if hot {
+            tip = Some(vec![("Close".to_owned(), INK)]);
+        }
+
+        if self.editor {
+            let rect = next();
+            pencil_button(scene, s, rect, self.editing);
+            if canvas::inside(rect, s.mouse) {
+                tip = Some(vec![((if self.editing { "Stop editing" } else { "Edit the quests" }).to_owned(), INK)]);
             }
         }
-        let help = match self.linking {
-            _ if self.picker.is_some() => "type to search | wheel: more | Esc: close",
-            _ if self.typing.is_some() => "click outside, Enter or Esc: done",
-            Some((_, true)) => "click the quests this one needs | Esc: done",
-            Some((_, false)) => "click the quests this one opens | Esc: done",
-            None if self.editing => "right-click: menu | drag a quest: move it | drag its yellow dot: link",
-            None => "drag: move | wheel: zoom",
-        };
-        let help_w = (s.measure)(help);
-        let notice = fit_text(&self.notice, (right - left).max(0.0), s.measure);
-        let notice_end = left + (s.measure)(&notice);
-        scene.text(notice, [left, y + 3.0], GOLD_INK);
-        if right - help_w >= notice_end + 6.0 {
-            scene.text(help, [right - help_w, y + 3.0], DIM_INK);
+
+        let rect = next();
+        let hot = canvas::inside(rect, s.mouse);
+        scene.draws.extend(raised(rect, if hot { BUTTON_HOVER } else { RAIL_QUIET }));
+        scene.text("?", [rect[0] + ((RAIL_BUTTON - (s.measure)("?")) / 2.0).round(), rect[1] + 2.0], if hot { INK } else { DIM_INK });
+        scene.zones.push((rect, Action::Tip("help")));
+        if hot {
+            let help = self.mode_help().unwrap_or(if self.editing {
+                "right-click: menu | drag a quest: move it | drag its yellow dot: link"
+            } else {
+                "drag: move | wheel: zoom"
+            });
+            tip = Some(help.split(" | ").map(|line| (line.to_owned(), INK)).collect());
+        }
+
+        if let Some(party) = &self.party {
+            let rect = next();
+            scene.draws.extend(pixel_art(&PARTY_PIXELS, [rect[0] + 1.5, rect[1] + 3.0], 1.0, &|c| (c == 'o').then_some(0xFFFF_C040)));
+            scene.zones.push((rect, Action::Tip("party")));
+            if canvas::inside(rect, s.mouse) {
+                tip = Some(vec![(format!("Party {party}"), GOLD_INK)]);
+            }
+        }
+
+        let waiting = statuses.iter().filter(|status| status.state == QuestState::RewardsWaiting).count();
+        if waiting > 0 {
+            let rect = next();
+            let hot = canvas::inside(rect, s.mouse);
+            // It throbs until the rewards are claimed.
+            let ticks = self.clock as f32 + self.partial_tick.clamp(0.0, 1.0);
+            let throb = 0.5 + 0.5 * (ticks / THROB_TICKS * std::f32::consts::TAU).sin();
+            scene.draws.extend(raised(rect, if hot { CLAIM_HOT } else { mix(BUTTON, CLAIM_HOT, throb * 0.7) }));
+            scene.draws.push(alert_sign([rect[0] + 2.0, rect[1] + 1.5, 8.0, 8.0]));
+            scene.draws.extend(count_draws(&waiting.to_string(), [rect[0] - 6.0, rect[1] - 5.0]));
+            scene.zones.push((rect, Action::ClaimAll));
+            if hot {
+                tip = Some(vec![(format!("Claim all ({waiting})"), INK), ("Click to claim every reward".to_owned(), CLICK_INK)]);
+            }
+        }
+
+        // The chapter's progress: a bar that fills from the bottom.
+        let (bar_top, bar_bottom) = (top + 2.0, y + h - 4.0);
+        if bar_bottom - bar_top >= 12.0
+            && let Some(chapter) = s.book.file().chapters.get(self.chapter)
+        {
+            let track = [x + 1.0 + ((w - 1.0 - 4.0) / 2.0).floor(), bar_top, 4.0, bar_bottom - bar_top];
+            let (done, total) = s.book.chapter_tally(self.chapter, s.progress);
+            let shown = self.bar_shown(chapter_share(s.book, self.chapter, s.progress));
+            scene.draws.extend(sunken(track, BAR_TRACK, LIST_EDGE));
+            let full = (track[3] - 2.0) * shown.clamp(0.0, 1.0);
+            if full > 0.0 {
+                scene.fill([track[0] + 1.0, track[1] + track[3] - 1.0 - full, 2.0, full], if done == total { CHAPTER_DONE | 0xFF00_0000 } else { LINE_DONE });
+            }
+            let zone = [x, bar_top, w, bar_bottom - bar_top];
+            scene.zones.push((zone, Action::Tip("progress")));
+            if canvas::inside(zone, s.mouse) {
+                let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
+                tip = Some(vec![(name.clone(), INK), (format!("{done}/{total} quests done"), DIM_INK)]);
+            }
+        }
+        tip
+    }
+}
+
+/// The rail's buttons: their side, and the step from one to the next.
+const RAIL_BUTTON: f32 = 12.0;
+const RAIL_STEP: f32 = 15.0;
+/// A rail button that only tells (help), at rest.
+const RAIL_QUIET: u32 = 0xFF2E_3442;
+const CLOSE_HOVER: u32 = 0xFFA0_3C3C;
+/// "Claim all" at the top of its throb, and under the pointer.
+const CLAIM_HOT: u32 = 0xFFC0_4444;
+const BAR_TRACK: u32 = 0xFF10_1218;
+/// Behind the canvas's own words (chapter, notice), and in edit mode.
+const TAG_BACK: u32 = 0xB010_1018;
+const EDIT_TAG: u32 = 0xD03C_2C14;
+/// How far the quest window, the chapter list and a menu slide in from.
+const WINDOW_SLIDE: f32 = 6.0;
+const LIST_SLIDE: f32 = 28.0;
+const MENU_SLIDE: f32 = 4.0;
+
+/// Two people, for the party.
+const PARTY_PIXELS: [&str; 6] = [".oo...oo.", ".oo...oo.", ".........", "oooo.oooo", "oooo.oooo", "oooo.oooo"];
+
+/// The share of chapter `c`'s counted quests that are done, 0 to 1.
+fn chapter_share(book: &Book, c: usize, progress: &Progress) -> f32 {
+    if book.file().chapters.get(c).is_none() {
+        return 0.0;
+    }
+    let (done, total) = book.chapter_tally(c, progress);
+    if total == 0 { 0.0 } else { done as f32 / total as f32 }
+}
+
+/// Words side by side on a dark backing, its top-left corner at `at`.
+fn tag(scene: &mut Scene, s: &Screen<'_>, parts: &[(String, u32)], at: [f32; 2], back: u32) {
+    let parts: Vec<&(String, u32)> = parts.iter().filter(|(text, _)| !text.is_empty()).collect();
+    if parts.is_empty() {
+        return;
+    }
+    let width: f32 = parts.iter().map(|(text, _)| (s.measure)(text)).sum::<f32>() + 6.0 * (parts.len() - 1) as f32;
+    scene.draws.extend(rounded([at[0], at[1], width + 6.0, TEXT + 1.0], back));
+    let mut x = at[0] + 3.0;
+    for (text, colour) in parts {
+        scene.text(text.clone(), [x, at[1] + 1.5], *colour);
+        x += (s.measure)(text) + 6.0;
+    }
+}
+
+/// `colour` with `by` added to its red, green and blue (alpha kept).
+pub fn tone(colour: u32, by: i32) -> u32 {
+    (0..3).fold(colour & 0xFF00_0000, |out, i| out | ((((colour >> (8 * i)) & 0xFF) as i32 + by).clamp(0, 255) as u32) << (8 * i))
+}
+
+/// A box without its four corner pixels.
+pub fn rounded([x, y, w, h]: [f32; 4], colour: u32) -> Vec<Draw> {
+    if w < 3.0 || h < 3.0 {
+        return vec![Draw::Fill { rect: [x, y, w, h], colour }];
+    }
+    vec![
+        Draw::Fill { rect: [x + 1.0, y, w - 2.0, h], colour },
+        Draw::Fill { rect: [x, y + 1.0, 1.0, h - 2.0], colour },
+        Draw::Fill { rect: [x + w - 1.0, y + 1.0, 1.0, h - 2.0], colour },
+    ]
+}
+
+/// A button's box: rounded, a lighter line along its top, a darker one
+/// along its bottom.
+pub fn raised(rect @ [x, y, w, h]: [f32; 4], colour: u32) -> Vec<Draw> {
+    let mut draws = rounded(rect, colour);
+    if w >= 3.0 && h >= 3.0 {
+        draws.push(Draw::Fill { rect: [x + 1.0, y, w - 2.0, 1.0], colour: tone(colour, 38) });
+        draws.push(Draw::Fill { rect: [x + 1.0, y + h - 1.0, w - 2.0, 1.0], colour: tone(colour, -34) });
+    }
+    draws
+}
+
+/// A field's box: an `edge` round a `colour` inside, with a darker line
+/// under its top edge.
+pub fn sunken(rect @ [x, y, w, h]: [f32; 4], colour: u32, edge: u32) -> Vec<Draw> {
+    let mut draws = rounded(rect, edge);
+    if w >= 3.0 && h >= 3.0 {
+        draws.push(Draw::Fill { rect: [x + 1.0, y + 1.0, w - 2.0, h - 2.0], colour });
+        draws.push(Draw::Fill { rect: [x + 1.0, y + 1.0, w - 2.0, 1.0], colour: tone(colour, -10) });
+    }
+    draws
+}
+
+/// A cross six pixels across in the middle of `rect`: a close button's.
+pub fn cross(rect: [f32; 4], colour: u32) -> Vec<Draw> {
+    let (x, y) = (rect[0] + ((rect[2] - 6.0) / 2.0).floor(), rect[1] + ((rect[3] - 6.0) / 2.0).floor());
+    (0..6).flat_map(|i| [[x + i as f32, y + i as f32, 1.0, 1.0], [x + 5.0 - i as f32, y + i as f32, 1.0, 1.0]]).map(|rect| Draw::Fill { rect, colour }).collect()
+}
+
+/// Moves `draws` by `by`: what slides into place is drawn where it will
+/// be, then moved back along its way (click zones stay where it ends).
+fn shift(draws: &mut [Draw], by: [f32; 2]) {
+    if by == [0.0, 0.0] {
+        return;
+    }
+    for draw in draws {
+        match draw {
+            Draw::Fill { rect, .. } => (rect[0], rect[1]) = (rect[0] + by[0], rect[1] + by[1]),
+            Draw::Quad { corners, .. } => corners.iter_mut().for_each(|p| *p = [p[0] + by[0], p[1] + by[1]]),
+            Draw::Text { at, .. } | Draw::Item { at, .. } => *at = [at[0] + by[0], at[1] + by[1]],
+            Draw::Sprite { dst, fallback, .. } => {
+                (dst[0], dst[1]) = (dst[0] + by[0], dst[1] + by[1]);
+                shift(fallback, by);
+            }
         }
     }
 }
@@ -2272,21 +2543,19 @@ fn quest_title(quest: &Quest) -> &str {
 /// A pencil, point down-left: `w` its wood, `p` its eraser, `g` its lead.
 const PENCIL_PIXELS: [&str; 8] = ["......pp", ".....ppp", "....wwp.", "...www..", "..www...", ".www....", "gww.....", "gg......"];
 
-/// The pencil button that turns edit mode on and off, its right edge at
-/// `right`: lit while edit mode is on. Returns its left edge.
-fn pencil_button(scene: &mut Scene, s: &Screen<'_>, right: f32, y: f32, on: bool) -> f32 {
-    let rect = [right - 12.0, y, 12.0, TEXT];
+/// The pencil button that turns edit mode on and off, in `rect` on the
+/// rail: lit while edit mode is on.
+fn pencil_button(scene: &mut Scene, s: &Screen<'_>, rect: [f32; 4], on: bool) {
     let hovered = canvas::inside(rect, s.mouse);
-    scene.fill(rect, if on { 0xFFB0_7020 } else if hovered { BUTTON_HOVER } else { BUTTON });
+    scene.draws.extend(raised(rect, if on { 0xFFB0_7020 } else if hovered { BUTTON_HOVER } else { BUTTON }));
     let wood = if on || hovered { 0xFFFF_E080 } else { 0xFFE8_C050 };
-    scene.draws.extend(pixel_art(&PENCIL_PIXELS, [rect[0] + 2.0, y + 1.0], 1.0, &|c| match c {
+    scene.draws.extend(pixel_art(&PENCIL_PIXELS, [rect[0] + 2.0, rect[1] + 2.0], 1.0, &|c| match c {
         'w' => Some(wood),
         'p' => Some(0xFFF0_8090),
         'g' => Some(0xFF40_4048),
         _ => None,
     }));
     scene.zones.push((rect, Action::ToggleEdit));
-    rect[0]
 }
 
 /// A faint dot on every grid cell of the canvas shown, while the zoom
@@ -3679,6 +3948,12 @@ mod tests {
         view.click(&screen(book, progress, at))
     }
 
+    /// The scene with the pointer on the zone that does `action`.
+    fn pointing(view: &BookView, book: &Book, progress: &Progress, action: &Action) -> Scene {
+        let at = zone(&view.scene(&screen(book, progress, NOWHERE)), action).unwrap_or_else(|| panic!("no zone for {action:?}"));
+        view.scene(&screen(book, progress, at))
+    }
+
     fn texts(scene: &Scene) -> Vec<&str> {
         scene
             .draws
@@ -4102,19 +4377,20 @@ mod tests {
     #[test]
     fn regions_split_the_window() {
         let closed = regions(RECT);
-        assert_eq!(closed.footer, [0.0, 270.0 - canvas::FOOTER, 480.0, canvas::FOOTER]);
-        assert_eq!(closed.strip[2] + closed.canvas[2], 480.0);
+        // A rail on the right, as tall as the window; no band at the bottom.
+        assert_eq!(closed.rail, [480.0 - canvas::RAIL, 0.0, canvas::RAIL, 270.0]);
+        assert_eq!(closed.strip[2] + closed.canvas[2] + closed.rail[2], 480.0);
         // The open chapter list goes over the canvas's left side.
         assert_eq!(closed.sidebar[0], closed.strip[0]);
         assert!(closed.sidebar[2] > closed.strip[2] && closed.sidebar[2] < closed.canvas[2]);
-        // No band at the top: the canvas starts at the window's top.
+        // No band at the top or at the bottom: the canvas is as tall as the window.
         assert_eq!(closed.canvas[1], 0.0);
-        assert_eq!(closed.canvas[3], 270.0 - canvas::FOOTER);
+        assert_eq!(closed.canvas[3], 270.0);
 
         // A window too small for anything: nothing goes negative.
         for rect in [[0.0, 0.0, 40.0, 20.0], [0.0, 0.0, 0.0, 0.0]] {
             let tiny = regions(rect);
-            for part in [tiny.sidebar, tiny.strip, tiny.canvas, tiny.footer] {
+            for part in [tiny.sidebar, tiny.strip, tiny.canvas, tiny.rail] {
                 assert!(part[2] >= 0.0 && part[3] >= 0.0, "{part:?}");
             }
         }
@@ -4223,7 +4499,7 @@ mod tests {
         assert!(zone(&scene, &Action::Close).is_some());
         assert_eq!(zone(&scene, &Action::ClaimAll), None);
         let shown = texts(&scene);
-        // The chapter's name and tally in the bottom band, no subtitle.
+        // The chapter's name and tally at the canvas's top left, no subtitle.
         assert!(!shown.contains(&"The first one"));
         for text in ["Alpha", "0/3"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
@@ -4336,9 +4612,12 @@ mod tests {
         assert!(contains(canvas, popup));
         assert!((canvas::centre(popup)[0] - canvas::centre(canvas)[0]).abs() < 0.01);
         let shown = texts(&scene);
-        for text in ["Start here", "Tasks", "Rewards", "Available", "A beginning", "x"] {
+        for text in ["Start here", "Tasks", "Rewards", "Available", "A beginning"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
+        // Its close button is a drawn cross, not a letter.
+        assert!(!shown.contains(&"x"));
+        assert!(zone(&scene, &Action::Deselect).is_some());
         // The description is wrapped to the window.
         for draw in &scene.draws {
             if let Draw::Text { text, at, .. } = draw
@@ -4399,15 +4678,16 @@ mod tests {
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         assert_eq!(zone(&scene, &check), None);
         let shown = texts(&scene);
-        for text in ["Rewards waiting", "Claim all (1)", "1/3"] {
+        for text in ["Rewards waiting", "1/3"] {
             assert!(shown.contains(&text), "{text} in {shown:?}");
         }
+        assert!(texts(&pointing(&view, &book, &progress, &Action::ClaimAll)).contains(&"Claim all (1)"));
         let claim = Action::Claim("a/start/xp".into());
         assert_eq!(tip(&view, &book, &progress, &claim).unwrap(), ["5 XP", "Click to claim"]);
-        // A reward waiting has its "!", and so has the quest's node, in the
-        // done green.
+        // A reward waiting has its "!", and so have the quest's node, in the
+        // done green, and the rail's "claim all".
         let waiting = view.scene(&screen(&book, &progress, NOWHERE));
-        assert_eq!(signs(&waiting, MarkCell::Alert), 2);
+        assert_eq!(signs(&waiting, MarkCell::Alert), 3);
         assert_eq!(state_look(QuestState::RewardsWaiting).0, state_look(QuestState::Done).0);
         assert_eq!(click(&mut view, &book, &progress, &claim), Reaction::Send(ToServer::Claim { reward: "a/start/xp".into(), choice: None }));
         assert_eq!(click(&mut view, &book, &progress, &Action::ClaimAll), Reaction::Send(ToServer::ClaimAll));
@@ -4583,12 +4863,13 @@ mod tests {
     }
 
     #[test]
-    fn the_party_shows_in_the_header() {
+    fn the_party_shows_on_the_rail() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
-        assert!(!texts(&view.scene(&screen(&book, &progress, NOWHERE))).iter().any(|t| t.starts_with("Party")));
+        assert!(zone(&view.scene(&screen(&book, &progress, NOWHERE)), &Action::Tip("party")).is_none());
         view.party = Some("Miners".into());
-        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"Party Miners"));
+        // Its sign on the rail says the name when pointed at.
+        assert!(texts(&pointing(&view, &book, &progress, &Action::Tip("party"))).contains(&"Party Miners"));
     }
 
     #[test]
@@ -5011,19 +5292,99 @@ mod tests {
         let (book, progress) = (Book::new(Default::default()), Progress::default());
         let mut view = opened(&book, &progress);
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
-        assert_eq!(scene.zones.len(), 1);
+        // Only the rail's close and help: no chapter, so no progress bar.
+        assert_eq!(scene.zones.iter().map(|(_, a)| a).collect::<Vec<_>>(), [&Action::Close, &Action::Tip("help")]);
         assert_eq!(view.click(&screen(&book, &progress, canvas::centre(scene.regions.canvas))), Reaction::Nothing);
         view.scroll(&screen(&book, &progress, canvas::centre(scene.regions.canvas)), 1.0);
     }
 
     #[test]
-    fn the_footer_shows_the_notice() {
+    fn the_canvas_shows_the_notice_and_the_rail_tells_the_help() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         view.notice = "That quest is not open yet.".into();
         let shown = view.scene(&screen(&book, &progress, NOWHERE));
         assert!(texts(&shown).contains(&"That quest is not open yet."));
-        assert!(texts(&shown).contains(&"drag: move | wheel: zoom"));
+        // The help is no longer written out: the rail's "?" says it.
+        assert!(!texts(&shown).iter().any(|t| t.contains("wheel")));
+        let told = pointing(&view, &book, &progress, &Action::Tip("help"));
+        for line in ["drag: move", "wheel: zoom"] {
+            assert!(texts(&told).contains(&line), "{line}");
+        }
+        // A click on it does nothing.
+        assert_eq!(click(&mut view, &book, &progress, &Action::Tip("help")), Reaction::Nothing);
+        // While links are picked, what to do is said on the canvas itself.
+        view.linking = Some((0, true));
+        assert!(texts(&view.scene(&screen(&book, &progress, NOWHERE))).contains(&"click the quests this one needs | Esc: done"));
+    }
+
+    #[test]
+    fn the_rail_is_on_the_right_with_its_buttons_from_the_top() {
+        let (book, mut progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        view.editor = true;
+        view.party = Some("Miners".into());
+        progress = progress_after(&book, &[QuestEvent::Check { task: "a/start/ok".into() }]);
+        let scene = view.scene(&screen(&book, &progress, NOWHERE));
+        let rail = scene.regions.rail;
+        let mut last = rail[1];
+        for action in [Action::Close, Action::ToggleEdit, Action::Tip("help"), Action::Tip("party"), Action::ClaimAll, Action::Tip("progress")] {
+            let at = zone(&scene, &action).unwrap_or_else(|| panic!("{action:?}"));
+            assert!(canvas::inside(rail, at), "{action:?} on the rail");
+            assert!(at[1] > last, "{action:?} under the one before");
+            last = at[1];
+        }
+        // Nothing of the book is under the canvas any more.
+        assert_eq!(scene.regions.canvas[3], RECT[3]);
+        // The bar says the chapter and its tally.
+        let told = pointing(&view, &book, &progress, &Action::Tip("progress"));
+        for line in ["Alpha", "1/3 quests done"] {
+            assert!(texts(&told).contains(&line), "{line}");
+        }
+    }
+
+    #[test]
+    fn the_quest_window_rises_into_place_once_the_frames_see_it() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        click(&mut view, &book, &progress, &Action::Quest(0));
+        view.release(&screen(&book, &progress, node_at(&view, &book, &progress, "a/start")));
+        let s = screen(&book, &progress, NOWHERE);
+        let title_y = |view: &BookView| {
+            let scene = view.scene(&s);
+            scene.draws.iter().find_map(|d| matches!(d, Draw::Text { text, .. } if text == "Start here").then(|| match d { Draw::Text { at, .. } => at[1], _ => 0.0 })).unwrap()
+        };
+        // Before any frame noted it, it is where it belongs.
+        let home = title_y(&view);
+        view.clock = 50;
+        view.hover(&s);
+        // The frame it appears in, it is lower; a few ticks on, it is home, and its zones never moved.
+        assert_eq!(title_y(&view), home + WINDOW_SLIDE);
+        let zones = view.scene(&s).zones;
+        view.clock = 52;
+        let (low, high) = (home, home + WINDOW_SLIDE);
+        assert!(title_y(&view) > low && title_y(&view) < high);
+        view.clock = 50 + SLIDE_TICKS as u32;
+        assert_eq!(title_y(&view), home);
+        assert_eq!(view.scene(&s).zones, zones);
+    }
+
+    #[test]
+    fn the_rail_bar_goes_to_the_new_share_over_a_few_ticks() {
+        let (book, mut progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        view.hover(&screen(&book, &progress, NOWHERE));
+        assert_eq!(view.bar_shown(0.0), 0.0);
+        progress = progress_after(&book, &[QuestEvent::Check { task: "a/start/ok".into() }]);
+        let share = chapter_share(&book, 0, &progress);
+        assert!((share - 1.0 / 3.0).abs() < 1e-4);
+        view.clock = 10;
+        view.hover(&screen(&book, &progress, NOWHERE));
+        assert_eq!(view.bar_shown(share), 0.0);
+        view.clock = 14;
+        assert!(view.bar_shown(share) > 0.0 && view.bar_shown(share) < share);
+        view.clock = 10 + BAR_TICKS as u32;
+        assert_eq!(view.bar_shown(share), share);
     }
 
     #[test]

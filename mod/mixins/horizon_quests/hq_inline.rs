@@ -7,7 +7,7 @@
 // click changes the thing at once (the book sends the edit). The picker is a
 // grid of every item, or every mob (by spawn egg), with a search line.
 // Pure: it lays itself out as hq_book draws and click zones.
-use super::hq_book::{Draw, NODE_SPRITE, entry_label, fit_text, node_cell, pretty, reward_item};
+use super::hq_book::{Draw, NODE_SPRITE, cross, entry_label, fit_text, node_cell, pretty, raised, reward_item, sunken, tone};
 use super::hq_canvas as canvas;
 use super::hq_edit::{ChapterInfo, Edit, PackSettings, QuestInfo};
 use super::hq_logic::{Book, QuestState};
@@ -116,6 +116,9 @@ const INK: u32 = 0xFF_FFFF;
 const DIM_INK: u32 = 0x90_90A0;
 const LABEL_INK: u32 = 0xB8_B8C4;
 const CURSOR: u32 = 0xFFE0_E0E8;
+/// The "-", "+" and close signs drawn on buttons.
+const GLYPH: u32 = 0xFFF0_F0F6;
+const ACCENT: u32 = 0xFF5A_6A9A;
 const ADD_INK: u32 = 0x80_E080;
 const CHANCE_INK: u32 = 0xFF_D860;
 /// The picker's grid.
@@ -1158,6 +1161,28 @@ fn text(draws: &mut Vec<Draw>, text: String, at: [f32; 2], colour: u32) {
     }
 }
 
+/// A "-" or a "+" five pixels across in the middle of `rect`.
+fn sign(draws: &mut Vec<Draw>, rect: [f32; 4], plus: bool) {
+    let (cx, cy) = (rect[0] + ((rect[2] - 1.0) / 2.0).floor(), rect[1] + ((rect[3] - 1.0) / 2.0).floor());
+    fill(draws, [cx - 2.0, cy, 5.0, 1.0], GLYPH);
+    if plus {
+        fill(draws, [cx, cy - 2.0, 1.0, 5.0], GLYPH);
+    }
+}
+
+/// A button of the panel: raised while chosen or under the pointer, flat
+/// at rest.
+fn chip(draws: &mut Vec<Draw>, rect: [f32; 4], chosen: bool, mouse: [f32; 2]) {
+    if chosen {
+        draws.extend(raised(rect, CHIP_ON));
+        fill(draws, [rect[0] + 1.0, rect[1] + rect[3] - 1.0, rect[2] - 2.0, 1.0], CHIP_ON_EDGE);
+    } else if canvas::inside(rect, mouse) {
+        draws.extend(raised(rect, CHIP_HOVER));
+    } else {
+        draws.extend(raised(rect, CHIP));
+    }
+}
+
 /// A node shape drawn `size` wide at `at`, from the node sheet; a plain
 /// square without it.
 fn shape_draw(shape: Shape, at: [f32; 2], size: f32) -> Draw {
@@ -1237,9 +1262,14 @@ pub fn panel(
     fill(&mut draws, rect, BACK);
     frame(&mut draws, rect, EDGE);
     fill(&mut draws, [x + 1.0, y + 1.0, w - 2.0, BAR - 1.0], BAR_BACK);
-    text(&mut draws, fit_text(title, w - 2.0 * PAD - 10.0, measure), [x + PAD, y + 3.0], INK);
-    let close = [x + w - 11.0, y + 2.0, 9.0, 9.0];
-    text(&mut draws, "x".to_owned(), [close[0] + 2.0, close[1]], if canvas::inside(close, mouse) { INK } else { DIM_INK });
+    fill(&mut draws, [x + 1.0, y + BAR - 1.0, w - 2.0, 1.0], ACCENT);
+    text(&mut draws, fit_text(title, w - 2.0 * PAD - 12.0, measure), [x + PAD, y + 3.0], INK);
+    let close = [x + w - 12.0, y + 2.0, 10.0, 10.0];
+    let over_close = canvas::inside(close, mouse);
+    if over_close {
+        draws.extend(raised(close, DANGER_HOVER));
+    }
+    draws.extend(cross(close, if over_close { GLYPH } else { 0xFF90_90A0 }));
     zones.push((close, PanelAction::Close));
 
     let field_x = x + PAD + LABEL_W;
@@ -1267,8 +1297,7 @@ pub fn panel(
             Control::Text { key, value, hint, .. } => {
                 let field = [field_x, row_y, field_w, ROW - 1.0];
                 let typed = typing.filter(|(k, _)| k == key).map(|(_, f)| f);
-                fill(&mut draws, field, SLOT);
-                frame(&mut draws, field, if typed.is_some() { FOCUS_EDGE } else if canvas::inside(field, mouse) { SLOT_EDGE } else { EDGE });
+                draws.extend(sunken(field, SLOT, if typed.is_some() { FOCUS_EDGE } else if canvas::inside(field, mouse) { SLOT_EDGE } else { EDGE }));
                 let at = [field[0] + 3.0, field[1] + 3.0];
                 match typed {
                     Some(f) => {
@@ -1286,9 +1315,9 @@ pub fn panel(
             Control::Number { key, value, zero, min, .. } => {
                 let minus = [field_x, row_y, 12.0, ROW - 2.0];
                 let plus = [field_x + field_w - 12.0, row_y, 12.0, ROW - 2.0];
-                for (button, sign, by) in [(minus, "-", -1.0), (plus, "+", 1.0)] {
-                    fill(&mut draws, button, if canvas::inside(button, mouse) { CHIP_HOVER } else { CHIP });
-                    text(&mut draws, sign.to_owned(), [button[0] + 4.0, button[1] + 2.0], INK);
+                for (button, by) in [(minus, -1.0), (plus, 1.0)] {
+                    chip(&mut draws, button, false, mouse);
+                    sign(&mut draws, button, by > 0.0);
                     zones.push((button, PanelAction::Step(key, by)));
                 }
                 let lowest = *value <= *min;
@@ -1297,10 +1326,10 @@ pub fn panel(
                     _ => number_text(*value),
                 };
                 let middle = [minus[0] + 14.0, row_y, field_w - 28.0, ROW - 2.0];
-                fill(&mut draws, middle, SLOT);
-                match typing.filter(|(k, _)| k == key).map(|(_, f)| f) {
+                let typed = typing.filter(|(k, _)| k == key).map(|(_, f)| f);
+                draws.extend(sunken(middle, SLOT, if typed.is_some() { FOCUS_EDGE } else if canvas::inside(middle, mouse) { SLOT_EDGE } else { EDGE }));
+                match typed {
                     Some(f) => {
-                        frame(&mut draws, middle, FOCUS_EDGE);
                         let (typed, _, cursor) = f.shown(0, middle[2] - 6.0, measure);
                         let at = [middle[0] + 3.0, row_y + 2.0];
                         text(&mut draws, typed, at, INK);
@@ -1309,9 +1338,6 @@ pub fn panel(
                         }
                     }
                     None => {
-                        if canvas::inside(middle, mouse) {
-                            frame(&mut draws, middle, SLOT_EDGE);
-                        }
                         let tw = measure(&shown);
                         let ink = if zero.is_some() && lowest { DIM_INK } else { INK };
                         text(&mut draws, fit_text(&shown, middle[2] - 4.0, measure), [middle[0] + ((middle[2] - tw) / 2.0).max(2.0), row_y + 2.0], ink);
@@ -1321,20 +1347,19 @@ pub fn panel(
                 zones.push((middle, PanelAction::Step(key, 0.0)));
             }
             Control::Toggle { key, on, .. } => {
-                let switch = [field_x, row_y + 2.0, 20.0, 9.0];
-                fill(&mut draws, switch, if *on { SWITCH_ON } else { SWITCH_OFF });
-                let knob_x = if *on { switch[0] + 12.0 } else { switch[0] + 1.0 };
-                fill(&mut draws, [knob_x, switch[1] + 1.0, 7.0, 7.0], KNOB);
-                text(&mut draws, (if *on { "On" } else { "Off" }).to_owned(), [switch[0] + 24.0, row_y + 3.0], if *on { INK } else { DIM_INK });
+                // A track with a knob at the end it is switched to.
+                let switch = [field_x, row_y + 1.0, 22.0, 10.0];
+                let track = if *on { SWITCH_ON } else { SWITCH_OFF };
+                draws.extend(sunken(switch, track, tone(track, if canvas::inside([field_x, row_y, field_w, ROW], mouse) { 60 } else { 28 })));
+                let knob = [if *on { switch[0] + 13.0 } else { switch[0] + 1.0 }, switch[1] + 1.0, 8.0, 8.0];
+                draws.extend(raised(knob, KNOB));
+                text(&mut draws, (if *on { "On" } else { "Off" }).to_owned(), [switch[0] + 26.0, row_y + 3.0], if *on { INK } else { DIM_INK });
                 zones.push(([field_x, row_y, field_w, ROW], PanelAction::Toggle(key)));
             }
             Control::Segments { key, options, at, .. } => {
                 for (i, chip) in chip_rows(options, field_x, row_y, field_w, measure).into_iter().enumerate() {
                     let chosen = *at == Some(i);
-                    fill(&mut draws, chip, if chosen { CHIP_ON } else if canvas::inside(chip, mouse) { CHIP_HOVER } else { CHIP });
-                    if chosen {
-                        frame(&mut draws, chip, CHIP_ON_EDGE);
-                    }
+                    self::chip(&mut draws, chip, chosen, mouse);
                     let label = fit_text(&options[i], chip[2] - 6.0, measure);
                     text(&mut draws, label, [chip[0] + 4.0, chip[1] + 2.5], if chosen { INK } else { LABEL_INK });
                     zones.push((chip, PanelAction::Segment(key, i)));
@@ -1350,10 +1375,7 @@ pub fn panel(
                 for choice in choices {
                     let button = if choice.is_none() { [bx, row_y, measure("Default") + 8.0, 19.0] } else { [bx, row_y, 18.0, 19.0] };
                     let chosen = *at == choice;
-                    fill(&mut draws, button, if chosen { CHIP_ON } else if canvas::inside(button, mouse) { CHIP_HOVER } else { CHIP });
-                    if chosen {
-                        frame(&mut draws, button, CHIP_ON_EDGE);
-                    }
+                    chip(&mut draws, button, chosen, mouse);
                     match choice {
                         // "Default": the chapter's (or the pack's) shape.
                         None => text(&mut draws, "Default".to_owned(), [button[0] + 4.0, button[1] + 6.0], if chosen { INK } else { LABEL_INK }),
@@ -1365,8 +1387,7 @@ pub fn panel(
             }
             Control::Item { key, item, mob, .. } => {
                 let slot = [field_x, row_y, 19.0, 19.0];
-                fill(&mut draws, slot, SLOT);
-                frame(&mut draws, slot, if canvas::inside(slot, mouse) { FOCUS_EDGE } else { SLOT_EDGE });
+                draws.extend(sunken(slot, SLOT, if canvas::inside([field_x, row_y, field_w, 19.0], mouse) { FOCUS_EDGE } else { SLOT_EDGE }));
                 if !item.is_empty() {
                     let icon = if *mob { format!("{item}_spawn_egg") } else { item.clone() };
                     draws.push(Draw::Item { item: icon, at: [slot[0] + 1.5, slot[1] + 1.5], size: 16.0 });
@@ -1377,8 +1398,7 @@ pub fn panel(
             }
             Control::Choose { key, icon, name, .. } => {
                 let slot = [field_x, row_y, 19.0, 19.0];
-                fill(&mut draws, slot, SLOT);
-                frame(&mut draws, slot, if canvas::inside(slot, mouse) { FOCUS_EDGE } else { SLOT_EDGE });
+                draws.extend(sunken(slot, SLOT, if canvas::inside([field_x, row_y, field_w, 19.0], mouse) { FOCUS_EDGE } else { SLOT_EDGE }));
                 draws.push(Draw::Item { item: icon.clone(), at: [slot[0] + 1.5, slot[1] + 1.5], size: 16.0 });
                 text(&mut draws, fit_text(name, field_w - 24.0, measure), [slot[0] + 23.0, row_y + 6.0], INK);
                 zones.push(([field_x, row_y, field_w, 19.0], PanelAction::Pick(key)));
@@ -1399,16 +1419,16 @@ pub fn panel(
                         let value = [plus[0] - 31.0, row[1], 30.0, row[3]];
                         let minus = [value[0] - 12.0, row[1], 11.0, row[3]];
                         name_w = minus[0] - row[0] - 18.0;
-                        for (button, sign, by) in [(minus, "-", -1.0), (plus, "+", 1.0)] {
-                            fill(&mut draws, button, if canvas::inside(button, mouse) { CHIP_HOVER } else { CHIP });
-                            text(&mut draws, sign.to_owned(), [button[0] + 3.0, button[1] + 2.5], INK);
+                        for (button, by) in [(minus, -1.0), (plus, 1.0)] {
+                            chip(&mut draws, button, false, mouse);
+                            sign(&mut draws, button, by > 0.0);
                             zones.push((button, PanelAction::RowStep(key, i, by)));
                         }
-                        fill(&mut draws, value, SLOT);
                         let typed_key = format!("{key}#{i}");
-                        match typing.filter(|(k, _)| *k == typed_key).map(|(_, f)| f) {
+                        let typed = typing.filter(|(k, _)| *k == typed_key).map(|(_, f)| f);
+                        draws.extend(sunken(value, SLOT, if typed.is_some() { FOCUS_EDGE } else if canvas::inside(value, mouse) { SLOT_EDGE } else { EDGE }));
+                        match typed {
                             Some(f) => {
-                                frame(&mut draws, value, FOCUS_EDGE);
                                 let (shown, _, cursor) = f.shown(0, value[2] - 4.0, measure);
                                 let at = [value[0] + 2.0, value[1] + 3.0];
                                 text(&mut draws, shown, at, INK);
@@ -1417,9 +1437,6 @@ pub fn panel(
                                 }
                             }
                             None => {
-                                if canvas::inside(value, mouse) {
-                                    frame(&mut draws, value, SLOT_EDGE);
-                                }
                                 let shown = chance_text(*percent);
                                 let tw = measure(&shown);
                                 text(&mut draws, shown, [value[0] + ((value[2] - tw) / 2.0).max(1.0), value[1] + 3.0], CHANCE_INK);
@@ -1434,12 +1451,12 @@ pub fn panel(
                 let has_chances = rows.iter().filter(|r| r.2.is_some()).count() > 1;
                 let even_w = if has_chances { measure("Even") + 8.0 } else { 0.0 };
                 let more = [left, foot, width - if has_chances { even_w + 2.0 } else { 0.0 }, ROW - 1.0];
-                fill(&mut draws, more, if canvas::inside(more, mouse) { CHIP_HOVER } else { CHIP });
+                chip(&mut draws, more, false, mouse);
                 text(&mut draws, (*add).to_owned(), [more[0] + 4.0, more[1] + 3.0], ADD_INK);
                 zones.push((more, PanelAction::AddRow(key)));
                 if has_chances {
                     let even = [left + width - even_w, foot, even_w, ROW - 1.0];
-                    fill(&mut draws, even, if canvas::inside(even, mouse) { CHIP_HOVER } else { CHIP });
+                    chip(&mut draws, even, false, mouse);
                     text(&mut draws, "Even".to_owned(), [even[0] + 4.0, even[1] + 3.0], LABEL_INK);
                     zones.push((even, PanelAction::Even(key)));
                     // What - / + and the wheel move a chance by.
@@ -1450,10 +1467,7 @@ pub fn panel(
                         let label = number_text(value);
                         let chip = [cx, line, measure(&label) + 8.0, ROW - 1.0];
                         let chosen = (value - *step).abs() < 0.01;
-                        fill(&mut draws, chip, if chosen { CHIP_ON } else if canvas::inside(chip, mouse) { CHIP_HOVER } else { CHIP });
-                        if chosen {
-                            frame(&mut draws, chip, CHIP_ON_EDGE);
-                        }
+                        self::chip(&mut draws, chip, chosen, mouse);
                         text(&mut draws, label, [chip[0] + 4.0, chip[1] + 3.0], if chosen { INK } else { LABEL_INK });
                         zones.push((chip, PanelAction::ChanceStep(key, value)));
                         cx += chip[2] + 2.0;
@@ -1462,7 +1476,7 @@ pub fn panel(
             }
             Control::Danger { key, label } => {
                 let button = [x + PAD, row_y + 2.0, w - 2.0 * PAD, ROW];
-                fill(&mut draws, button, if canvas::inside(button, mouse) { DANGER_HOVER } else { DANGER });
+                draws.extend(raised(button, if canvas::inside(button, mouse) { DANGER_HOVER } else { DANGER }));
                 let tw = measure(label);
                 text(&mut draws, (*label).to_owned(), [button[0] + (button[2] - tw) / 2.0, button[1] + 3.0], INK);
                 zones.push((button, PanelAction::Press(key)));
