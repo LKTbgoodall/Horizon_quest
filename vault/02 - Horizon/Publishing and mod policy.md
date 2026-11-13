@@ -20,8 +20,8 @@ Back: [[Horizon - Overview]]
 - `release/registry-entry.md`: the form's fields, summary and description, screenshots, open points.
 - **How the content is shipped** (2026-11-11, Horizon `main`): a native registry entry may name a `.hmod` with content; the launcher snapshots the content under the build's `native-content/<id>/`. We publish `build/horizon_quests.hmod` → [[ADR-014 Publish one hmod with content and code]]. The registry compiles native mods on the newest Nightly: re-pin before sending. Its own check: `cargo horizon-mod check <file>`.
 
-## ⚠️ Is native publishing open? (read 2026-11-13)
-The sources disagree: the horizon-mods README says native publishing still waits for `cargo-horizon-mod` and launcher changes; the docs page and two merged third-party native entries (Bioneisme's `big_nukes_native`, `deepbore_quarry_native`) say it works. ewanc26/atmospheric-horizon#28 (open) holds that it is blocked. Check the submit form's kinds before 1.0.0 → [[Open questions]].
+## ✅ Native publishing is open (read 2026-11-13)
+The submit page itself lists "a native mod" among what it takes (form, checks, pull request, human review); two third-party native entries are already merged (Bioneisme's `big_nukes_native`, `deepbore_quarry_native`). The horizon-mods README sentence saying native publishing waits for `cargo-horizon-mod` and launcher changes is stale, and ewanc26/atmospheric-horizon#28 rests on it. What still holds 1.0.0 back for us is our own horizon-rust/horizon#15933 (a combined `.hmod`'s content not installed).
 
 ## Contents of a `.hnmod`
 A deterministic zip containing `horizon-native.json` (`{schema:1, id, version, game, horizon, mixins, hooks}`), the `.rs`, `.toml` and `data/` files under `mixins/<id>/`, and the `LICENSE`.
