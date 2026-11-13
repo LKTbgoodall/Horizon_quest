@@ -7,7 +7,7 @@ priority = 100
 # "hooks": 400 in compatibility.json (the data packs' quest folders; the
 # config files need 397, native_item_stack 313), so the launcher builds it on any Horizon that has them.
 [compatibility]
-horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
+horizon_revision = "9f42064c11efe7ef3e5ed2baad7ddc2a3b36eea0"
 
 # Pure modules (also built by `cargo test` through src/lib.rs).
 [[module]]

@@ -53,7 +53,7 @@ native_part="$out/install/$mod_id.hnmod"
 content_part="$out/install/$mod_id.hmod"
 
 # The commits the mod was built and tested on (the launcher's native/built.json).
-horizon_rev="fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
+horizon_rev="9f42064c11efe7ef3e5ed2baad7ddc2a3b36eea0"
 mixins_rev="5a64af938ec86b00d53d16a408aabc0038fb3e57"
 
 # The version is the bundle manifest's and the hook API compatibility.json's,

@@ -1,7 +1,7 @@
 ---
 tags: [horizon, build, tools]
 source: playhorizon.dev/docs/make-a-mod, /docs/test-a-mod, horizon/docs/native-mods.md, horizon-mods/native/tools/native.py
-verified_on: 2026-11-10
+verified_on: 2026-11-13
 ---
 # Build, test and tools
 
@@ -103,7 +103,8 @@ Home PC:
 - `tools\build-mod.ps1` does all of that (modelled on Bastien's script in his `organa` project). `build/` is gitignored.
 - `tools/build-mod.sh` is its bash twin for Linux and macOS (added 2026-11-10 for a LAN guest on Arch Linux): same package (files only, no folder entries), instance found under `~/.config/horizon/instances/NAME` or `~/.local/share/horizon/instances/NAME` (guessed from the Windows path `%APPDATA%\horizon\instances`, **not verified on Linux**; `--instance-dir` overrides), launcher `horizon-launcher` on the PATH or `$HORIZON_LAUNCHER`. Packaging tested on Windows (Git Bash, python fallback); install and build untested.
 - Paths on Bastien's PC: launcher `%LOCALAPPDATA%\Programs\Horizon Launcher\horizon-launcher.exe` (not on PATH; it is a windowed app, so PowerShell's `&` does not wait for it, `Start-Process -Wait` does), data `%APPDATA%\horizon-launcher` (`native/build.log`, `native/built.json`, `versions/`), instances `%APPDATA%\horizon\instances\` (default `mon-horizon`).
-- First real build: 2026-11-10, Horizon `fdc87ae`, mixins `5a64af9`, profile performance, 4 min 12 s incremental, **no compile error** in our glue. The mod now pins `fdc87ae`.
+- First real build: 2026-11-10, Horizon `fdc87ae`, mixins `5a64af9`, profile performance, 4 min 12 s incremental, **no compile error** in our glue. The mod pinned `fdc87ae`, then **`9f42064`** (`nightly-2026-11-13-9f42064`, 2026-11-13).
+- **Re-pinning on a Nightly the launcher has not built with yet** (2026-11-13): `git archive <rev>` of `ext/horizon` into `ext/src-<rev>`, delete its symlinks (horizon-mixins refuses them: `E_INVALID_PATH`, Horizon's `CLAUDE.md` is one), write the full revision into `.horizon-revision` (else horizon-mixins takes the enclosing repo's HEAD and fails with "requires exact Horizon revision"), then `HORIZON_SOURCE=$PWD/ext/src-<rev> tools/check-glue.sh`. The launcher's own copy in `native/source/<rev>` has the same shape.
 
 ## One .hmod (since v0.1.2)
 - `build-mod.ps1` / `build-mod.sh` pack `build/horizon_quests.hmod` (content from `mod/content` + native bundle), the one file of the mod, reproducible (fixed dates, sorted). Install cuts it in two (`build/install/`): `.hnmod` to `horizon-native-mods/` (the only place the pinned launcher builds from), content `.hmod` to `horizon-mods/`. `-Uninstall` removes both.

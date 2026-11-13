@@ -40,7 +40,7 @@ cargo test
 ```powershell
 powershell -ExecutionPolicy Bypass -File toolseck-glue.ps1
 ```
-It ends with "The glue type-checks against Horizon fdc87ae", or with the compiler's errors. Run it before asking for an in-game test.
+It ends with "The glue type-checks against Horizon 9f42064", or with the compiler's errors. Run it before asking for an in-game test.
 
 ## Test in game
 1. Get the latest code (on another PC):

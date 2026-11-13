@@ -3,6 +3,8 @@
 Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%20numbers.md): the middle number for a new feature, the last for a small addition or a fix, and 1.0.0 for the first public release. Versions tested in game have a git tag.
 
 ## Unreleased: towards 1.0.0
+- Re-pinned on the Nightly `nightly-2026-11-13-9f42064` (Horizon `9f42064`, horizon-mixins `5a64af9` unchanged): the first Nightly whose launcher installs a `.hmod`'s content and whose game reads `native-content/`. The glue type-checks against it with no warning; no hook we use changed.
+- `tools/check-glue.sh`: `HORIZON_SOURCE` points it at a checkout of the pinned revision the launcher has not built with yet.
 
 ## 0.17.1
 - Bastien: a Step row under a random table's list, 0.1 / 0.5 / 1 / 2 / 5 percent, for - / + and the wheel. Chances are kept to a tenth of a percent: set chances make the weights add up to 1000.

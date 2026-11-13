@@ -53,7 +53,7 @@ $ModsList = Join-Path $InstanceDir "horizon-mods.txt"
 $Launcher = Join-Path $env:LOCALAPPDATA "Programs\Horizon Launcher\horizon-launcher.exe"
 
 # The commits the mod was built and tested on (the launcher's native/built.json).
-$HorizonRev = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
+$HorizonRev = "9f42064c11efe7ef3e5ed2baad7ddc2a3b36eea0"
 $MixinsRev = "5a64af938ec86b00d53d16a408aabc0038fb3e57"
 
 $Utf8 = New-Object System.Text.UTF8Encoding($false)

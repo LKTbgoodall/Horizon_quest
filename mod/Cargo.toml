@@ -16,4 +16,4 @@ path = "src/lib.rs"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "1.1"  # Horizon fdc87ae locks 1.1.6: tested against the same
+toml = "1.1"  # Horizon 9f42064 locks 1.1.6: tested against the same

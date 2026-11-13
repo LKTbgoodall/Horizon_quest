@@ -10,8 +10,9 @@ compat="$root/mod/compatibility.json"
 revision="$(sed -n 's/.*"horizon_revision": *"\([^"]*\)".*/\1/p' "$compat")"
 mixins_revision="$(sed -n 's/.*"horizon_mixins_revision": *"\([^"]*\)".*/\1/p' "$compat")"
 native="${XDG_DATA_HOME:-$HOME/.local/share}/horizon-launcher/native"
-source="$native/source/$revision"
-[ -d "$source" ] || { echo "The launcher has no copy of Horizon $revision in $native/source: build once with the launcher first." >&2; exit 1; }
+# HORIZON_SOURCE: a checkout of the pinned revision, for a Nightly the launcher has not built with yet.
+source="${HORIZON_SOURCE:-$native/source/$revision}"
+[ -d "$source" ] || { echo "The launcher has no copy of Horizon $revision in $native/source: build once with the launcher first, or set HORIZON_SOURCE to a checkout of it." >&2; exit 1; }
 tool=""
 for dir in "$native"/tools/*/; do
     name="$(basename "$dir")"
