@@ -69,6 +69,10 @@ horizon-server --dir <SERVER> run
 - `proof.py` (as in smp) launches `horizon-client --dedicated --nogui` and `horizon-ctl --offscreen` clients that read the chat, the menus (slots numbered from 300) and the inventory.
 - Useful variables: `HORIZON_HOME`, `HORIZON_LAUNCHER_HOME`, `HORIZON_NO_AUDIO=1`, `HORIZON_LAUNCHER_NO_SELF_UPDATE=1`.
 
+## Playing the game from a script: `horizon-ctl` (found 2026-11-13)
+Each installed version ships `horizon-ctl` next to the game (Linux: `~/.local/share/horizon-launcher/versions/<version>/horizon-ctl`; a native build is a version of its own, `native-<rev>-<hash>`). It drives a running game like a player and answers in JSON; `horizon-ctl mcp` serves the same commands over MCP. Useful commands: `launch --world NAME --wait`, `worlds`, `open`, `wait-ready`, `state`, `screen` (the open screen, its buttons), `messages`, `screenshot` (the next frame as a PNG), `logs`, `quit`; plus moving, mining, placing, attacking. `horizon-ctl help` lists all. Docs: Horizon `docs/native-client.md` § "Agent control".
+For us: Claude can launch a build Bastien made, open a world, open the book and take screenshots to check the look. Building a native version still passes `--trust-native-code`, so that step stays Bastien's.
+
 ## Windows pitfalls
 - **Smart App Control** blocks freshly compiled programs (os error 4551). It must be turned off in Windows Security.
 - **Non-ASCII profile path**: the build is moved to `ProgramData\horizon-launcher-<id>`.
