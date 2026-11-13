@@ -486,6 +486,22 @@ fn main() {
         svg(&view.scene(&screen(&book, &progress, to)), to),
     ));
 
+    // 16. The arrows of the quest window: what a locked quest needs, from the left arrow.
+    let book = Book::new(load_dir(&root.join("mixins/horizon_quests/data/quests")).file);
+    let progress = Progress::default();
+    let mut view = BookView::default();
+    view.open(&screen(&book, &progress, AWAY));
+    let stone = book.find("getting_started/stone").expect("the stone quest");
+    click(&mut view, &book, &progress, &Action::Quest(stone));
+    let needs = pointing_at(&view, &book, &progress, &Action::Related(stone, true));
+    view.click(&screen(&book, &progress, needs));
+    let mouse = [needs[0] + 30.0, needs[1] + 20.0];
+    pictures.push((
+        "book-16-needs-arrow",
+        "The quest window's arrows, at the ends of the Tasks / Rewards row: left (cyan, throbbing red while locked) lists what the quest needs, right (yellow) what it opens. A click opens the list; a click on a quest goes to it, in its chapter. Hidden quests are only counted.",
+        svg(&view.scene(&screen(&book, &progress, mouse)), mouse),
+    ));
+
     let vault = root.join("../vault/04 - Design/previews");
     let page_dir = root.join("target/preview");
     std::fs::create_dir_all(&vault).expect("the previews folder");

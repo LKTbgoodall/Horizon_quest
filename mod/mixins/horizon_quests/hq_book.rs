@@ -18,7 +18,7 @@ use super::hq_inline::{self as inline, Add, PanelAction, PickAction, Picker, Pur
 use super::hq_edit::QuestInfo;
 use super::hq_text::{Key, TextField};
 use super::hq_logic::{Book, QuestState, Status};
-use super::hq_model::{ItemMatch, Progress, Quest, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind, child_id};
+use super::hq_model::{DependencyMode, ItemMatch, Progress, Quest, Reward, RewardKind, RewardTable, Shape, TableEntry, Task, TaskKind, child_id};
 use super::hq_net::ToServer;
 use std::collections::VecDeque;
 
@@ -121,6 +121,11 @@ pub enum Action {
     /// Fold or unfold a group of the chapter list (its id).
     Group(String),
     Quest(usize),
+    /// The menu of the quests quest `0` needs (`true`) or opens (`false`):
+    /// the arrows of its window.
+    Related(usize, bool),
+    /// Show quest `0`: turn to its chapter, centre it, open its window.
+    GoTo(usize),
     /// Close the quest window.
     Deselect,
     Check(String),
@@ -218,6 +223,8 @@ pub struct Menu {
     pub entries: Vec<(String, Action)>,
     /// An item drawn before each entry, when not empty.
     pub icons: Vec<String>,
+    /// Entries whose icon gets the green check (a quest done).
+    pub done: Vec<bool>,
 }
 
 /// A quest dragged in edit mode: where the pointer took it (grid cells from
@@ -858,6 +865,18 @@ impl BookView {
         open
     }
 
+    /// Shows quest `n`: its chapter, centred on it at the same zoom, its
+    /// window open.
+    fn go_to(&mut self, s: &Screen<'_>, n: usize) {
+        let chapter = s.book.nodes()[n].chapter;
+        if chapter != self.chapter {
+            self.show_chapter(s, chapter);
+        }
+        let quest = s.book.quest(n);
+        self.view.pan = canvas::cell_centre([quest.x, quest.y]);
+        self.select(Some(n));
+    }
+
     /// Opens quest `n`'s window, or closes it.
     fn select(&mut self, selected: Option<usize>) {
         if self.selected != selected {
@@ -909,6 +928,11 @@ impl BookView {
                 self.moving = Some(Moving { node: n, grab, at: [quest.x, quest.y], pressed: s.mouse, moved: false });
             }
             Some(Action::Quest(n)) => self.select(Some(n)),
+            Some(Action::Related(n, needs)) => self.menu = related_menu(s, &self.statuses(s), n, needs, s.mouse),
+            Some(Action::GoTo(n)) => {
+                self.menu = None;
+                self.go_to(s, n);
+            }
             Some(Action::Deselect) => self.select(None),
             Some(Action::Check(task)) => return Reaction::Send(ToServer::Check { task }),
             Some(Action::Submit(task)) => return Reaction::Send(ToServer::Submit { task }),
@@ -956,7 +980,7 @@ impl BookView {
             Some(Action::AskDelete(quest)) => {
                 let title = s.book.find(&quest).map_or_else(|| quest.clone(), |n| quest_title(s.book.quest(n)).to_owned());
                 let entries = vec![("Delete".to_owned(), Action::Edit(Edit::DeleteQuest { quest })), ("Cancel".to_owned(), Action::CloseMenu)];
-                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete \"{title}\"?")), entries, icons: Vec::new() });
+                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete \"{title}\"?")), entries, icons: Vec::new(), done: Vec::new() });
             }
             Some(Action::SaveToModpack) => {
                 self.menu = None;
@@ -965,7 +989,7 @@ impl BookView {
             Some(Action::AskUseModpack) => {
                 let entries = vec![("Use the modpack's quests".to_owned(), Action::UseModpack), ("Cancel".to_owned(), Action::CloseMenu)];
                 let title = "Put this world's quests aside?".to_owned();
-                self.menu = Some(Menu { at: s.mouse, title: Some(title), entries, icons: Vec::new() });
+                self.menu = Some(Menu { at: s.mouse, title: Some(title), entries, icons: Vec::new(), done: Vec::new() });
             }
             Some(Action::UseModpack) => {
                 self.menu = None;
@@ -1031,11 +1055,11 @@ impl BookView {
             Some(Action::AskDeleteChapter(id)) => {
                 let name = s.book.file().chapters.iter().find(|c| c.id == id).map_or(id.clone(), |c| c.title.clone());
                 let entries = vec![("Delete it and its quests".to_owned(), Action::Edit(Edit::DeleteChapter { chapter: id })), ("Cancel".to_owned(), Action::CloseMenu)];
-                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete \"{name}\"?")), entries, icons: Vec::new() });
+                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete \"{name}\"?")), entries, icons: Vec::new(), done: Vec::new() });
             }
             Some(Action::AskDeleteTable(id)) => {
                 let entries = vec![("Delete the table".to_owned(), Action::Edit(Edit::DeleteTable { table: id.clone() })), ("Cancel".to_owned(), Action::CloseMenu)];
-                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete table {id}?")), entries, icons: Vec::new() });
+                self.menu = Some(Menu { at: s.mouse, title: Some(format!("Delete table {id}?")), entries, icons: Vec::new(), done: Vec::new() });
             }
             Some(Action::Tables) => {
                 let mut entries: Vec<(String, Action)> = s
@@ -1046,7 +1070,7 @@ impl BookView {
                     .map(|t| (format!("{} ({} entries)", t.id, t.entries.len()), Action::OpenTable(t.id.clone())))
                     .collect();
                 entries.push(("+ New table".to_owned(), Action::Edit(Edit::NewTable)));
-                self.menu = Some(Menu { at: s.mouse, title: Some("Reward tables".to_owned()), entries, icons: Vec::new() });
+                self.menu = Some(Menu { at: s.mouse, title: Some("Reward tables".to_owned()), entries, icons: Vec::new(), done: Vec::new() });
             }
             Some(Action::OpenTable(id)) => {
                 if let Some(table) = s.book.table(&id) {
@@ -1059,7 +1083,7 @@ impl BookView {
                     let bread = TableEntry { weight: 1, title: None, kind: RewardKind::Item { item: "minecraft:bread".into(), count: 1, max_count: None } };
                     entries.push(("+ Add an entry".to_owned(), Action::Edit(Edit::SaveEntry { table: id.clone(), index: None, entry: bread })));
                     entries.push(("Delete this table".to_owned(), Action::AskDeleteTable(id.clone())));
-                    self.menu = Some(Menu { at: s.mouse, title: Some(format!("Table {id}")), entries, icons: Vec::new() });
+                    self.menu = Some(Menu { at: s.mouse, title: Some(format!("Table {id}")), entries, icons: Vec::new(), done: Vec::new() });
                 }
             }
             Some(Action::Stay) | None => {}
@@ -1131,14 +1155,14 @@ impl BookView {
                         ("Move down".to_owned(), Action::Edit(Edit::MoveChapter { chapter: id.clone(), by: 1 })),
                         ("Delete".to_owned(), Action::AskDeleteChapter(id)),
                     ];
-                    Some(Menu { at: s.mouse, title: Some(if chapter.title.is_empty() { chapter.id.clone() } else { chapter.title.clone() }), entries, icons: Vec::new() })
+                    Some(Menu { at: s.mouse, title: Some(if chapter.title.is_empty() { chapter.id.clone() } else { chapter.title.clone() }), entries, icons: Vec::new(), done: Vec::new() })
                 }
                 Some(Action::Group(id)) => {
                     let entries = vec![
                         ("Rename...".to_owned(), Action::OpenPanel(Subject::Group(id.clone()))),
                         ("Delete the group (its chapters stay)".to_owned(), Action::Edit(Edit::DeleteGroup { group: id.clone() })),
                     ];
-                    Some(Menu { at: s.mouse, title: None, entries, icons: Vec::new() })
+                    Some(Menu { at: s.mouse, title: None, entries, icons: Vec::new(), done: Vec::new() })
                 }
                 _ => None,
             };
@@ -1164,7 +1188,7 @@ impl BookView {
                 (_, true) => "Mark as not claimed",
             };
             let entries = vec![(mark.to_owned(), Action::Mark(id, !done)), ("Edit...".to_owned(), Action::OpenPanel(subject))];
-            self.menu = Some(Menu { at: s.mouse, title: Some(title.to_owned()), entries, icons: Vec::new() });
+            self.menu = Some(Menu { at: s.mouse, title: Some(title.to_owned()), entries, icons: Vec::new(), done: Vec::new() });
             return Reaction::Nothing;
         }
         let on_canvas = canvas::inside(scene.regions.canvas, s.mouse) && !self.over_list(s);
@@ -1185,7 +1209,7 @@ impl BookView {
                 if self.source == edit::SOURCE_WORLD {
                     entries.push(("Use the modpack's quests".to_owned(), Action::AskUseModpack));
                 }
-                Menu { at: s.mouse, title: None, entries, icons: Vec::new() }
+                Menu { at: s.mouse, title: None, entries, icons: Vec::new(), done: Vec::new() }
             }
             Some(_) => return Reaction::Nothing,
         };
@@ -1283,7 +1307,7 @@ impl BookView {
             entries.push((label, action));
             icons.push(icon);
         }
-        self.menu = Some(Menu { at: s.mouse, title: Some(title.to_owned()), entries, icons });
+        self.menu = Some(Menu { at: s.mouse, title: Some(title.to_owned()), entries, icons, done: Vec::new() });
     }
 
     /// A click on the open panel: most change what it edits at once.
@@ -1344,7 +1368,7 @@ impl BookView {
             // A drawn reward's table: a menu of the pack's tables.
             PanelAction::Pick("table") => {
                 let entries: Vec<(String, Action)> = inline::table_choices(s.book, &subject).into_iter().map(|(label, edit)| (label, Action::Edit(edit))).collect();
-                self.menu = Some(Menu { at: s.mouse, title: Some("Draw from".to_owned()), entries, icons: Vec::new() });
+                self.menu = Some(Menu { at: s.mouse, title: Some("Draw from".to_owned()), entries, icons: Vec::new(), done: Vec::new() });
             }
             PanelAction::Pick("advancement") => {
                 self.picker = Some((Picker::advancements(self.advancements.clone()), Purpose::Panel("advancement")));
@@ -1989,6 +2013,8 @@ impl BookView {
         }
         tip = draw_icons(scene, s, left, heading, TASK_INK, &content.tasks).or(tip);
         tip = draw_icons(scene, s, right, "Rewards", GOLD_INK, &content.rewards).or(tip);
+        let ticks = self.clock as f32 + self.partial_tick.clamp(0.0, 1.0);
+        tip = draw_arrows(scene, s, statuses, n, [x + 1.0, top, w - 2.0], ticks).or(tip);
 
         // What it is, under them: it scrolls with the wheel when it is long.
         let body = [x + 1.0, top + columns_h + 1.0, w - 2.0, (h - bar - columns_h - 4.0).max(0.0)];
@@ -2092,6 +2118,70 @@ fn hidden_eye_draws(at: [f32; 2]) -> Vec<Draw> {
     draws
 }
 
+/// The quest window's arrows, `a` their body: what it needs, what it opens.
+const ARROW_LEFT: [&str; 7] = ["...a...", "..aa...", ".aaaaaa", "aaaaaaa", ".aaaaaa", "..aa...", "...a..."];
+const ARROW_RIGHT: [&str; 7] = ["...a...", "...aa..", "aaaaaa.", "aaaaaaa", "aaaaaa.", "...aa..", "...a..."];
+const ARROW_BOX: f32 = 11.0;
+/// How long the arrow of a locked quest takes to throb red and back, in ticks.
+const THROB_TICKS: f32 = 24.0;
+const THROB_RED: u32 = 0xFFB0_2828;
+
+/// The quest window's two arrows, at the ends of its columns' heading row
+/// (`row`: x, y, width): left, the quests it needs, in the lines' cyan;
+/// right, those it opens, in their yellow. A click lists them
+/// (`Action::Related`). Dim when there is none; the left one throbs red
+/// while the quest is locked. `ticks`: the clock, with the frame's part of a
+/// tick. Returns the tooltip of the one under the pointer.
+fn draw_arrows(scene: &mut Scene, s: &Screen<'_>, statuses: &[Status], n: usize, row: [f32; 3], ticks: f32) -> Option<Vec<(String, u32)>> {
+    let node = &s.book.nodes()[n];
+    let mut tip = None;
+    for needs in [true, false] {
+        let count = if needs { node.dependencies.len() } else { node.dependents.len() };
+        let x = if needs { row[0] + 2.0 } else { row[0] + row[2] - 2.0 - ARROW_BOX };
+        let rect = [x, row[1] + 2.0, ARROW_BOX, ARROW_BOX];
+        let over = canvas::inside(rect, s.mouse);
+        let colour = if count == 0 {
+            POPUP_EDGE
+        } else if over {
+            0xFFFF_FFFF
+        } else if !needs {
+            LINE_OPENS
+        } else if statuses[n].state == QuestState::Locked {
+            let phase = (ticks % THROB_TICKS) / THROB_TICKS;
+            mix(LINE_NEEDS, THROB_RED, 1.0 - (2.0 * phase - 1.0).abs())
+        } else {
+            LINE_NEEDS
+        };
+        if over && count > 0 {
+            scene.fill(rect, ROW_HOVER);
+        }
+        let map: &[&str] = if needs { &ARROW_LEFT } else { &ARROW_RIGHT };
+        scene.draws.extend(pixel_art(map, [rect[0] + 2.0, rect[1] + 2.0], 1.0, &|c| (c == 'a').then_some(colour)));
+        if count > 0 {
+            scene.zones.push((rect, Action::Related(n, needs)));
+        }
+        if over {
+            let text = match (needs, count) {
+                (true, 0) => "Needs no quest",
+                (false, 0) => "Opens no quest",
+                (true, _) => "What it needs",
+                (false, _) => "What it opens",
+            };
+            tip = Some(vec![(text.to_owned(), INK)]);
+        }
+    }
+    tip
+}
+
+/// Colour `a` turned `t` (0 to 1) of the way to `b`, alpha included.
+fn mix(a: u32, b: u32, t: f32) -> u32 {
+    let t = t.clamp(0.0, 1.0);
+    (0..4).fold(0, |out, i| {
+        let (ca, cb) = ((a >> (8 * i)) & 0xFF, (b >> (8 * i)) & 0xFF);
+        out | (((ca as f32 + (cb as f32 - ca as f32) * t).round() as u32) << (8 * i))
+    })
+}
+
 /// A gear: the quest settings button in edit mode.
 const GEAR_PIXELS: [&str; 9] = ["...g.g...", "..ggggg..", ".gg...gg.", "ggg...ggg", ".g..g..g.", "ggg...ggg", ".gg...gg.", "..ggggg..", "...g.g..."];
 /// A hint in place of something to write; the typing cursor.
@@ -2118,7 +2208,58 @@ fn quest_menu(s: &Screen<'_>, n: usize, at: [f32; 2]) -> Menu {
         ("Pick what this quest opens...".to_owned(), Action::Link(n, false)),
         ("Delete".to_owned(), Action::AskDelete(id)),
     ];
-    Menu { at, title: Some(quest_title(quest).to_owned()), entries, icons: Vec::new() }
+    Menu { at, title: Some(quest_title(quest).to_owned()), entries, icons: Vec::new(), done: Vec::new() }
+}
+
+/// The menu of the quests quest `n` needs (`needs`) or opens, from any
+/// chapter: each with its icon (checked once done) and, from another
+/// chapter, that chapter's name. Quests the player does not see are only
+/// counted. None when there is none.
+fn related_menu(s: &Screen<'_>, statuses: &[Status], n: usize, needs: bool, at: [f32; 2]) -> Option<Menu> {
+    let book = s.book;
+    let node = &book.nodes()[n];
+    let others = if needs { &node.dependencies } else { &node.dependents };
+    if others.is_empty() {
+        return None;
+    }
+    let (mut entries, mut icons, mut done) = (Vec::new(), Vec::new(), Vec::new());
+    let mut hidden = 0;
+    for &m in others {
+        if !statuses[m].visible {
+            hidden += 1;
+            continue;
+        }
+        let other = &book.nodes()[m];
+        let mut label = quest_title(book.quest(m)).to_owned();
+        if other.chapter != node.chapter {
+            if let Some(chapter) = book.file().chapters.get(other.chapter) {
+                let name = if chapter.title.is_empty() { &chapter.id } else { &chapter.title };
+                label.push_str(&format!(" [{name}]"));
+            }
+        }
+        entries.push((label, Action::GoTo(m)));
+        icons.push(quest_icon(book.quest(m)).to_owned());
+        done.push(s.progress.is_completed(&other.id));
+    }
+    if hidden > 0 {
+        let more = if entries.is_empty() { "" } else { "+ " };
+        entries.push((format!("{more}{hidden} hidden"), Action::Stay));
+        icons.push(String::new());
+        done.push(false);
+    }
+    let quest = book.quest(n);
+    // As hq_logic counts: `min_required` (done ones) wins over the mode.
+    let title = match (quest.min_required.filter(|&min| min > 0), quest.dependency_mode) {
+        _ if !needs => "Opens".to_owned(),
+        (Some(min), _) if (min as usize) < others.len() => format!("Needs {min} done of"),
+        (Some(_), _) => "Needs".to_owned(),
+        (None, DependencyMode::AllCompleted) => "Needs".to_owned(),
+        (None, _) if others.len() == 1 && quest.dependency_mode == DependencyMode::OneCompleted => "Needs".to_owned(),
+        (None, DependencyMode::OneCompleted) => "Needs one of".to_owned(),
+        (None, DependencyMode::AllStarted) => "Needs started".to_owned(),
+        (None, DependencyMode::OneStarted) => "Needs one started of".to_owned(),
+    };
+    Some(Menu { at, title: Some(title), entries, icons, done })
 }
 
 /// `source` for the player.
@@ -2198,7 +2339,9 @@ fn draw_menu(scene: &mut Scene, s: &Screen<'_>, menu: &Menu) {
     }
     for (i, (label, action)) in menu.entries.iter().enumerate() {
         let rect = [x + 1.0, row_y, w - 2.0, row_h];
-        if canvas::inside(rect, s.mouse) {
+        // An entry that does nothing is a note: dim, never lit.
+        let note = *action == Action::Stay;
+        if canvas::inside(rect, s.mouse) && !note {
             scene.fill(rect, ROW_HOVER);
         }
         let danger = matches!(
@@ -2217,10 +2360,15 @@ fn draw_menu(scene: &mut Scene, s: &Screen<'_>, menu: &Menu) {
                 let dst = [x + PAD, row_y + 1.0, 12.0, 12.0];
                 scene.draws.push(mark_sprite(MarkCell::Question, dst, mark_pixel_draws(Mark::Question, [dst[0] - 10.0, dst[1] + 3.5])));
             }
+            Some("") | None => {}
             Some(icon) => scene.draws.push(Draw::Item { item: icon.to_owned(), at: [x + PAD, row_y + 1.5], size: 12.0 }),
-            None => {}
         }
-        scene.text(label.clone(), [x + PAD + 1.0 + indent, row_y + (row_h - 8.0) / 2.0], if danger { DANGER_INK } else { INK });
+        if menu.done.get(i).copied().unwrap_or(false) {
+            // The quest window's check, a little left: the label follows close.
+            scene.draws.extend(mark_draws(Mark::Check, [x + PAD - 3.0, row_y + 4.0]));
+        }
+        let ink = if danger { DANGER_INK } else if note { DIM_INK } else { INK };
+        scene.text(label.clone(), [x + PAD + 1.0 + indent, row_y + (row_h - 8.0) / 2.0], ink);
         scene.zones.push((rect, action.clone()));
         row_y += row_h;
     }
@@ -2398,22 +2546,8 @@ fn popup_lines(s: &Screen<'_>, statuses: &[Status], n: usize, text_w: f32) -> Ve
             times => state.push_str(&format!(", done {times} times")),
         }
     }
+    // What a locked quest needs is behind the window's left arrow.
     lines.extend(wrap(&state, text_w, s.measure).into_iter().map(|line| (line, colour & 0xFF_FFFF)));
-    if statuses[n].state == QuestState::Locked {
-        lines.push(("Needs:".to_owned(), GOLD_INK));
-        for &d in &node.dependencies {
-            let dependency = book.quest(d);
-            let name = if !statuses[d].visible {
-                "???"
-            } else if dependency.title.is_empty() {
-                &dependency.id
-            } else {
-                &dependency.title
-            };
-            let mark = if s.progress.is_completed(&book.nodes()[d].id) { "[x]" } else { "[ ]" };
-            lines.push((fit_text(&format!("{mark} {name}"), text_w, s.measure), DIM_INK));
-        }
-    }
     if let Some(subtitle) = &quest.subtitle {
         lines.extend(wrap(subtitle, text_w, s.measure).into_iter().map(|line| (line, DIM_INK)));
     }
@@ -3940,7 +4074,7 @@ mod tests {
         let (book, progress) = (Book::new(loaded.file), Progress::default());
         let mut view = opened(&book, &progress);
         (view.editor, view.editing) = (true, true);
-        view.menu = Some(Menu { at: [10.0, 10.0], title: None, entries: vec![("Reward tables...".into(), Action::Tables)], icons: Vec::new() });
+        view.menu = Some(Menu { at: [10.0, 10.0], title: None, entries: vec![("Reward tables...".into(), Action::Tables)], icons: Vec::new(), done: Vec::new() });
         click(&mut view, &book, &progress, &Action::Tables);
         assert_eq!(view.menu.as_ref().unwrap().entries[0].1, Action::OpenTable("loot".into()));
         click(&mut view, &book, &progress, &Action::OpenTable("loot".into()));
@@ -3952,7 +4086,7 @@ mod tests {
         let (_, controls) = inline::subject_panel(&book, &Subject::Entry("loot".into(), 0)).unwrap();
         assert!(!controls.iter().any(|c| matches!(c, inline::Control::Number { key: "chance" | "weight", .. })));
         view.panel = None;
-        view.menu = Some(Menu { at: [10.0, 10.0], title: None, entries: vec![("Pack settings...".into(), Action::OpenPanel(Subject::Settings))], icons: Vec::new() });
+        view.menu = Some(Menu { at: [10.0, 10.0], title: None, entries: vec![("Pack settings...".into(), Action::OpenPanel(Subject::Settings))], icons: Vec::new(), done: Vec::new() });
         click(&mut view, &book, &progress, &Action::OpenPanel(Subject::Settings));
         assert_eq!(view.panel, Some(Subject::Settings));
 
@@ -4560,16 +4694,65 @@ mod tests {
     }
 
     #[test]
-    fn a_locked_quest_says_what_it_needs_and_has_no_buttons() {
+    fn a_locked_quest_says_so_and_has_no_buttons() {
         let (book, progress) = (book(), Progress::default());
         let mut view = opened(&book, &progress);
         click(&mut view, &book, &progress, &Action::Quest(1));
         let scene = view.scene(&screen(&book, &progress, NOWHERE));
         let shown = texts(&scene);
-        for text in ["Locked", "Needs:", "[ ] Start here"] {
-            assert!(shown.contains(&text), "{text} in {shown:?}");
-        }
+        assert!(shown.contains(&"Locked"), "{shown:?}");
+        assert!(!shown.contains(&"Needs:"), "what it needs is behind the arrow: {shown:?}");
         assert_eq!(zone(&scene, &Action::Submit("a/next/planks".into())), None);
+    }
+
+    #[test]
+    fn the_arrows_list_what_a_quest_needs_and_opens_without_the_hidden_ones() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        click(&mut view, &book, &progress, &Action::Quest(1));
+        click(&mut view, &book, &progress, &Action::Related(1, true));
+        let menu = view.menu.clone().expect("the needs menu");
+        assert_eq!(menu.title.as_deref(), Some("Needs"));
+        assert_eq!(menu.entries, [("Start here".to_owned(), Action::GoTo(0))]);
+        assert_eq!((menu.icons, menu.done), (vec!["minecraft:book".to_owned()], vec![false]));
+        // "A surprise" waits for this one: players do not see it yet.
+        view.menu = None;
+        click(&mut view, &book, &progress, &Action::Related(1, false));
+        let menu = view.menu.clone().expect("the opens menu");
+        assert_eq!(menu.title.as_deref(), Some("Opens"));
+        assert_eq!(menu.entries, [("1 hidden".to_owned(), Action::Stay)]);
+        // In edit mode every quest is listed.
+        view.menu = None;
+        view.editing = true;
+        click(&mut view, &book, &progress, &Action::Related(1, false));
+        assert_eq!(view.menu.clone().unwrap().entries, [("A surprise".to_owned(), Action::GoTo(2))]);
+    }
+
+    #[test]
+    fn an_arrow_with_nothing_behind_it_does_nothing_and_done_quests_are_checked() {
+        let book = book();
+        let done = progress_after(&book, &[QuestEvent::Check { task: "a/start/ok".into() }]);
+        let mut view = opened(&book, &done);
+        click(&mut view, &book, &done, &Action::Quest(0));
+        let scene = view.scene(&screen(&book, &done, NOWHERE));
+        assert_eq!(zone(&scene, &Action::Related(0, true)), None, "the first quest needs nothing");
+        click(&mut view, &book, &done, &Action::Related(0, false));
+        assert_eq!(view.menu.clone().unwrap().entries, [("Then this".to_owned(), Action::GoTo(1))]);
+        click(&mut view, &book, &done, &Action::GoTo(1));
+        click(&mut view, &book, &done, &Action::Related(1, true));
+        assert_eq!(view.menu.clone().unwrap().done, [true]);
+    }
+
+    #[test]
+    fn going_to_a_quest_turns_to_its_chapter_centres_it_and_opens_it() {
+        let (book, progress) = (book(), Progress::default());
+        let mut view = opened(&book, &progress);
+        let s = screen(&book, &progress, NOWHERE);
+        view.show_chapter(&s, 1);
+        view.go_to(&s, 1);
+        assert_eq!((view.chapter, view.selected), (0, Some(1)));
+        assert_eq!(view.view.pan, canvas::cell_centre([2.0, 0.0]));
+        assert_eq!(view.view.zoom, fit(&book, 0, &view.statuses(&s), regions(RECT).canvas).zoom);
     }
 
     #[test]
