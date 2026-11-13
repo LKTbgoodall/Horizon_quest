@@ -4,6 +4,7 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 
 ## Unreleased: towards 1.0.0
 - Re-pinned on the Nightly `nightly-2026-11-13-9f42064` (Horizon `9f42064`, horizon-mixins `5a64af9` unchanged): the first Nightly whose launcher installs a `.hmod`'s content and whose game reads `native-content/`. The glue type-checks against it with no warning; no hook we use changed.
+- `tools/build-mod.sh --combined` (the Linux twin of `-Combined`); a launcher path with spaces in its menu entry is read whole.
 - `tools/check-glue.sh`: `HORIZON_SOURCE` points it at a checkout of the pinned revision the launcher has not built with yet.
 
 ## 0.17.1

@@ -10,12 +10,15 @@
 #      from horizon-native-mods/<id>.hnmod, so the code half goes there and the
 #      content half to horizon-mods/<id>.hmod, both cut from the same sources;
 #      the mod is turned on.
+#      With --combined, the one .hmod goes to horizon-native-mods/<id>.hmod
+#      instead (and the two halves are taken out): what a launcher with native
+#      .hmod support installs from the registry (ADR-014).
 #   3. Unless --no-build: runs `horizon-launcher native-build` on the instance.
 #
 # Step 3 passes --trust-native-code: only the player runs this script, never an agent.
 #
 # Usage:
-#   tools/build-mod.sh [--instance NAME] [--instance-dir DIR] [--no-install] [--no-build] [--uninstall]
+#   tools/build-mod.sh [--instance NAME] [--instance-dir DIR] [--combined] [--no-install] [--no-build] [--uninstall]
 #
 # Without --instance: the default instance (on Linux, the game home
 # ~/.local/share/horizon, or $HORIZON_HOME) and the launcher's selected one.
@@ -31,6 +34,7 @@ instance=""
 instance_dir=""
 no_install=0
 no_build=0
+combined=0
 uninstall=0
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -38,8 +42,9 @@ while [ $# -gt 0 ]; do
         --instance-dir) instance_dir="$2"; shift 2 ;;
         --no-install) no_install=1; shift ;;
         --no-build) no_build=1; shift ;;
+        --combined) combined=1; shift ;;
         --uninstall) uninstall=1; shift ;;
-        -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
         *) echo "Unknown option: $1 (try --help)" >&2; exit 2 ;;
     esac
 done
@@ -102,9 +107,13 @@ find_launcher() {
     local entry="${XDG_DATA_HOME:-$HOME/.local/share}/applications/horizon-launcher.desktop" exec
     if [ -f "$entry" ]; then
         exec="$(sed -n 's/^Exec=//p' "$entry" | head -n 1)"
-        exec="${exec%% %*}"
-        exec="${exec#\"}"
-        exec="${exec%\"}"
+        if [ "${exec#\"}" != "$exec" ]; then
+            # Quoted: the path may hold spaces, it ends at the closing quote.
+            exec="${exec#\"}"
+            exec="${exec%%\"*}"
+        else
+            exec="${exec%% *}"
+        fi
         if [ -x "$exec" ]; then
             echo "$exec"
             return
@@ -128,7 +137,7 @@ set_mod_line() { # $1: true to turn the mod on, false to take it out
 
 if [ "$uninstall" = 1 ]; then
     dir="$(find_instance)"
-    rm -f "$dir/horizon-native-mods/$mod_id.hnmod" "$dir/horizon-mods/$mod_id.hmod"
+    rm -f "$dir/horizon-native-mods/$mod_id.hnmod" "$dir/horizon-native-mods/$mod_id.hmod" "$dir/horizon-mods/$mod_id.hmod"
     set_mod_line "$dir" false
     echo "Horizon Quests removed from $dir. Run native-build again to rebuild the game without it."
     exit 0
@@ -198,10 +207,17 @@ echo "The mod: $hmod (version $version)"
 # 2. Install it: the code where the launcher builds it, the content where the game reads it.
 dir="$(find_instance)"
 mkdir -p "$dir/horizon-native-mods" "$dir/horizon-mods"
-cp "$native_part" "$dir/horizon-native-mods/$mod_id.hnmod"
-cp "$content_part" "$dir/horizon-mods/$mod_id.hmod"
+if [ "$combined" = 1 ]; then
+    # The one file, as the registry would install it; no halves beside it.
+    rm -f "$dir/horizon-native-mods/$mod_id.hnmod" "$dir/horizon-mods/$mod_id.hmod"
+    cp "$hmod" "$dir/horizon-native-mods/$mod_id.hmod"
+else
+    rm -f "$dir/horizon-native-mods/$mod_id.hmod"
+    cp "$native_part" "$dir/horizon-native-mods/$mod_id.hnmod"
+    cp "$content_part" "$dir/horizon-mods/$mod_id.hmod"
+fi
 set_mod_line "$dir" true
-echo "Installed in $dir."
+echo "Installed in $dir$([ "$combined" = 1 ] && echo ' (one combined .hmod)')."
 [ "$no_build" = 1 ] && exit 0
 
 # 3. Build the game with every native mod turned on in the instance.
