@@ -85,3 +85,6 @@ updated: 2026-11-10
 
 ## Found starting edit mode (2026-11-12)
 - ❓ **Who is an editor in single player**: is the world's owner among `native_server_players()` (then its level is the guest's, 4 or 0 depending on cheats?) or not (then always allowed)? The v0.11.0 test answers it: does the pencil show with cheats off? `/quests edit` is the fallback either way. `native_player_permission` (⏳ `@API:player_permission@`) would settle it once numbered. → [[ADR-016 Edit mode in the book]]
+
+## Found 2026-11-13
+- ❓ **The mod API fork (`arismoko/horizon`)**: does upstream plan to take its `mod_api` (and drop `native-hooks.json`)? If so, we port the glue (pure modules unchanged). Until then we stay on upstream for 1.0.0. Possible issues to file there: none needed for the gaps we hit upstream (clipboard, permission level, text fields all exist on the fork) → [[Fork - arismoko mod API]]

@@ -40,6 +40,7 @@ updated: 2026-11-13
 - [[Build, test and tools]]: launcher, `native.py`, tests, Windows pitfalls
 - [[Publishing and mod policy]]
 - [[Links and resources]]
+- [[Fork - arismoko mod API]]: the mod API fork (not official): what it has, what a port would cost
 
 ### 03 · FTB Quests reference (the functional model)
 - [[FTB Quests - Overview]]
