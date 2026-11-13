@@ -18,7 +18,7 @@ updated: 2026-11-13
 | **In progress** | The in-game editor: all 4 steps coded (v0.11.0 to v0.14.0), waiting for the in-game test → [[Roadmap]] phase 5. Every phase 3 step is coded; v0.6.0 (assets) waits for a look in game, then 1.0.0, the public release |
 
 ## ➡️ Next step
-- **"Next level" look**: Bastien keeps concept D (a 3D diorama in the quest window) for later, only for build quests, with layers ([[Roadmap]] phase 5). No answer yet on the other five concepts of `vault/04 - Design/previews/next-level-concepts.html`. See [[2026-11-13]].
+- **Interface rework**: Bastien picks a direction in `vault/04 - Design/previews/interface-redesign.html` (Glass drawer, Parchment book, Vanilla+); node frames, lines and marks stay. Then an ADR and the code in `hq_book`. The six "next level" concepts were turned down (dioramas kept for later, [[Roadmap]] phase 5). See [[2026-11-13]].
 - **Bastien tests v0.18.1** (`mod/README.md` § "New in 0.18.0"): the arrows of the quest window. Build with `tools/build-mod.sh` (two halves: the textures; `--combined` loses them until horizon-rust/horizon#15933 is fixed).
 - **New Nightly `9f42064` (2026-11-13)**: Bastien runs `tools\build-mod.ps1 -Combined` and checks that the textures come from the one `.hmod`; that unblocks 1.0.0 (`release/v1-checklist.md` § 4).
 - **Edit mode**: Bastien tests v0.15.1 and v0.15.0 first (`mod/README.md` § "New in 0.15.1" and "New in 0.15.0"), then the rest of 0.11.0 to 0.14.0 (moving, links, chapters, tables, modpack; does the pencil show in solo with cheats off?). Then fixes, and ideas: undo, reorder tasks and rewards, move a quest to another chapter.
