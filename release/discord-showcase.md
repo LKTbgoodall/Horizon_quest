@@ -12,7 +12,7 @@ Horizon Quests: a graphical quest book, as a native Rust mod
 
 ## Tags
 
-Whatever fits among the channel's tags: a "mod" or "native mod" tag if there is one, plus "WIP" / "in progress" if offered (1.0.0 is not on the registry yet).
+The forum's tags (seen 2026-11-14): video, screenshot, build, clip, redstone, world, benchmark, mod. Pick **mod** and **screenshot**, plus **clip** (or **video**) if a clip of the editor is attached.
 
 ## First message (paste as is, under 2000 characters)
 
