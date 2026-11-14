@@ -18,6 +18,7 @@ updated: 2026-11-14
 | **In progress** | The in-game editor: all 4 steps coded (v0.11.0 to v0.14.0), waiting for the in-game test → [[Roadmap]] phase 5. Every phase 3 step is coded; v0.6.0 (assets) waits for a look in game, then 1.0.0, the public release |
 
 ## ➡️ Next step
+- **2026-11-14**: launcher 0.2.65 still lacks the fix for horizon#15933 (PR #16007 open); 1.0.0 keeps waiting ([[2026-11-14]]).
 - **Feature freeze for 1.0.0** (Bastien, 2026-11-13, v0.20.0 tested: "everything works"). **1.0.0 waits for horizon-rust/horizon#15933** (a combined `.hmod`'s content not installed) to be fixed in a Nightly. Meanwhile, Bastien can do the tests still open in `release/v1-checklist.md` § 1: LAN with a party, the server settings, leaving and rejoining worlds. The registry takes native mods (checked on the submit page).
 - **Bastien tests v0.20.0** (`mod/README.md` § "New in 0.20.0"): in edit mode, drag chapters and groups in the chapter list by their grip (into another group, out of a group, a group above another), the "+" at the end of a group heading.
 - **Bastien tests v0.19.0** (`mod/README.md` § "New in 0.19.0"): the rail on the right that replaces the bottom band, the small slides, the redrawn edit controls. He turned down the six "next level" concepts and the three redesign directions (previews kept in `vault/04 - Design/previews/`): the look stays, improved step by step; the quest window is not to be touched for now; dioramas for build quests stay a later idea ([[Roadmap]] phase 5).
