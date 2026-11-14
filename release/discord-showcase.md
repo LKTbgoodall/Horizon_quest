@@ -2,12 +2,12 @@
 
 The #showcase channel is a forum. Its pinned rules (read 2026-11-14): one post per creation (later updates go in the same post), at most one new post an hour, a screenshot, a video or a link is required, pick the tags that fit, and fill in the template below. A bot (Kira) checks each new post; if something is missing, edit the first message within an hour or the post is closed.
 
-Bastien posts it himself (Claude does not post on Discord).
+Bastien posts it himself (Claude does not post on Discord). The post does not mention FTB Quests (Bastien, 2026-11-14).
 
 ## Post title
 
 ```
-Horizon Quests: an FTB Quests-style quest book, as a native Rust mod
+Horizon Quests: a graphical quest book, as a native Rust mod
 ```
 
 ## Tags
@@ -17,7 +17,7 @@ Whatever fits among the channel's tags: a "mod" or "native mod" tag if there is 
 ## First message (paste as is, under 2000 characters)
 
 ```
-What it is: **Horizon Quests**, a quest book for Horizon in the spirit of FTB Quests, written from scratch as a native Rust mod (MIT, no FTB code or assets).
+What it is: **Horizon Quests**, a quest book for Horizon (chapters, quests, tasks, rewards, parties), written from scratch as a native Rust mod (MIT).
 
 - A graphical book (K, or the Quest Book every player gets): chapters, quests as nodes on a canvas you drag and zoom, animated dependency lines (cyan = what a quest needs, yellow = what it opens)
 - A quest window with tasks and rewards as item icons, Minecraft-style tooltips, recipes of the items asked for
