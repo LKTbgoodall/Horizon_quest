@@ -46,3 +46,4 @@ Since 2026-11-10: `ext/horizon` (sparse, partial clone at `1453e0e`: `docs/`, `n
 - Docs: https://docs.feed-the-beast.com/mod-docs/mods/suite/Quests/
 - Source: https://github.com/FTBTeam/FTB-Quests (All Rights Reserved: **read to understand, never copy**)
 - FTB Teams: https://docs.feed-the-beast.com/mod-docs/mods/suite/Teams/
+- Sunrise (sibling project: Forge/Fabric mods, older versions, shares the launcher code; Horizon issues get mirrored there by a bot): https://github.com/sunrise-org/sunrise
