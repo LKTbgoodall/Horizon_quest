@@ -47,3 +47,4 @@ Since 2026-11-10: `ext/horizon` (sparse, partial clone at `1453e0e`: `docs/`, `n
 - Source: https://github.com/FTBTeam/FTB-Quests (All Rights Reserved: **read to understand, never copy**)
 - FTB Teams: https://docs.feed-the-beast.com/mod-docs/mods/suite/Teams/
 - Sunrise (sibling project: Forge/Fabric mods, older versions, shares the launcher code; Horizon issues get mirrored there by a bot): https://github.com/sunrise-org/sunrise
+- arismoko/horizon: a mod API fork of Horizon (own launcher, own Discord "Modrizon", book https://arismoko.github.io/horizon/), announced 2026-11-13, looking for mod developers and testers. Checked 2026-11-15: its launcher still has the combined-content bug (`copy_bundle(b, &incoming.join(&b.manifest.id))`), so it does not unblock 1.0.0; our players use the official launcher and registry. https://github.com/arismoko/horizon
