@@ -1,0 +1,10 @@
+{
+  "id": "hunter_loot",
+  "entries": [
+    { "weight": 4, "type": "item", "item": "minecraft:arrow", "count": 16 },
+    { "weight": 3, "type": "item", "item": "minecraft:cooked_beef", "count": 6 },
+    { "weight": 2, "type": "item", "item": "minecraft:gunpowder", "count": 4 },
+    { "weight": 2, "type": "xp", "points": 40 },
+    { "weight": 1, "type": "item", "item": "minecraft:golden_apple", "count": 1 }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "id": "arsenal",
+  "title": "Arsenal",
+  "subtitle": "Weapons for every fight",
+  "icon": "minecraft:crossbow",
+  "group": "combat",
+  "quests": [
+    {
+      "id": "crossbow",
+      "title": "Crossbow",
+      "description": [
+        "Slower to load than a bow, but it hits hard, and it can fire rockets."
+      ],
+      "x": 0, "y": 0,
+      "shape": "circle",
+      "dependencies": ["iron_age/iron_armor"],
+      "tasks": [ { "id": "crossbow", "type": "item", "item": "minecraft:crossbow" } ],
+      "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
+    },
+    {
+      "id": "special_arrows",
+      "title": "Special arrows",
+      "description": [
+        "Glowstone makes spectral arrows that show targets through walls. Lingering potions make tipped arrows."
+      ],
+      "icon": "minecraft:spectral_arrow",
+      "x": 2, "y": -1.5,
+      "dependencies": ["crossbow"],
+      "tasks": [
+        { "id": "spectral_arrow", "type": "item", "item": "minecraft:spectral_arrow", "count": 16 },
+        { "id": "tipped_arrow", "type": "item", "item": "minecraft:tipped_arrow", "count": 4 }
+      ],
+      "rewards": [ { "id": "glowstone_dust", "type": "item", "item": "minecraft:glowstone_dust", "count": 8 } ]
+    },
+    {
+      "id": "spear",
+      "title": "Spear",
+      "description": [
+        "Spears reach further than swords. Charge with one held out and it lunges through what is in front."
+      ],
+      "icon": "minecraft:iron_spear",
+      "x": 2, "y": 1.5,
+      "dependencies": ["crossbow"],
+      "tasks": [ { "id": "spears", "type": "item", "item": "#minecraft:spears" } ],
+      "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 4 } ]
+    },
+    {
+      "id": "mob_kabob",
+      "title": "Mob kabob",
+      "description": [
+        "Line them up, charge, and skewer as many as you can at once."
+      ],
+      "icon": "minecraft:stone_spear",
+      "x": 4, "y": 1.5,
+      "optional": true,
+      "dependencies": ["spear"],
+      "tasks": [ { "id": "spear_many_mobs", "type": "advancement", "advancement": "minecraft:adventure/spear_many_mobs", "title": "Hit many mobs with one spear charge" } ],
+      "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
+    },
+    {
+      "id": "netherite_spear",
+      "title": "Netherite spear",
+      "description": [
+        "Upgrade a diamond spear at a smithing table."
+      ],
+      "x": 6, "y": 1.5,
+      "dependencies": ["spear", "beyond/netherite"],
+      "tasks": [ { "id": "netherite_spear", "type": "item", "item": "minecraft:netherite_spear" } ],
+      "rewards": [ { "id": "netherite_scrap", "type": "item", "item": "minecraft:netherite_scrap" } ]
+    },
+    {
+      "id": "totem",
+      "title": "Cheat death",
+      "description": [
+        "Evokers drop totems of undying. Hold one in either hand: the next time you would die, you don't."
+      ],
+      "icon": "minecraft:totem_of_undying",
+      "x": 4, "y": -1.5,
+      "dependencies": ["special_arrows"],
+      "tasks": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ],
+      "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
+    },
+    {
+      "id": "sniper",
+      "title": "Sniper duel",
+      "description": [
+        "Take a skeleton down from fifty blocks away with an arrow."
+      ],
+      "icon": "minecraft:bow",
+      "x": 6, "y": -1.5,
+      "optional": true,
+      "dependencies": ["totem"],
+      "tasks": [ { "id": "sniper_duel", "type": "advancement", "advancement": "minecraft:adventure/sniper_duel", "title": "Shoot a skeleton from 50 blocks" } ],
+      "rewards": [ { "id": "spectral_arrow", "type": "item", "item": "minecraft:spectral_arrow", "count": 16 } ]
+    },
+    {
+      "id": "armoury",
+      "title": "The armoury",
+      "description": [
+        "A shield, a bow, a crossbow and a trident on the wall. Ready for anything."
+      ],
+      "icon": "minecraft:shield",
+      "x": 6, "y": 0,
+      "shape": "hexagon",
+      "size": 1.25,
+      "dependencies": ["totem", "spear"],
+      "tasks": [
+        { "id": "shield", "type": "item", "item": "minecraft:shield" },
+        { "id": "bow", "type": "item", "item": "minecraft:bow" },
+        { "id": "crossbow", "type": "item", "item": "minecraft:crossbow" },
+        { "id": "trident", "type": "item", "item": "minecraft:trident" }
+      ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    }
+  ]
+}

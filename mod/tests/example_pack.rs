@@ -23,11 +23,37 @@ fn the_example_pack_is_sound() {
     let chapters: Vec<&str> = book.file().chapters.iter().map(|c| c.id.as_str()).collect();
     assert_eq!(
         chapters,
-        ["getting_started", "further_afield", "iron_age", "diamonds", "the_nether", "the_end", "beyond", "farming", "monsters"]
+        [
+            "getting_started",
+            "further_afield",
+            "iron_age",
+            "diamonds",
+            "the_nether",
+            "the_end",
+            "beyond",
+            "farming",
+            "monsters",
+            "wide_world",
+            "caves",
+            "oceans",
+            "new_horizons",
+            "trial_chambers",
+            "archaeology",
+            "nether_frontier",
+            "animals",
+            "kitchen",
+            "villagers",
+            "arsenal",
+            "redstone",
+            "builder",
+            "magic",
+            "collector",
+        ]
     );
     let sizes: Vec<usize> = (0..chapters.len()).map(|c| book.chapter_nodes(c).len()).collect();
-    assert_eq!(sizes, [11, 6, 8, 10, 10, 8, 11, 9, 8]);
-    // The main story, from the first tree to the dragon and beyond, then the side paths.
+    assert_eq!(sizes, [16, 9, 14, 15, 14, 11, 16, 15, 16, 18, 13, 13, 20, 15, 10, 13, 15, 9, 11, 8, 13, 19, 11, 10]);
+    assert_eq!(sizes.iter().sum::<usize>(), 324);
+    // The main story, from the first tree to the dragon and beyond, then the other paths.
     let groups: Vec<(&str, Vec<&str>)> = book
         .file()
         .settings
@@ -42,11 +68,38 @@ fn the_example_pack_is_sound() {
         groups,
         [
             ("Main story", vec!["getting_started", "iron_age", "diamonds", "the_nether", "the_end", "beyond"]),
-            ("Side paths", vec!["further_afield", "farming", "monsters"]),
+            (
+                "Exploration",
+                vec![
+                    "further_afield",
+                    "wide_world",
+                    "caves",
+                    "oceans",
+                    "new_horizons",
+                    "trial_chambers",
+                    "archaeology",
+                    "nether_frontier",
+                ]
+            ),
+            ("Life and farming", vec!["farming", "animals", "kitchen", "villagers"]),
+            ("Combat", vec!["monsters", "arsenal"]),
+            ("Crafting and building", vec!["redstone", "builder", "magic"]),
+            ("Challenges", vec!["collector"]),
         ]
     );
     let tables: Vec<&str> = book.file().reward_tables.iter().map(|t| t.id.as_str()).collect();
-    assert_eq!(tables, ["baker_loot", "seasoned_choice"]);
+    assert_eq!(
+        tables,
+        [
+            "baker_loot",
+            "builder_choice",
+            "explorer_loot",
+            "farmer_loot",
+            "hunter_loot",
+            "seasoned_choice",
+            "treasure_choice"
+        ]
+    );
 
     // A new player sees every quest but the surprises that end a chapter,
     // and only the first is open.
@@ -55,7 +108,21 @@ fn the_example_pack_is_sound() {
         (0..statuses.len()).filter(|&n| !statuses[n].visible).map(|n| book.nodes()[n].id.as_str()).collect();
     assert_eq!(
         hidden,
-        ["getting_started/settled", "the_nether/nether_done", "the_end/credits", "beyond/master", "monsters/hunter"]
+        [
+            "getting_started/settled",
+            "the_nether/nether_done",
+            "the_end/credits",
+            "beyond/master",
+            "monsters/hunter",
+            "wide_world/traveller",
+            "oceans/sea_master",
+            "trial_chambers/trials_done",
+            "animals/animal_lover",
+            "redstone/engineer",
+            "builder/master_builder",
+            "magic/arcanist",
+            "collector/completionist",
+        ]
     );
     let open: Vec<&str> = (0..statuses.len())
         .filter(|&n| statuses[n].state != QuestState::Locked)
@@ -133,8 +200,13 @@ fn the_example_pack_can_be_finished() {
     assert_eq!(rewards, book.nodes().iter().enumerate().map(|(n, _)| book.quest(n).rewards.len()).sum::<usize>());
     // What a table gave is one of its entries, never the table itself.
     assert!(!effects.iter().any(|e| matches!(e, Effect::Reward { kind, .. } if kind.table().is_some())));
-    // The repeatable quest is still inside its cooldown: everything shows as done.
-    assert!(book.statuses(&progress, "steve").iter().all(|s| s.visible && s.state == QuestState::Done));
+    // Everything shows as done, but a repeatable quest whose cooldown ran out
+    // during the run (one step is a second here): it has started over.
+    let statuses = book.statuses(&progress, "steve");
+    for (n, status) in statuses.iter().enumerate() {
+        let started_over = book.quest(n).repeatable && status.state == QuestState::InProgress;
+        assert!(status.visible && (status.state == QuestState::Done || started_over), "{}", book.nodes()[n].id);
+    }
 }
 
 #[test]

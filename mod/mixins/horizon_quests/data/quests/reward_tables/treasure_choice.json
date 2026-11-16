@@ -1,0 +1,9 @@
+{
+  "id": "treasure_choice",
+  "entries": [
+    { "type": "item", "item": "minecraft:diamond", "count": 3 },
+    { "type": "item", "item": "minecraft:emerald_block", "count": 2 },
+    { "type": "item", "item": "minecraft:netherite_scrap", "count": 1 },
+    { "type": "xp_levels", "levels": 10 }
+  ]
+}

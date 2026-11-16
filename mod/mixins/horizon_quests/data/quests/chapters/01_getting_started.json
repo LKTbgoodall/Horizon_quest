@@ -148,6 +148,70 @@
       "dependencies": ["iron", "first_night"],
       "visibility": "until_deps_complete",
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "chest",
+      "title": "Storage",
+      "description": [
+        "Eight planks in a ring make a chest. Two side by side make a double chest, and you will soon need the room."
+      ],
+      "x": 4, "y": -2.5,
+      "shape": "square",
+      "dependencies": ["crafting_table"],
+      "tasks": [ { "id": "chest", "type": "item", "item": "minecraft:chest", "count": 2 } ],
+      "rewards": [ { "id": "oak_log", "type": "item", "item": "minecraft:oak_log", "count": 8 } ]
+    },
+    {
+      "id": "stone_tools",
+      "title": "Stone toolkit",
+      "description": [
+        "A stone pickaxe is not enough: an axe for wood, a shovel for dirt and gravel, a sword for whatever comes at night."
+      ],
+      "icon": "minecraft:stone_axe",
+      "x": 10, "y": -2.5,
+      "dependencies": ["stone"],
+      "tasks": [
+        { "id": "stone_axe", "type": "item", "item": "minecraft:stone_axe" },
+        { "id": "stone_shovel", "type": "item", "item": "minecraft:stone_shovel" },
+        { "id": "stone_sword", "type": "item", "item": "minecraft:stone_sword" }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 15 } ]
+    },
+    {
+      "id": "torches",
+      "title": "Light the way",
+      "description": [
+        "Coal, or charcoal from logs in a furnace, on a stick makes four torches. Light keeps monsters from spawning."
+      ],
+      "x": 12, "y": -2.5,
+      "shape": "diamond",
+      "dependencies": ["furnace"],
+      "tasks": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ],
+      "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 16 } ]
+    },
+    {
+      "id": "door",
+      "title": "Four walls and a door",
+      "description": [
+        "Build yourself a shelter, even a small one, and close it with a door. Monsters stay outside."
+      ],
+      "icon": "minecraft:oak_door",
+      "x": 8, "y": 2.5,
+      "dependencies": ["bed"],
+      "tasks": [ { "id": "wooden_doors", "type": "item", "item": "#minecraft:wooden_doors" } ],
+      "rewards": [ { "id": "glass", "type": "item", "item": "minecraft:glass", "count": 8 } ]
+    },
+    {
+      "id": "hot_meal",
+      "title": "A hot meal",
+      "description": [
+        "Raw meat is a poor meal. Cook some beef in a furnace: it fills you up far better."
+      ],
+      "x": 12, "y": 2.5,
+      "shape": "circle",
+      "dependencies": ["furnace"],
+      "tasks": [ { "id": "cooked_beef", "type": "craft", "item": "minecraft:cooked_beef", "count": 4 } ],
+      "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 4 } ]
     }
   ]
 }

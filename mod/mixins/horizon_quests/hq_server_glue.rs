@@ -142,17 +142,79 @@ fn load_pack(dir: Option<&Path>, modpack: Option<&Path>) -> (Loaded, &'static st
         ),
         ("03_iron_age.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/03_iron_age.json"))),
         ("04_diamonds.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/04_diamonds.json"))),
-        ("05_the_nether.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/05_the_nether.json"))),
+        (
+            "05_the_nether.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/05_the_nether.json")),
+        ),
         ("06_the_end.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/06_the_end.json"))),
         ("07_beyond.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/07_beyond.json"))),
         ("08_farming.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/08_farming.json"))),
         ("09_monsters.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/09_monsters.json"))),
+        (
+            "10_wide_world.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/10_wide_world.json")),
+        ),
+        ("11_caves.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/11_caves.json"))),
+        ("12_oceans.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/12_oceans.json"))),
+        (
+            "13_new_horizons.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/13_new_horizons.json")),
+        ),
+        (
+            "14_trial_chambers.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/14_trial_chambers.json")),
+        ),
+        (
+            "15_archaeology.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/15_archaeology.json")),
+        ),
+        (
+            "16_nether_frontier.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/16_nether_frontier.json")),
+        ),
+        ("17_animals.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/17_animals.json"))),
+        ("18_kitchen.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/18_kitchen.json"))),
+        (
+            "19_villagers.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/19_villagers.json")),
+        ),
+        ("20_arsenal.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/20_arsenal.json"))),
+        ("21_redstone.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/21_redstone.json"))),
+        ("22_builder.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/22_builder.json"))),
+        ("23_magic.json", text(horizon_client::native_data!("horizon_quests", "quests/chapters/23_magic.json"))),
+        (
+            "24_collector.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/chapters/24_collector.json")),
+        ),
     ];
     let tables = [
-        ("baker_loot.json", text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/baker_loot.json"))),
+        (
+            "baker_loot.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/baker_loot.json")),
+        ),
+        (
+            "builder_choice.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/builder_choice.json")),
+        ),
+        (
+            "explorer_loot.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/explorer_loot.json")),
+        ),
+        (
+            "farmer_loot.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/farmer_loot.json")),
+        ),
+        (
+            "hunter_loot.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/hunter_loot.json")),
+        ),
         (
             "seasoned_choice.json",
             text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/seasoned_choice.json")),
+        ),
+        (
+            "treasure_choice.json",
+            text(horizon_client::native_data!("horizon_quests", "quests/reward_tables/treasure_choice.json")),
         ),
     ];
     (validate::load_pack(Some(settings), &chapters, &tables), "the built-in example pack", edit::SOURCE_BUILT_IN)

@@ -3,7 +3,7 @@
   "title": "Further afield",
   "subtitle": "Things to do once you have a base",
   "icon": "minecraft:compass",
-  "group": "side",
+  "group": "explore",
   "quests": [
     {
       "id": "baker",
@@ -75,9 +75,7 @@
       "shape": "square",
       "optional": true,
       "dependencies": ["seasoned"],
-      "tasks": [
-        { "id": "there", "type": "location", "dimension": "minecraft:overworld", "from": [-16, -64, -16], "to": [16, 320, 16] }
-      ],
+      "tasks": [ { "id": "there", "type": "location", "dimension": "minecraft:overworld", "from": [-16, -64, -16], "to": [16, 320, 16] } ],
       "rewards": [ { "id": "map", "type": "item", "item": "minecraft:map" } ]
     },
     {
@@ -95,9 +93,43 @@
       "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],
       "rewards": [
         { "id": "welcome", "type": "toast", "title": "Welcome to the Nether", "text": "Mind the lava.", "auto_claim": "enabled" },
-        { "id": "protection", "type": "command", "title": "A minute of fire resistance",
-          "command": "effect give {player} minecraft:fire_resistance 60", "auto_claim": "enabled" }
+        { "id": "protection", "type": "command", "title": "A minute of fire resistance", "command": "effect give {player} minecraft:fire_resistance 60", "auto_claim": "enabled" }
       ]
+    },
+    {
+      "id": "boat",
+      "title": "Set sail",
+      "description": [
+        "Five planks in a U make a boat. Water is the fastest road in the early game."
+      ],
+      "icon": "minecraft:oak_boat",
+      "x": 0, "y": 2,
+      "dependencies": ["getting_started/crafting_table"],
+      "tasks": [ { "id": "boats", "type": "item", "item": "#minecraft:boats" } ],
+      "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
+    },
+    {
+      "id": "mapmaker",
+      "title": "Mapmaker",
+      "description": [
+        "Wrap a compass in paper to make a map, then hold it and use it to draw the land around you."
+      ],
+      "icon": "minecraft:map",
+      "x": 8, "y": -1,
+      "dependencies": ["origin"],
+      "tasks": [ { "id": "filled_map", "type": "item", "item": "minecraft:filled_map" } ],
+      "rewards": [ { "id": "paper", "type": "item", "item": "minecraft:paper", "count": 16 } ]
+    },
+    {
+      "id": "clock",
+      "title": "What time is it?",
+      "description": [
+        "Gold and redstone make a clock. Underground, it is the only way to know whether night has fallen."
+      ],
+      "x": 8, "y": 1,
+      "dependencies": ["seasoned"],
+      "tasks": [ { "id": "clock", "type": "item", "item": "minecraft:clock" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
     }
   ]
 }

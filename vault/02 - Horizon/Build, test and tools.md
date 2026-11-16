@@ -1,7 +1,7 @@
 ---
 tags: [horizon, build, tools]
 source: playhorizon.dev/docs/make-a-mod, /docs/test-a-mod, horizon/docs/native-mods.md, horizon-mods/native/tools/native.py
-verified_on: 2026-11-13
+verified_on: 2026-11-16
 ---
 # Build, test and tools
 
@@ -55,6 +55,15 @@ powershell -ExecutionPolicy Bypass -File tools\check-glue.ps1
 - It replaces the hand-written stub crate of Sessions 9 to 11, **which had missed a real build break** (`native_as_player` private): hand-copied signatures prove nothing about visibility.
 - Horizon's own crates give two warnings there (`horizon-friends`, `horizon-protocol`: unused `mut`), so the check cannot run with `-D warnings`; read the warnings that name `game.rs`. v0.0.6 has none.
 - A `pub fn` of a glue module that takes `Game` warns (`private_interfaces`: `Game` is more private than the function). Glue functions are `pub(super)` since v0.0.6.
+
+## The game's ids, for checking a quest pack (2026-11-16)
+The launcher keeps the vanilla jars of each version it built: `%APPDATA%\horizon-launcher\versions\<version>\.local\minecraft\26.3\jars\client.jar` and `server-game.jar`. Read them as zip files (read only):
+- **items**: `assets/minecraft/items/*.json` in `client.jar` (one file per item id, 1658 in 26.3);
+- **item tags**: `data/minecraft/tags/item/` in `server-game.jar`;
+- **advancements**: `data/minecraft/advancement/` (minus `recipes/`), 126 in 26.3, with their titles from the lang file;
+- **entities**: the `entity.minecraft.<id>` keys of `assets/minecraft/lang/en_us.json`;
+- **biomes and structures**: `data/minecraft/worldgen/biome/` and `worldgen/structure/`.
+Our validator does not know whether an id exists, so the built-in pack's ids were checked this way for v0.21.0. 26.3 has content newer than 1.21.11: the sulfur caves biome (`sulfur`, `potent_sulfur`, `sulfur_bricks`, the `sulfur_cube` mob and `sulfur_cube_bucket`), the dappled forest (`poplar_*` wood, `shelf_mushroom`), `golden_dandelion` (stops a baby from growing), `*_cushion` items and a `cushion` entity (you sit on it), `abandoned_camp_*` structures, `music_disc_lava_chicken`, `iron_chain` (formerly `chain`).
 
 ## Dedicated server
 ```powershell

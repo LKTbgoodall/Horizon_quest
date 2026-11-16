@@ -7,6 +7,10 @@
   "detection_delay": 20,
   "groups": [
     { "id": "main", "title": "Main story" },
-    { "id": "side", "title": "Side paths" }
+    { "id": "explore", "title": "Exploration" },
+    { "id": "life", "title": "Life and farming" },
+    { "id": "combat", "title": "Combat" },
+    { "id": "craft", "title": "Crafting and building" },
+    { "id": "challenge", "title": "Challenges" }
   ]
 }
