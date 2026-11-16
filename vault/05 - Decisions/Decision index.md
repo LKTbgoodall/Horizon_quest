@@ -26,5 +26,6 @@ Every important technical decision has its own note (template: `99 - Templates/T
 | 017 | [[ADR-017 Edit in place]] | ✅ accepted (coded in v0.15.0) | 2026-11-12 |
 | 018 | [[ADR-018 Port to the mod API]] | ✅ accepted, ported on branch `mod-api-port` (compiles against `main`); merged when the Nightly is out, 1.0.0 on it | 2026-11-16 |
 | 019 | [[ADR-019 Big main chapters, few side paths]] | ✅ accepted (done in v0.21.1) | 2026-11-16 |
+| 020 | [[ADR-020 Compact vertical chapter layout]] | ✅ accepted (done in v0.21.2) | 2026-11-16 |
 
 > 🟡 = proposed, waiting for Bastien. Set `status: accepted` in the frontmatter and update this table.

@@ -17,6 +17,7 @@
       "icon": "minecraft:writable_book",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "tasks": [ { "id": "ready", "type": "checkmark", "title": "I have read this" } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
     },
@@ -26,8 +27,9 @@
       "description": [
         "Everything starts with a tree. Gather a few logs; any kind of wood will do."
       ],
-      "x": 2, "y": 0,
-      "shape": "square",
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["welcome"],
       "tasks": [ { "id": "logs", "type": "item", "item": "#minecraft:logs", "count": 8 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 10 } ]
@@ -38,8 +40,9 @@
       "description": [
         "Turn a log into planks, and four planks into a crafting table. Most recipes need one."
       ],
-      "x": 4, "y": 0,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["first_wood"],
       "tasks": [ { "id": "table", "type": "item", "item": "minecraft:crafting_table" } ],
       "rewards": [ { "id": "apples", "type": "item", "item": "minecraft:apple", "count": 4 } ]
@@ -50,8 +53,9 @@
       "description": [
         "Planks and sticks make a wooden pickaxe. It will not last, but it gets you to stone."
       ],
-      "x": 6, "y": -1,
+      "x": 0, "y": 4.5,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:wooden_pickaxe" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 15 } ]
@@ -62,8 +66,9 @@
       "description": [
         "Dig down a little and bring back some cobblestone. Stone tools are faster and sturdier than wooden ones."
       ],
-      "x": 8, "y": -1,
-      "shape": "diamond",
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["wooden_pickaxe"],
       "tasks": [ { "id": "cobblestone", "type": "item", "item": "minecraft:cobblestone", "count": 16 } ],
       "rewards": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 8 } ]
@@ -74,8 +79,9 @@
       "description": [
         "Eight cobblestone in a ring make a furnace. Use it to cook food and to smelt ore."
       ],
-      "x": 10, "y": -1,
-      "shape": "square",
+      "x": 0, "y": 7.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["stone"],
       "tasks": [ { "id": "furnace", "type": "item", "item": "minecraft:furnace" } ],
       "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 8 } ]
@@ -86,8 +92,9 @@
       "description": [
         "Look for iron ore in caves and cliffs, then smelt it. Three ingots are enough for a pickaxe."
       ],
-      "x": 12, "y": -1,
-      "shape": "circle",
+      "x": 0, "y": 9,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["furnace"],
       "tasks": [ { "id": "ingots", "type": "item", "item": "minecraft:iron_ingot", "count": 3 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -98,8 +105,8 @@
       "description": [
         "Three wool and three planks make a bed. Sleeping skips the night and sets where you come back to."
       ],
-      "x": 6, "y": 1,
-      "shape": "hexagon",
+      "x": 1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "bed", "type": "item", "item": "#minecraft:beds" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
@@ -111,8 +118,8 @@
         "Monsters come out when it gets dark. Stand your ground against a few zombies."
       ],
       "icon": "minecraft:wooden_sword",
-      "x": 8, "y": 1,
-      "shape": "hexagon",
+      "x": 2.5, "y": 2.5,
+      "shape": "square",
       "dependencies": ["bed"],
       "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 3 } ],
       "rewards": [
@@ -128,7 +135,7 @@
         "Zombies leave rotten flesh behind. Hand some in and get something more useful for it.",
         "This quest takes the items: click the rotten flesh under Tasks while you carry them."
       ],
-      "x": 10, "y": 1,
+      "x": 3.75, "y": 2.5,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["first_night"],
@@ -142,11 +149,11 @@
         "Tools, light, a bed, and you made it through the night. You are ready for what comes next."
       ],
       "icon": "minecraft:iron_pickaxe",
-      "x": 14, "y": 0,
+      "x": 0, "y": 10.5,
       "shape": "hexagon",
       "size": 1.5,
-      "dependencies": ["iron", "first_night"],
       "visibility": "until_deps_complete",
+      "dependencies": ["iron", "first_night"],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
     },
     {
@@ -155,7 +162,7 @@
       "description": [
         "Eight planks in a ring make a chest. Two side by side make a double chest, and you will soon need the room."
       ],
-      "x": 4, "y": -2.5,
+      "x": -1.25, "y": 3,
       "shape": "square",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "chest", "type": "item", "item": "minecraft:chest", "count": 2 } ],
@@ -168,7 +175,8 @@
         "A stone pickaxe is not enough: an axe for wood, a shovel for dirt and gravel, a sword for whatever comes at night."
       ],
       "icon": "minecraft:stone_axe",
-      "x": 10, "y": -2.5,
+      "x": 1.25, "y": 6,
+      "shape": "square",
       "dependencies": ["stone"],
       "tasks": [
         { "id": "stone_axe", "type": "item", "item": "minecraft:stone_axe" },
@@ -183,8 +191,8 @@
       "description": [
         "Coal, or charcoal from logs in a furnace, on a stick makes four torches. Light keeps monsters from spawning."
       ],
-      "x": 12, "y": -2.5,
-      "shape": "diamond",
+      "x": 1.25, "y": 7.5,
+      "shape": "square",
       "dependencies": ["furnace"],
       "tasks": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ],
       "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 16 } ]
@@ -196,7 +204,8 @@
         "Build yourself a shelter, even a small one, and close it with a door. Monsters stay outside."
       ],
       "icon": "minecraft:oak_door",
-      "x": 8, "y": 2.5,
+      "x": 2.5, "y": 3.5,
+      "shape": "square",
       "dependencies": ["bed"],
       "tasks": [ { "id": "wooden_doors", "type": "item", "item": "#minecraft:wooden_doors" } ],
       "rewards": [ { "id": "glass", "type": "item", "item": "minecraft:glass", "count": 8 } ]
@@ -207,8 +216,8 @@
       "description": [
         "Raw meat is a poor meal. Cook some beef in a furnace: it fills you up far better."
       ],
-      "x": 12, "y": 2.5,
-      "shape": "circle",
+      "x": -1.25, "y": 7.5,
+      "shape": "square",
       "dependencies": ["furnace"],
       "tasks": [ { "id": "cooked_beef", "type": "craft", "item": "minecraft:cooked_beef", "count": 4 } ],
       "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 4 } ]
@@ -221,11 +230,11 @@
         "Three wheat in a row make a loaf. Bake three loaves at a crafting table.",
         "This quest can be done again: a few minutes after you claim its reward, it starts over. The reward is drawn at random each time."
       ],
-      "x": 6, "y": 6,
-      "shape": "circle",
-      "dependencies": ["crafting_table"],
+      "x": -1.25, "y": 2,
+      "shape": "square",
       "repeatable": true,
       "repeat_cooldown": 300,
+      "dependencies": ["crafting_table"],
       "tasks": [ { "id": "bread", "type": "craft", "item": "minecraft:bread", "count": 3 } ],
       "rewards": [ { "id": "surprise", "type": "random", "table": "baker_loot" } ]
     },
@@ -236,10 +245,10 @@
         "Craft a stone sword, then put it to use on two skeletons.",
         "The tasks of this quest go in order: the skeletons only count once the sword is made."
       ],
-      "x": 8, "y": 5,
-      "shape": "hexagon",
-      "dependencies": ["stone"],
+      "x": -1.25, "y": 6,
+      "shape": "square",
       "sequential_tasks": true,
+      "dependencies": ["stone"],
       "tasks": [
         { "id": "sword", "type": "craft", "item": "minecraft:stone_sword" },
         { "id": "skeletons", "type": "kill", "entity": "minecraft:skeleton", "count": 2 }
@@ -252,8 +261,8 @@
       "description": [
         "Earn the advancement \"Stone Age\" by mining stone with your new pickaxe. If you already have it, this completes by itself."
       ],
-      "x": 8, "y": 7,
-      "shape": "diamond",
+      "x": 1.25, "y": 4.5,
+      "shape": "square",
       "dependencies": ["wooden_pickaxe"],
       "tasks": [ { "id": "advancement", "type": "advancement", "advancement": "minecraft:story/mine_stone" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 25 } ]
@@ -265,8 +274,8 @@
         "Reach experience level 5. Mining, smelting and fighting all give experience.",
         "The reward is yours to choose: pick one in the list below once the quest is completed."
       ],
-      "x": 10, "y": 6,
-      "shape": "hexagon",
+      "x": -2.5, "y": 6,
+      "shape": "square",
       "dependencies": ["armed", "stone_age"],
       "dependency_mode": "one_completed",
       "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ],
@@ -279,8 +288,8 @@
       "description": [
         "Every world has a point where X and Z are both zero. Go and stand there (F3 shows where you are)."
       ],
-      "x": 12, "y": 5,
-      "shape": "square",
+      "x": -3.75, "y": 5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "there", "type": "location", "dimension": "minecraft:overworld", "from": [-16, -64, -16], "to": [16, 320, 16] } ],
@@ -294,8 +303,8 @@
         "Build a portal of obsidian, light it, and step through to the Nether."
       ],
       "icon": "minecraft:obsidian",
-      "x": 12, "y": 7,
-      "shape": "circle",
+      "x": -3.75, "y": 6,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],
@@ -311,7 +320,8 @@
         "Five planks in a U make a boat. Water is the fastest road in the early game."
       ],
       "icon": "minecraft:oak_boat",
-      "x": 6, "y": 8,
+      "x": -1.25, "y": 4,
+      "shape": "square",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "boats", "type": "item", "item": "#minecraft:boats" } ],
       "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
@@ -323,7 +333,8 @@
         "Wrap a compass in paper to make a map, then hold it and use it to draw the land around you."
       ],
       "icon": "minecraft:map",
-      "x": 14, "y": 5,
+      "x": -5, "y": 5,
+      "shape": "square",
       "dependencies": ["origin"],
       "tasks": [ { "id": "filled_map", "type": "item", "item": "minecraft:filled_map" } ],
       "rewards": [ { "id": "paper", "type": "item", "item": "minecraft:paper", "count": 16 } ]
@@ -334,7 +345,8 @@
       "description": [
         "Gold and redstone make a clock. Underground, it is the only way to know whether night has fallen."
       ],
-      "x": 14, "y": 7,
+      "x": -3.75, "y": 7,
+      "shape": "square",
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "clock", "type": "item", "item": "minecraft:clock" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
@@ -346,8 +358,8 @@
         "Pink trees on the hills, petals on the ground. Cherry wood makes the prettiest planks."
       ],
       "icon": "minecraft:cherry_sapling",
-      "x": 16, "y": -6.5,
-      "shape": "circle",
+      "x": 1.25, "y": 8.5,
+      "shape": "square",
       "dependencies": ["settled"],
       "tasks": [
         { "id": "cherry_log", "type": "item", "item": "minecraft:cherry_log", "count": 16 },
@@ -362,7 +374,8 @@
         "Roots in the water, mud underfoot. Pour water on dirt to make mud too."
       ],
       "icon": "minecraft:mangrove_propagule",
-      "x": 18, "y": -8,
+      "x": 2.5, "y": 5.5,
+      "shape": "square",
       "dependencies": ["cherry"],
       "tasks": [
         { "id": "mangrove_log", "type": "item", "item": "minecraft:mangrove_log", "count": 16 },
@@ -376,7 +389,8 @@
       "description": [
         "Mud and wheat make packed mud; four packed mud make mud bricks. A warm brown for any build."
       ],
-      "x": 20, "y": -8,
+      "x": 3.75, "y": 5.5,
+      "shape": "square",
       "dependencies": ["mangrove"],
       "tasks": [ { "id": "mud_bricks", "type": "item", "item": "minecraft:mud_bricks", "count": 32 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
@@ -388,7 +402,8 @@
         "Bamboo blocks make planks of their own, and a raft instead of a boat."
       ],
       "icon": "minecraft:bamboo_raft",
-      "x": 22, "y": -8,
+      "x": 5, "y": 5.5,
+      "shape": "square",
       "dependencies": ["mud_bricks"],
       "tasks": [
         { "id": "bamboo_block", "type": "item", "item": "minecraft:bamboo_block", "count": 8 },
@@ -402,7 +417,8 @@
       "description": [
         "Frogs lay frogspawn in swamp water. Catch a tadpole in a water bucket: where it grows up decides its colour."
       ],
-      "x": 18, "y": -5,
+      "x": 2.5, "y": 6.5,
+      "shape": "square",
       "dependencies": ["cherry"],
       "tasks": [ { "id": "tadpole_bucket", "type": "item", "item": "minecraft:tadpole_bucket" } ],
       "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
@@ -414,7 +430,8 @@
         "Frogs eat small magma cubes and leave a froglight. Each of the three frog colours makes its own."
       ],
       "icon": "minecraft:pearlescent_froglight",
-      "x": 20, "y": -5,
+      "x": 3.75, "y": 6.5,
+      "shape": "square",
       "dependencies": ["tadpole"],
       "tasks": [
         { "id": "ochre_froglight", "type": "item", "item": "minecraft:ochre_froglight" },
@@ -430,7 +447,8 @@
         "A grey, silent forest. At night its creaking hearts wake up the creakings: do not take your eyes off them."
       ],
       "icon": "minecraft:pale_oak_sapling",
-      "x": 22, "y": -6.5,
+      "x": 2.5, "y": 9.5,
+      "shape": "square",
       "dependencies": ["cherry"],
       "tasks": [
         { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 16 },
@@ -445,7 +463,8 @@
         "A flower that opens at night and closes by day. Pick one of each."
       ],
       "icon": "minecraft:open_eyeblossom",
-      "x": 24, "y": -8,
+      "x": 3.75, "y": 7.5,
+      "shape": "square",
       "dependencies": ["pale_garden"],
       "tasks": [
         { "id": "open_eyeblossom", "type": "item", "item": "minecraft:open_eyeblossom" },
@@ -459,7 +478,8 @@
       "description": [
         "When a creaking is hit, its heart oozes resin onto the logs around it. Collect the clumps."
       ],
-      "x": 24, "y": -6.5,
+      "x": 3.75, "y": 9.5,
+      "shape": "square",
       "dependencies": ["pale_garden"],
       "tasks": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 16 } ],
       "rewards": [ { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 8 } ]
@@ -470,7 +490,8 @@
       "description": [
         "Smelt resin clumps into bricks: a warm orange stone with its own stairs, slabs and walls."
       ],
-      "x": 26, "y": -6.5,
+      "x": 5, "y": 9,
+      "shape": "square",
       "dependencies": ["resin"],
       "tasks": [ { "id": "resin_bricks", "type": "item", "item": "minecraft:resin_bricks", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -481,7 +502,8 @@
       "description": [
         "A silk touch tool lifts a creaking heart whole. Place it between two pale oak logs and it wakes at night."
       ],
-      "x": 26, "y": -8,
+      "x": 5, "y": 10.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["resin"],
       "tasks": [ { "id": "creaking_heart", "type": "item", "item": "minecraft:creaking_heart" } ],
@@ -494,7 +516,8 @@
         "Wildflowers in birch forests, leaf litter under the trees, fireflies over swamps and flowers on cactus tops."
       ],
       "icon": "minecraft:wildflowers",
-      "x": 22, "y": -5,
+      "x": 3.75, "y": 11.5,
+      "shape": "square",
       "dependencies": ["pale_garden"],
       "tasks": [
         { "id": "wildflowers", "type": "item", "item": "minecraft:wildflowers", "count": 8 },
@@ -511,7 +534,8 @@
         "Deserts and badlands have dry grass and bushes of their own. Shears bring them home."
       ],
       "icon": "minecraft:tall_dry_grass",
-      "x": 24, "y": -5,
+      "x": 5, "y": 11.5,
+      "shape": "square",
       "dependencies": ["spring"],
       "tasks": [
         { "id": "short_dry_grass", "type": "item", "item": "minecraft:short_dry_grass" },
@@ -527,7 +551,8 @@
         "Chickens from cold places lay blue eggs, those from warm places brown eggs. Throw one: the chick looks like its parent."
       ],
       "icon": "minecraft:blue_egg",
-      "x": 26, "y": -5,
+      "x": 6.25, "y": 11.5,
+      "shape": "square",
       "dependencies": ["dry_lands"],
       "tasks": [
         { "id": "egg", "type": "item", "item": "minecraft:egg" },
@@ -543,7 +568,8 @@
         "Tall poplars in red, orange and yellow leaves. Look for the shelf mushrooms that grow on their trunks: they bounce."
       ],
       "icon": "minecraft:poplar_sapling",
-      "x": 28, "y": -8,
+      "x": 5, "y": 7.5,
+      "shape": "square",
       "dependencies": ["eyeblossom"],
       "tasks": [
         { "id": "poplar_log", "type": "item", "item": "minecraft:poplar_log", "count": 16 },
@@ -558,7 +584,8 @@
         "Yellow caves of sulfur, where springs of noxious gas burst out. Do not breathe too deep."
       ],
       "icon": "minecraft:sulfur",
-      "x": 28, "y": -6.5,
+      "x": 6.25, "y": 9,
+      "shape": "square",
       "dependencies": ["resin_bricks"],
       "tasks": [ { "id": "sulfur", "type": "item", "item": "minecraft:sulfur", "count": 16 } ],
       "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
@@ -569,7 +596,8 @@
       "description": [
         "Sulfur takes a polish and makes bricks, stairs and walls of a sharp yellow."
       ],
-      "x": 30, "y": -8,
+      "x": 7.5, "y": 8.5,
+      "shape": "square",
       "dependencies": ["sulfur_caves"],
       "tasks": [ { "id": "sulfur_bricks", "type": "item", "item": "minecraft:sulfur_bricks", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -581,7 +609,8 @@
         "Sulfur cubes bounce around the sulfur caves and swallow blocks. A small one can be carried home in a bucket."
       ],
       "icon": "minecraft:sulfur_cube_bucket",
-      "x": 30, "y": -6.5,
+      "x": 7.5, "y": 9.5,
+      "shape": "square",
       "dependencies": ["sulfur_caves"],
       "tasks": [ { "id": "sulfur_cube_bucket", "type": "item", "item": "minecraft:sulfur_cube_bucket" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
@@ -593,7 +622,8 @@
         "A golden dandelion stops a baby animal from growing up. Use it again and the baby starts growing."
       ],
       "icon": "minecraft:golden_dandelion",
-      "x": 28, "y": -5,
+      "x": 7.5, "y": 11.5,
+      "shape": "square",
       "dependencies": ["eggs"],
       "tasks": [ { "id": "golden_dandelion", "type": "item", "item": "minecraft:golden_dandelion" } ],
       "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
@@ -605,7 +635,8 @@
         "Place a cushion and sit on it. Every colour of wool makes its own."
       ],
       "icon": "minecraft:red_cushion",
-      "x": 30, "y": -5,
+      "x": 8.75, "y": 11.5,
+      "shape": "square",
       "dependencies": ["golden_dandelion"],
       "tasks": [ { "id": "cushions", "type": "item", "item": "#minecraft:cushions", "count": 2 } ],
       "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 8 } ]

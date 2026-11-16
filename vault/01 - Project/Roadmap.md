@@ -39,7 +39,9 @@ updated: 2026-11-12
 - [x] Example chapter "Getting started" in `data/quests/` (11 quests), with an end-to-end test that finishes it (2026-11-10)
 - [ ] Built-in vanilla progression pack to the end of the game (9 chapters, 81 quests): coded (v0.9.0, 2026-11-11), to play through in game
   - [ ] **Expanded to 324 quests in 24 chapters and six groups** (v0.21.0, 2026-11-16, Bastien: "many more quests, every side of Minecraft and the new versions"): coded, ids checked against the 26.3 data, `cargo test` plays it to the end
-  - [ ] **Regrouped into 9 chapters** (v0.21.1, 2026-11-16, Bastien: too many side chapters): six big main chapters and three side paths, every quest kept ([[ADR-019 Big main chapters, few side paths]]); to look at in game
+  - [ ] **Regrouped into 9 chapters** (v0.21.1, 2026-11-16, Bastien: too many side chapters): six big main chapters and three side paths, every quest kept ([[ADR-019 Big main chapters, few side paths]])
+  - [ ] **Laid out again, compact and vertical** (v0.21.2, 2026-11-16, Bastien: 0.21.1 unreadable; model: All the Mods): milestones in a column, branches packed beside it, shapes with a meaning ([[ADR-020 Compact vertical chapter layout]]); to look at in game
+  - [ ] Canvas titles and section labels (chapter decorations), the closest thing to the modpacks' images: an idea, not started
 - [x] Config option to turn the example chapter off: `example_chapter` in `config/horizon_quests-server.toml` (`hq_config`, API 397): coded (v0.0.5), **tested in game 2026-11-10**
 
 > **Phase 1 is done as far as it can go without the game** (98 tests). Everything left needs the glue, and the glue needs the first in-game test (phase 0).

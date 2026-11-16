@@ -7,6 +7,11 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 - `tools/build-mod.sh --combined` (the Linux twin of `-Combined`); a launcher path with spaces in its menu entry is read whole.
 - `tools/check-glue.sh`: `HORIZON_SOURCE` points it at a checkout of the pinned revision the launcher has not built with yet.
 
+## 0.21.2
+- **The nine chapters laid out again, compact and vertical** (Bastien found 0.21.1 unreadable; studied how All the Mods lays its quests out, then picked this layout from a preview page drawn by the book's own code). Each chapter is one tight block: its milestones in a column (1.5 cells apart), every branch a small block packed left or right of the column where it grows the chapter least, quests 1 to 1.25 cells apart. A chapter is about half the size it was (Getting started 18 x 17 cells to 14 x 11.5), so it also opens less zoomed out.
+- **Shapes with a meaning**: a chapter's first quest is a circle and its milestones hexagons (size 1.25), ordinary quests squares, optional quests diamonds, the hidden ends of sections big hexagons.
+- One dependency changed so Iron age's column reads cleanly: "Suit up" (iron armour) now needs "Full iron kit" instead of the iron pickaxe. No quest moved between chapters, so progress carries over.
+
 ## 0.21.1
 - **Nine chapters instead of 24** (Bastien: too many side chapters, players get lost; he wants a lot to do in the main chapters). The 324 quests are all kept, regrouped:
   - **Main story**, six big chapters: Getting started (45: + the old Further afield and New horizons), Iron age (49: + the first half of Caves and cliffs, Wide world, Archaeology), Diamonds (41: + the deep dark and the Warden, the enchanting half of Enchanting and brewing, Trial chambers and the mace), The Nether (33: + Nether frontier, brewing), The End (11), Beyond (29: + The deep blue).
