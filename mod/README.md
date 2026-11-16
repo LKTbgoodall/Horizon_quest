@@ -1,67 +1,51 @@
 # Horizon Quests: the native mod
 
-The bundle the Horizon launcher builds into the game: the quest engine, the graphical book, parties, settings and the example pack. What each version added is in [`CHANGELOG.md`](../CHANGELOG.md); how to write quests, in [`docs/making-quests.md`](../docs/making-quests.md). This file is for building and testing the mod.
+The mod's package, as Horizon's mod API takes it (ADR-018): the quest engine, the graphical book, parties, settings and the example pack. What each version added is in [`CHANGELOG.md`](../CHANGELOG.md); how to write quests, in [`docs/making-quests.md`](../docs/making-quests.md). This file is for building and testing the mod.
 
 | Feature | What it provides | Hooks / Modules |
 |---|---|---|
-| **Graphical Book** | Interactive quest canvas: chapter sidebar, zoom, pan, a quest window with clickable task and reward icons, recipe and choice windows, a tracked quest on the HUD | `hq_book`, `hq_canvas`, `hq_client_glue`, `native_mod_screen_open`, `native_screen_render_post`, input hooks |
-| **Network Sync** | Reliable framing (<=30KB frames, 16 frames/tick) for definitions, progress, actions | `hq_net`, channel `horizon_quests:book`, `native_net_send_*`, `native_net_from_*` |
+| **Graphical Book** | Interactive quest canvas: chapter sidebar, zoom, pan, a quest window with clickable task and reward icons, recipe and choice windows, a tracked quest on the HUD | `hq_book`, `hq_canvas`, `hq_client_glue`, `mod_screen_open`, `screen_render_post`, screen input hooks, `render_gui_post` |
+| **Network Sync** | Reliable framing (<=30KB frames, 16 frames/tick) for definitions, progress, actions | `hq_net`, channel `horizon_quests:book` (`play_bidirectional`, raw bytes) |
 | **Server Engine** | Tasks (item, hand-in, kill, checkmark, craft, experience level, dimension, location, advancement), rewards (item, XP, levels, command, toast, random, choice), repeatable quests, atomic JSON saves, `/quests` | `hq_server_glue`, `hq_session`, `hq_progress`, `hq_store` |
 
 ## Layout
+One flat package: the folder is what the launcher compiles and what the registry ships.
 ```
 mod/
-├── Cargo.toml            # cargo test: the pure modules through src/lib.rs
-├── src/lib.rs
-├── tests/example_pack.rs # loads the example pack and plays it to the end
-├── compatibility.json    # game 26.3, hooks 397 (config files), pinned Horizon commit
+├── horizon-mod.toml      # the only manifest: id, version, side = "both", [native] pins
+├── icon.png              # the registry icon
+├── Cargo.toml, Cargo.lock
 ├── LICENSE               # MIT
-└── mixins/horizon_quests/
-    ├── horizon-mixin.toml
-    ├── hq_meta.rs, hq_canvas.rs, hq_model.rs,
-    │   hq_validate.rs, hq_logic.rs, hq_progress.rs,
-    │   hq_store.rs, hq_net.rs, hq_book.rs,
-    │   hq_commands.rs, hq_session.rs, hq_config.rs # pure, tested, in the bundle
-    ├── hq_client_glue.rs, hq_server_glue.rs       # touch the game
-    ├── *.rs                                       # one helper per hook
-    └── data/quests/                               # the example pack: chapters/ and reward_tables/
+├── src/
+│   ├── lib.rs            # the one `impl mod_api::Hooks`: routes each hook to the glue
+│   ├── hq_*.rs           # the pure logic, tested by cargo test
+│   ├── hq_built_in.rs    # the example pack, generated from built-in-pack/ (tools/gen-built-in-pack.py)
+│   ├── hq_client_glue.rs, hq_server_glue.rs   # touch the game, through mod_api
+│   └── tests/            # tests that read the package's files
+├── assets/horizon_quests/                     # the Quest Book's model and texture, the GUI textures, lang
+├── data/horizon_quests/horizon/item/          # the Quest Book's declaration
+└── built-in-pack/        # the example pack's JSON (not shipped: compiled in through hq_built_in.rs)
 ```
+A native mod package holds Rust only under `src/`: the book preview lives in `tools/book-preview/`.
 
-The game builds every module with `-D warnings`, and there the modules are private: code that no glue calls is dead code and breaks the build, even when `cargo test` is clean. Remove what the glue stops calling.
-
-## Unit tests (any PC with Rust)
-```bash
-cd mod
-cargo test
-```
-
-## Type-check the glue (a PC whose launcher has built Horizon once)
-`cargo test` never compiles the glue: it needs the game. This does, without building or running the game (no `--trust-native-code`): it stages the launcher's copy of the pinned Horizon source with the mod applied (`horizon-mixins apply`) and runs `cargo check` on it.
+## Check the mod (any PC with Rust)
+The mod depends on Horizon's API crate in `mod/.horizon/sdk/`, which is never committed. `cargo horizon-mod` fetches the pinned SDK there; until a Nightly with the mod API publishes one, `tools/link-sdk` points it at a Horizon checkout (`ext/horizon`, cloned when missing). Then:
 ```powershell
-powershell -ExecutionPolicy Bypass -File toolseck-glue.ps1
+powershell -ExecutionPolicy Bypass -File tools\check-mod.ps1
 ```
-It ends with "The glue type-checks against Horizon 9f42064", or with the compiler's errors. Run it before asking for an in-game test.
+(Linux: `tools/check-mod.sh`.) It runs `cargo test` and `cargo check` with `-D warnings`, as the launcher builds the mod; it ends with "The mod builds against the mod API with no warning, and its tests pass". Run it before asking for an in-game test. After editing a file of `built-in-pack/`, run `python tools/gen-built-in-pack.py` (a test fails until you do).
 
 ## Test in game
+Needs a launcher and a Nightly built with Horizon's mod API (newer than `nightly-2026-11-13-9f42064`); the first time, `horizon-mod.toml`'s `[native]` pins move to that Nightly (`cargo horizon-mod update`) and `horizon-launcher native-lock mod` writes the registry lock.
 1. Get the latest code (on another PC):
    ```bash
    git pull
    ```
-2. Package, install and build it. Run this yourself from the repo root; an agent must never run the build step, which passes `--trust-native-code`. Add `-Instance NAME` if your instance is not `mon-horizon`.
+2. Build it into your instance. Run this yourself from the repo root; an agent must never run it, since it passes `--trust-native-code`. Add `-Instance NAME` if your instance is not `mon-horizon`.
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1
    ```
-   The script packs **`build/horizon_quests.hmod`, the one file of the mod**: its native code (`horizon-native.json`, `mixins/horizon_quests/`) and its content (`horizon-mod.toml`, `assets/` from `mod/content`: the Quest Book's model and texture), Horizon's "one `.hmod` for content and code" format. Every entry has a fixed date, so the same sources give the same file. The launcher of the pinned Horizon still builds native code only from `horizon-native-mods/<id>.hnmod`, so to install, the script cuts the file's two halves (`build/install/`): the code goes to the instance's `horizon-native-mods`, the content to its `horizon-mods`. It turns the mod on in `horizon-mods.txt` and runs `horizon-launcher native-build --instance mon-horizon` with every native mod of the instance. `-NoBuild` stops before the build; `-Uninstall` takes the mod out.
-
-   **On Linux (or macOS)**, the same with bash:
-   ```bash
-   bash tools/build-mod.sh
-   ```
-   Without options it installs into the default instance, which on Linux is the game home `~/.local/share/horizon` itself (it holds `horizon-native-mods`), and builds the launcher's selected instance. For another instance add `--instance NAME` (looked for under `~/.config/horizon/instances/` and `~/.local/share/horizon/instances/`) or `--instance-dir DIR`. The launcher is found on the `PATH`, else through its applications-menu entry `~/.local/share/applications/horizon-launcher.desktop`; else set `HORIZON_LAUNCHER=/path/to/horizon-launcher`. `--no-build` and `--uninstall` work as on Windows. It needs `bsdtar` (always there on Arch), `zip` or `python3`.
-
-   `-Combined` installs the one `.hmod` in `horizon-native-mods/` instead of the two halves, as the registry installs it with a launcher that reads native `.hmod` files (`release/v1-checklist.md` says what each outcome means). Without it the halves come back.
-
-   Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
+   (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --trust-native-code`: the launcher compiles `mod/` against the prebuilt SDK of the pinned build, and the game loads `assets/` and `data/` from the same package.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
 3. Start the game and check, in order. The Options > Mods row now says **0.18.1**.

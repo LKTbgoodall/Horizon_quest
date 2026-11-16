@@ -1,11 +1,44 @@
 ---
 tags: [horizon, reference, api, hooks]
 source: horizon/docs/native-mods.md (NM, 5523 lines), native-hooks.json (434 hooks, 177 helpers), mods.md, native-hooks-neoforge.md, api/stability.md, api/server.md
-verified_on: 2026-11-12
+verified_on: 2026-11-16
 ---
 # Horizon hooks and API ("quest mod" view)
 
 Back: [[Horizon - Overview]] · Concrete examples: [[Example - smp mod (patterns to reuse)]]
+
+> [!important] The mod API (Horizon `main` since PR 17145): what our port uses
+> Everything below this box is the **old** `native_*` API, which the current release (launcher 0.2.69, Nightly `9f42064`) still runs and `main` refuses. The port ([[ADR-018 Port to the mod API]], branch `mod-api-port`) is written against the mod API and **compiles** against Horizon `main` `c07bfa7` (`tools/check-mod`, through `tools/link-sdk`). Read in the generated `mod_api` (the vocab crate's `OUT_DIR`) and `crates/horizon-mod-vocab/src/`, 2026-11-16. ✅ = compiled against.
+>
+> | Old (`native_*`) | Mod API | |
+> |---|---|---|
+> | `[[injection]]` per hook, helper files | one `#[mod_api::horizon_mod] impl Hooks for Mod` at the crate root; `Mod: Default` | ✅ |
+> | `native_world_lifecycle` `WorldOpenReady` / `WorldCloseFinal` | `server_started` / `server_stopped` (`WorldPhase` no longer has `WorldOpenReady`) | ✅ |
+> | `native_server_tick(phase)` | `server_tick(host, ServerTickEvent { phase, .. })` | ✅ |
+> | `native_player_logged_in/out`, `native_mob_killed`, `native_player_level_change`, `native_player_advancement_done`, `native_furnace_extract` | same names, no `native_`; events carry `player: u128` and the same fields | ✅ |
+> | `native_item_crafted(stack)` | `item_crafted`: `stack: &ItemStack`, id by `stack.item().id(host)` | ✅ |
+> | `native_item_picked_up` (a poke) | `player_inventory_changed { player, stacks }` (any change) | ✅ |
+> | `native_register_commands` / `native_perform_command(string)` | `register_commands` (same `Command::new/op` usages) / `run_mod_command { source: CommandSource, command: CommandInvocation { literals, arguments } }`, `Flow::Cancel` when ours; feedback `host.commands().feedback(Text)` | ✅ |
+> | `native_register_configs`, `config_loading/reloading/unloading` | same; `Config::new(id, ConfigKind, default)`, `ConfigFile { mod_id, kind, file, text }`; the first three get a `HostSide` | ✅ |
+> | `native_add_server_reload_listeners` / `_apply(files)` | `add_server_reload_listeners`: `listeners.add_listener(Identifier, FileToIdConverter::json(folder), Arc<dyn ServerReloadListener>)`; `prepare(ctx)` reads `ctx.list()` / `ctx.read(id)` (bytes) and returns `<dyn ReloadApply>::new(closure)` | ✅ |
+> | `native_net_send_to_*`, `native_net_from_*` | `Hooks::register`: `r.payload_handlers().registrar(version).play_bidirectional(PayloadId, Arc<server handler>, Some(Arc<client handler>))`; `IPayloadHandler::handle(PayloadBytes, ctx)`, `ctx.player()`, `ctx.server_host()` / `client_host()`; send `PlayerRef::send_payload(host, &id, bytes)` / `host.send_payload_to_server(&id, bytes)`; client to server body at most 32,767 bytes | ✅ |
+> | `native_mods` key row, `native_key` | `r.register_key_mapping(KeyRegistration::new(id, "key.keyboard.k").label(lang key))`; read `host.consume_click(mod_id, id)` on `client_tick_post` (Options > Controls; the Options > Mods key editor is gone) | ✅ |
+> | `native_items` | a content file `data/<id>/horizon/item/<path>.json` (`template`, `max_stack_size`, `rarity`, `components` map with `!` removals), or the `items` hook | ✅ |
+> | `native_hud(batch, corners)`, `native_fill/quad/text/sprite/item_stack` | `render_gui_post { draw: &mut dyn DrawContext, corners }`; `draw.fill/quad/text/sprite(name, src, dst, tint)/item_stack/text_width`; a text colour needs its alpha byte | ✅ |
+> | screen hooks (`render_post`, mouse, key, char, drag, scroll) | same names, no `native_`; events carry `screen: &ScreenView { rect, mouse, partial_tick, .. }` (the drag too) and return `Flow` | ✅ |
+> | `native_mod_screen_open/close`, `native_mod_screen` | `host.mod_screen_open/close(id)`, `host.mod_screen()` | ✅ |
+> | `native_claim_items` / `native_poll` | `host.claim_items`, `host.poll`, `ModEvent::UseStart` | ✅ |
+> | `native_setting` / `native_set_setting` | still there, but only for keys registered with `Registrar::register_setting` (they show on Options > Mods): our tracked quest moved to `host.data_files()` (`horizon-mod-data/<id>/`) | ✅ |
+> | `native_world_dir`, `native_config_dir` | `host.world_dir()`, `host.instance_dir().join("config")` (or the `config_files()` service) | ✅ |
+> | `native_server_players` (guests), `native_player` (host) | one `host.player(uuid)`, a `PlayerRef`, for everyone: `name`, `dimension`, `entity().position`, `permission_level`, `experience`, `inventory_slots`, `tell`, `give_stack` (drops what does not fit), `give_experience_points`, `give_levels` | ✅ |
+> | `native_server_item_in_tag` | `host.tags().key(&Identifier)`, then `is_in_tag(ItemKey, TagKey)`; `items(tag)` lists a tag | ✅ |
+> | `native_recipes` | `host.recipes_of_type(kind)` (`Recipe { kind, ingredients, results, cooking_time, json }`), `ingredient.item_keys(host)`, `host.item_keys()`, `host.hover_name(&stack)` | ✅ |
+> | `native_run_command`, `native_feedback` | `host.commands().run_command(line)`, `.feedback(Text)` | ✅ |
+> | `native_take_items`, `native_carried_items` | gone: hand-ins read `inventory_slots` and take with vanilla's `/clear` (`set_inventory_slot` exists too) | ✅ |
+> | `native_corner_shown` | gone: the HUD draws its corners always | ❓ to see in game |
+> | `native_data!` | gone: generated Rust in `src/` (our `hq_built_in.rs`), or `data/` read by a reload listener or `host.resource` | ✅ |
+>
+> Logging: a mod depends on `log = "0.4"` (the docs' examples use `log::warn!`), unified with the game's copy at build.
 
 > [!warning] Legend
 > - **API N**: requires `"hooks": N` at minimum. `NATIVE_HOOKS_API` is **415** at Horizon `1453e0e` (2026-11-10). `smp` targets 413; our mod targets 313.

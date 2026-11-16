@@ -26,7 +26,7 @@ Vault conventions: `[[Note title]]` wiki links, YAML frontmatter, API status ✅
 - No Mojang code or assets in the repo: game data is read at runtime.
 - Use only **hook points** from the catalog, with no raw function injections (ADR-003) and no unnumbered ⏳ pending hooks.
 - Only crates already in Horizon's `Cargo.lock` are allowed.
-- **Port to the mod API accepted** (ADR-018, 2026-11-16): when the first Nightly with Horizon's mod API is out, the mod moves to the flat `horizon-mod.toml` format and `mod_api::Hooks`. From the port on, the two rules above become: hooks are `mod_api::Hooks` methods (no `native_*` hook points, no `[[native.*]]` tables), and crates come from crates.io pinned in our `Cargo.lock` (SDK re-exports preferred). Until then they govern the current code.
+- **Port to the mod API** (ADR-018, 2026-11-16): done on branch **`mod-api-port`**, merged into `main` when the first Nightly with Horizon's mod API ships. On that branch the two rules above become: hooks are `mod_api::Hooks` methods (no `native_*` hook points, no `[[native.*]]` tables), and crates come from crates.io pinned in our `Cargo.lock` (`log`, `serde`, `serde_json`, `toml` so far). Check it with `tools/check-mod.ps1` (it runs `tools/link-sdk.ps1` first if `mod/.horizon/sdk` is missing). On `main` the old rules still govern the old format.
 - `RUSTFLAGS=-D warnings`: any warning breaks the build.
 - Logic goes in **pure, testable modules** (`hq_*.rs`, `cargo test`). Code that touches `Game` goes in `*_glue.rs` (the smp pattern).
 - **Never run a command with `--trust-native-code` yourself** (Horizon rule: it is the player's decision). Prepare the command; the user runs it.

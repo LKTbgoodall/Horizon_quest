@@ -28,7 +28,7 @@ A quest book for [Horizon](https://playhorizon.dev), the Rust rewrite of Minecra
 
 ## Making quests
 
-See **[docs/making-quests.md](docs/making-quests.md)**: where a pack goes, every field of the files, examples, and how to check a pack. The built-in example pack is in [`mod/mixins/horizon_quests/data/quests/`](mod/mixins/horizon_quests/data/quests/), and an example data pack in [`examples/quest-datapack/`](examples/quest-datapack/).
+See **[docs/making-quests.md](docs/making-quests.md)**: where a pack goes, every field of the files, examples, and how to check a pack. The built-in example pack is in [`mod/built-in-pack/`](mod/built-in-pack/), and an example data pack in [`examples/quest-datapack/`](examples/quest-datapack/).
 
 ## Commands
 
@@ -46,7 +46,7 @@ See **[docs/making-quests.md](docs/making-quests.md)**: where a pack goes, every
 
 ## Building from source
 
-The mod lives in [`mod/`](mod/). Its pure logic is tested with `cargo test` (Rust stable, `RUSTFLAGS=-D warnings`), and `tools/check-glue.ps1` type-checks the parts that touch the game against the pinned Horizon. `tools/build-mod.ps1` (Windows) or `tools/build-mod.sh` (Linux) packs `build/horizon_quests.hmod` and has the Horizon launcher build it into your instance; that last step passes `--trust-native-code`, which only you can decide to run. Details: [`mod/README.md`](mod/README.md).
+The mod lives in [`mod/`](mod/), one flat package for Horizon's mod API. `tools/check-mod.ps1` (Linux: `tools/check-mod.sh`) runs its tests and checks it with `RUSTFLAGS=-D warnings` against the API (Rust stable). `tools/build-mod.ps1` (Windows) or `tools/build-mod.sh` (Linux) has the Horizon launcher build it into your instance; that step passes `--trust-native-code`, which only you can decide to run. Details: [`mod/README.md`](mod/README.md).
 
 ## Project notes
 
