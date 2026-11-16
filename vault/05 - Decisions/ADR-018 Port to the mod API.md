@@ -30,7 +30,9 @@ In code: the pure modules (`hq_*.rs`, ~15,600 lines, the tests) move as they are
 Option 1, with the inventory of option 2 done first on paper (this note). The freeze for 1.0.0 stays; 1.0.0 becomes "the first version on the mod API".
 
 ## Decision
-✅ **Accepted** (Bastien, 2026-11-16): **option 1**. Port the mod to `mod_api` as soon as the first Nightly built with the mod API and its SDK is out, then release **1.0.0 as the first version on the mod API**. The feature freeze stays: the port changes the plumbing, not what the mod does. Until that Nightly exists, nothing is written against the new API (no blind code, option 2 dropped beyond the inventory above); the current code in the old format stays as it is.
+✅ **Accepted** (Bastien, 2026-11-16): **option 1**. Port the mod to `mod_api` as soon as the first Nightly built with the mod API and its SDK is out, then release **1.0.0 as the first version on the mod API**. The feature freeze stays: the port changes the plumbing, not what the mod does.
+
+**Amended the same evening** (Bastien: "can't you take care of porting it in the meantime?"): the port is done **now, on the branch `mod-api-port`**, and `main` keeps the old format until the Nightly ships. It is not blind: the mod depends on the API crate by path (`.horizon/sdk/api/crates/horizon-mod-api`), and `tools/link-sdk` makes `.horizon/sdk/api` a junction to a Horizon checkout, so `cargo check` and `cargo test` compile the whole mod, glue included, against Horizon `main` (`c07bfa7`) with `-D warnings`. When the Nightly is out: move the pins (`cargo horizon-mod update`), write the registry lock (`horizon-launcher native-lock mod`), fix what moved, merge the branch into `main`, and Bastien tests everything in game.
 
 ## Consequences
 Effective when the port lands (the old rules keep governing the current code until then):

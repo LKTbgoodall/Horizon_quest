@@ -38,3 +38,6 @@ tokens.*
 .vscode/
 .idea/
 *.log
+
+# The pinned mod SDK (cargo horizon-mod) or a link to a Horizon checkout (tools/link-sdk)
+.horizon/
