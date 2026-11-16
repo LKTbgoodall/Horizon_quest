@@ -7,6 +7,13 @@ Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%
 - `tools/build-mod.sh --combined` (the Linux twin of `-Combined`); a launcher path with spaces in its menu entry is read whole.
 - `tools/check-glue.sh`: `HORIZON_SOURCE` points it at a checkout of the pinned revision the launcher has not built with yet.
 
+## 0.21.1
+- **Nine chapters instead of 24** (Bastien: too many side chapters, players get lost; he wants a lot to do in the main chapters). The 324 quests are all kept, regrouped:
+  - **Main story**, six big chapters: Getting started (45: + the old Further afield and New horizons), Iron age (49: + the first half of Caves and cliffs, Wide world, Archaeology), Diamonds (41: + the deep dark and the Warden, the enchanting half of Enchanting and brewing, Trial chambers and the mace), The Nether (33: + Nether frontier, brewing), The End (11), Beyond (29: + The deep blue).
+  - **Side paths**, three chapters: Farming and animals (39: + Animal friends, The kitchen), Monsters and villages (35: + Village life, Arsenal), Building and collecting (42: + Redstone, Collector).
+- Each old chapter is a band of its new chapter, with its own layout, starting to the right of the quest it hangs from. Four bands now hang from a quest of their new chapter instead of an earlier one: Wide world after "Find your way" (compass), Archaeology after "Copper toolkit", the deep dark after "Diamond-clad", Trial chambers after "A sharper edge".
+- Moved quests have a new full id (`chapter/quest`): progress made on them in 0.21.0, and on the six quests of the old Further afield, does not carry over. Quest ids within a chapter did not change.
+
 ## 0.21.0
 - **A much bigger built-in quest book** (Bastien: "many more quests, show every side of Minecraft and the new versions"): from 81 quests in 9 chapters to **324 quests in 24 chapters**, in six groups: Main story, Exploration, Life and farming, Combat, Crafting and building, Challenges.
 - The existing chapters keep every quest as it was (ids, text, tasks, rewards: saved progress still applies) and gain new ones: chests, stone and copper tools, copper armour and light, blast furnace and smoker, "Rock bottom" (Y -58), glowstone, ghasts, soul sand, ender chest, dragon's breath, respawning the dragon, rockets, chorus, netherite tools, a full beacon, monsters from slimes to parched and camel husks.

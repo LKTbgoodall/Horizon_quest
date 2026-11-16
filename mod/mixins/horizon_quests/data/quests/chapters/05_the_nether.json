@@ -198,6 +198,264 @@
         { "id": "soul_torch", "type": "item", "item": "minecraft:soul_torch", "count": 8 }
       ],
       "rewards": [ { "id": "bone_block", "type": "item", "item": "minecraft:bone_block", "count": 4 } ]
+    },
+    {
+      "id": "forests",
+      "title": "Strange forests",
+      "description": [
+        "The Nether's forests grow giant fungi instead of trees: red crimson and blue warped. Their wood does not burn."
+      ],
+      "icon": "minecraft:warped_fungus",
+      "x": 2, "y": 6.5,
+      "shape": "circle",
+      "dependencies": ["portal"],
+      "tasks": [
+        { "id": "crimson_stem", "type": "item", "item": "minecraft:crimson_stem", "count": 16 },
+        { "id": "warped_stem", "type": "item", "item": "minecraft:warped_stem", "count": 16 }
+      ],
+      "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
+    },
+    {
+      "id": "shroomlight",
+      "title": "Lights in the trees",
+      "description": [
+        "Shroomlights glow among the huge fungi's caps, and vines hang under them."
+      ],
+      "x": 4, "y": 5,
+      "dependencies": ["forests"],
+      "tasks": [
+        { "id": "shroomlight", "type": "item", "item": "minecraft:shroomlight", "count": 4 },
+        { "id": "weeping_vines", "type": "item", "item": "minecraft:weeping_vines", "count": 4 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "hoglins",
+      "title": "Hoglin hunt",
+      "description": [
+        "Hoglins charge anything in crimson forests. Warped fungus scares them away."
+      ],
+      "icon": "minecraft:cooked_porkchop",
+      "x": 4, "y": 8,
+      "dependencies": ["forests"],
+      "tasks": [ { "id": "hoglin", "type": "kill", "entity": "minecraft:hoglin", "count": 3 } ],
+      "rewards": [ { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 } ]
+    },
+    {
+      "id": "strider",
+      "title": "Walking on lava",
+      "description": [
+        "Striders cross the lava seas. Saddle one and steer it with warped fungus on a stick."
+      ],
+      "icon": "minecraft:warped_fungus_on_a_stick",
+      "x": 6, "y": 8,
+      "dependencies": ["hoglins"],
+      "tasks": [
+        { "id": "warped_fungus_on_a_stick", "type": "item", "item": "minecraft:warped_fungus_on_a_stick" },
+        { "id": "check", "type": "checkmark", "title": "I rode a strider over lava" }
+      ],
+      "rewards": [ { "id": "saddle", "type": "item", "item": "minecraft:saddle" } ]
+    },
+    {
+      "id": "bastion",
+      "title": "Bastion",
+      "description": [
+        "Huge blackstone fortresses held by piglins. Wear gold, do not open their chests in front of them, and do not mine their gold."
+      ],
+      "icon": "minecraft:gilded_blackstone",
+      "x": 6, "y": 5,
+      "dependencies": ["shroomlight"],
+      "tasks": [ { "id": "gilded_blackstone", "type": "item", "item": "minecraft:gilded_blackstone" } ],
+      "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
+    },
+    {
+      "id": "brute",
+      "title": "War pigs",
+      "description": [
+        "Piglin brutes guard the bastions' treasure. Gold does not calm them."
+      ],
+      "icon": "minecraft:golden_axe",
+      "x": 8, "y": 5,
+      "dependencies": ["bastion"],
+      "tasks": [ { "id": "piglin_brute", "type": "kill", "entity": "minecraft:piglin_brute" } ],
+      "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
+    },
+    {
+      "id": "upgrade_template",
+      "title": "Upgrade plans",
+      "description": [
+        "Bastion chests always have a chance of a netherite upgrade template. Duplicate it with diamonds and netherrack."
+      ],
+      "icon": "minecraft:netherite_upgrade_smithing_template",
+      "x": 10, "y": 5,
+      "dependencies": ["brute"],
+      "tasks": [ { "id": "netherite_upgrade_smithing_template", "type": "item", "item": "minecraft:netherite_upgrade_smithing_template" } ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
+    },
+    {
+      "id": "respawn_anchor",
+      "title": "Not quite nine lives",
+      "description": [
+        "Crying obsidian and glowstone make a respawn anchor: a bed that works in the Nether. Never use it in the Overworld."
+      ],
+      "icon": "minecraft:respawn_anchor",
+      "x": 8, "y": 6.5,
+      "dependencies": ["forests"],
+      "tasks": [
+        { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian", "count": 6 },
+        { "id": "respawn_anchor", "type": "item", "item": "minecraft:respawn_anchor" }
+      ],
+      "rewards": [ { "id": "glowstone", "type": "item", "item": "minecraft:glowstone", "count": 4 } ]
+    },
+    {
+      "id": "lodestone",
+      "title": "Country lode",
+      "description": [
+        "A netherite ingot in chiseled stone. Use a compass on a lodestone and it will point to it, in any dimension."
+      ],
+      "x": 10, "y": 6.5,
+      "dependencies": ["respawn_anchor", "beyond/netherite"],
+      "tasks": [ { "id": "lodestone", "type": "item", "item": "minecraft:lodestone" } ],
+      "rewards": [ { "id": "compass", "type": "item", "item": "minecraft:compass" } ]
+    },
+    {
+      "id": "basalt",
+      "title": "Basalt deltas",
+      "description": [
+        "Grey pillars, ash and magma cubes. Blackstone works like cobblestone for tools and furnaces."
+      ],
+      "icon": "minecraft:basalt",
+      "x": 8, "y": 8,
+      "dependencies": ["strider"],
+      "tasks": [
+        { "id": "basalt", "type": "item", "item": "minecraft:basalt", "count": 16 },
+        { "id": "blackstone", "type": "item", "item": "minecraft:blackstone", "count": 32 }
+      ],
+      "rewards": [ { "id": "magma_cream", "type": "item", "item": "minecraft:magma_cream", "count": 2 } ]
+    },
+    {
+      "id": "blue_flames",
+      "title": "Blue flames",
+      "description": [
+        "Soul fire burns blue and keeps piglins and hoglins at a distance."
+      ],
+      "icon": "minecraft:soul_lantern",
+      "x": 10, "y": 8,
+      "dependencies": ["basalt", "soul_sand"],
+      "tasks": [
+        { "id": "soul_campfire", "type": "item", "item": "minecraft:soul_campfire" },
+        { "id": "soul_lantern", "type": "item", "item": "minecraft:soul_lantern" }
+      ],
+      "rewards": [ { "id": "soul_torch", "type": "item", "item": "minecraft:soul_torch", "count": 16 } ]
+    },
+    {
+      "id": "pigstep",
+      "title": "Pigstep",
+      "description": [
+        "Bastions sometimes keep a music disc in their chests. Piglins dance to it."
+      ],
+      "x": 12, "y": 5,
+      "optional": true,
+      "dependencies": ["upgrade_template"],
+      "tasks": [ { "id": "music_disc_pigstep", "type": "item", "item": "minecraft:music_disc_pigstep" } ],
+      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
+    },
+    {
+      "id": "zoglin",
+      "title": "Out of place",
+      "description": [
+        "A hoglin taken to the Overworld turns into a zoglin, which attacks everything."
+      ],
+      "icon": "minecraft:rotten_flesh",
+      "x": 12, "y": 8,
+      "optional": true,
+      "dependencies": ["hoglins"],
+      "tasks": [ { "id": "zoglin", "type": "kill", "entity": "minecraft:zoglin" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 60 } ]
+    },
+    {
+      "id": "blaze_powder",
+      "title": "Fuel for the stand",
+      "description": [
+        "Every brewing stand burns blaze powder. Keep some aside."
+      ],
+      "icon": "minecraft:blaze_powder",
+      "x": 10, "y": -5.5,
+      "dependencies": ["brewing_stand"],
+      "tasks": [ { "id": "blaze_powder", "type": "item", "item": "minecraft:blaze_powder", "count": 8 } ],
+      "rewards": [ { "id": "glass_bottle", "type": "item", "item": "minecraft:glass_bottle", "count": 8 } ]
+    },
+    {
+      "id": "ingredients",
+      "title": "The ingredient shelf",
+      "description": [
+        "A spider eye with sugar and a mushroom, a golden melon, a rabbit's foot, magma cream: each brews something else."
+      ],
+      "icon": "minecraft:fermented_spider_eye",
+      "x": 12, "y": -5.5,
+      "dependencies": ["blaze_powder"],
+      "tasks": [
+        { "id": "fermented_spider_eye", "type": "item", "item": "minecraft:fermented_spider_eye", "count": 2 },
+        { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice" },
+        { "id": "rabbit_foot", "type": "item", "item": "minecraft:rabbit_foot" },
+        { "id": "magma_cream", "type": "item", "item": "minecraft:magma_cream" }
+      ],
+      "rewards": [ { "id": "nether_wart", "type": "item", "item": "minecraft:nether_wart", "count": 8 } ]
+    },
+    {
+      "id": "splash",
+      "title": "Splash!",
+      "description": [
+        "Gunpowder turns a potion into one you throw. It hits everything around where it breaks."
+      ],
+      "icon": "minecraft:splash_potion",
+      "x": 14, "y": -5.5,
+      "dependencies": ["ingredients"],
+      "tasks": [ { "id": "splash_potion", "type": "item", "item": "minecraft:splash_potion", "count": 3 } ],
+      "rewards": [ { "id": "gunpowder", "type": "item", "item": "minecraft:gunpowder", "count": 8 } ]
+    },
+    {
+      "id": "lingering",
+      "title": "Lingering clouds",
+      "description": [
+        "Dragon's breath turns a splash potion into a lingering cloud. Dip arrows in it for tipped arrows."
+      ],
+      "icon": "minecraft:lingering_potion",
+      "x": 16, "y": -5.5,
+      "dependencies": ["splash", "the_end/dragon_breath"],
+      "tasks": [ { "id": "lingering_potion", "type": "item", "item": "minecraft:lingering_potion" } ],
+      "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
+    },
+    {
+      "id": "cocktail",
+      "title": "A furious cocktail",
+      "description": [
+        "Every potion effect on you at the same time. It takes planning."
+      ],
+      "icon": "minecraft:potion",
+      "x": 18, "y": -5.5,
+      "optional": true,
+      "dependencies": ["lingering"],
+      "tasks": [ { "id": "all_potions", "type": "advancement", "advancement": "minecraft:nether/all_potions", "title": "Have every potion effect at once" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "arcanist",
+      "title": "Arcanist",
+      "description": [
+        "Enchanting, brewing and the anvil hold no more secrets for you."
+      ],
+      "icon": "minecraft:enchanting_table",
+      "x": 18, "y": -8.5,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["diamonds/grindstone", "diamonds/bottles", "lingering"],
+      "tasks": [],
+      "rewards": [
+        { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book" },
+        { "id": "levels", "type": "xp_levels", "levels": 5 }
+      ]
     }
   ]
 }
