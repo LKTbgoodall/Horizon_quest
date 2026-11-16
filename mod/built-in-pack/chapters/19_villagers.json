@@ -1,0 +1,161 @@
+{
+  "id": "villagers",
+  "title": "Village life",
+  "subtitle": "Neighbours, trades and raids",
+  "icon": "minecraft:emerald",
+  "group": "life",
+  "quests": [
+    {
+      "id": "emeralds",
+      "title": "First trades",
+      "description": [
+        "Villagers buy what they need for emeralds: wheat, paper, coal, sticks. Find one who buys what you have."
+      ],
+      "x": 0, "y": 0,
+      "shape": "circle",
+      "dependencies": ["wide_world/village"],
+      "tasks": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 8 } ],
+      "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
+    },
+    {
+      "id": "job_sites",
+      "title": "Hiring",
+      "description": [
+        "A villager without a job takes the first free workstation it finds: a lectern makes a librarian, a fletching table a fletcher."
+      ],
+      "icon": "minecraft:lectern",
+      "x": 2, "y": -1.5,
+      "dependencies": ["emeralds"],
+      "tasks": [
+        { "id": "lectern", "type": "item", "item": "minecraft:lectern" },
+        { "id": "fletching_table", "type": "item", "item": "minecraft:fletching_table" },
+        { "id": "loom", "type": "item", "item": "minecraft:loom" },
+        { "id": "grindstone", "type": "item", "item": "minecraft:grindstone" }
+      ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
+    },
+    {
+      "id": "librarian",
+      "title": "A librarian's book",
+      "description": [
+        "Librarians sell enchanted books. Reroll their trade by breaking and replacing the lectern before trading."
+      ],
+      "x": 4, "y": -1.5,
+      "dependencies": ["job_sites"],
+      "tasks": [ { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book" } ],
+      "rewards": [ { "id": "book", "type": "item", "item": "minecraft:book", "count": 8 } ]
+    },
+    {
+      "id": "wealthy",
+      "title": "Wealthy",
+      "description": [
+        "Eighteen emeralds. Trade often and villagers level up and sell better things."
+      ],
+      "x": 2, "y": 1.5,
+      "dependencies": ["emeralds"],
+      "tasks": [ { "id": "emerald_block", "type": "item", "item": "minecraft:emerald_block", "count": 2 } ],
+      "rewards": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ]
+    },
+    {
+      "id": "iron_golem",
+      "title": "Hired help",
+      "description": [
+        "Four iron blocks in a T and a carved pumpkin on top. It protects the village; villagers build them too."
+      ],
+      "icon": "minecraft:iron_block",
+      "x": 4, "y": 0,
+      "dependencies": ["emeralds"],
+      "tasks": [
+        { "id": "iron_block", "type": "item", "item": "minecraft:iron_block", "count": 4 },
+        { "id": "check", "type": "checkmark", "title": "I built an iron golem" }
+      ],
+      "rewards": [ { "id": "poppy", "type": "item", "item": "minecraft:poppy", "count": 4 } ]
+    },
+    {
+      "id": "zombie_doctor",
+      "title": "Zombie doctor",
+      "description": [
+        "Throw a splash potion of weakness at a zombie villager, then feed it a golden apple. It thanks you with cheap trades."
+      ],
+      "icon": "minecraft:golden_apple",
+      "x": 6, "y": 0,
+      "dependencies": ["iron_golem", "the_nether/potion"],
+      "tasks": [
+        { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" },
+        { "id": "cure_zombie_villager", "type": "advancement", "advancement": "minecraft:story/cure_zombie_villager", "title": "Cure a zombie villager" }
+      ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 8 } ]
+    },
+    {
+      "id": "outpost",
+      "title": "Outpost raid",
+      "description": [
+        "Pillagers live in tall wooden towers. Their captain carries a banner and an ominous bottle."
+      ],
+      "icon": "minecraft:crossbow",
+      "x": 4, "y": 1.5,
+      "dependencies": ["wealthy"],
+      "tasks": [ { "id": "pillager", "type": "kill", "entity": "minecraft:pillager", "count": 5 } ],
+      "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
+    },
+    {
+      "id": "raid",
+      "title": "Defend the village",
+      "description": [
+        "Drink an ominous bottle and walk into a village: a raid begins, wave after wave.",
+        "Ravagers, vindicators, evokers. Save the villagers and they will give you gifts."
+      ],
+      "icon": "minecraft:white_banner",
+      "x": 6, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
+      "dependencies": ["outpost"],
+      "tasks": [
+        { "id": "vindicator", "type": "kill", "entity": "minecraft:vindicator", "count": 5 },
+        { "id": "ravager", "type": "kill", "entity": "minecraft:ravager" },
+        { "id": "hero_of_the_village", "type": "advancement", "advancement": "minecraft:adventure/hero_of_the_village", "title": "Win a raid" }
+      ],
+      "rewards": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ]
+    },
+    {
+      "id": "evoker",
+      "title": "Spellcaster",
+      "description": [
+        "Evokers summon fangs from the ground and vexes that fly through walls. Kill the evoker first."
+      ],
+      "icon": "minecraft:totem_of_undying",
+      "x": 8, "y": 1.5,
+      "dependencies": ["raid"],
+      "tasks": [
+        { "id": "evoker", "type": "kill", "entity": "minecraft:evoker" },
+        { "id": "vex", "type": "kill", "entity": "minecraft:vex", "count": 3 }
+      ],
+      "rewards": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ]
+    },
+    {
+      "id": "wandering_trader",
+      "title": "A travelling merchant",
+      "description": [
+        "Now and then a trader comes by with two llamas, selling plants and things from far away."
+      ],
+      "icon": "minecraft:lead",
+      "x": 2, "y": 3,
+      "dependencies": ["wealthy"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I traded with a wandering trader" } ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 2 } ]
+    },
+    {
+      "id": "star_trader",
+      "title": "Star trader",
+      "description": [
+        "Take a villager up to the build limit, then trade with it. It will not be easy."
+      ],
+      "icon": "minecraft:emerald",
+      "x": 8, "y": -1.5,
+      "optional": true,
+      "dependencies": ["librarian", "wide_world/top_of_world"],
+      "tasks": [ { "id": "trade_at_world_height", "type": "advancement", "advancement": "minecraft:adventure/trade_at_world_height", "title": "Trade at the build limit" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
+    }
+  ]
+}

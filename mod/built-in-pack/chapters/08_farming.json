@@ -1,8 +1,9 @@
 {
   "id": "farming",
   "title": "Farm and food",
+  "subtitle": "Grow your food",
   "icon": "minecraft:wheat",
-  "group": "side",
+  "group": "life",
   "quests": [
     {
       "id": "seeds",
@@ -11,27 +12,11 @@
         "Break grass for seeds, till the dirt next to water with a hoe, and plant them."
       ],
       "icon": "minecraft:wheat_seeds",
-      "x": 0,
-      "y": 0,
+      "x": 0, "y": 0,
       "shape": "circle",
-      "dependencies": [
-        "getting_started/crafting_table"
-      ],
-      "tasks": [
-        {
-          "id": "plant",
-          "type": "advancement",
-          "advancement": "minecraft:husbandry/plant_seed"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "bone_meal",
-          "type": "item",
-          "item": "minecraft:bone_meal",
-          "count": 8
-        }
-      ]
+      "dependencies": ["getting_started/crafting_table"],
+      "tasks": [ { "id": "plant", "type": "advancement", "advancement": "minecraft:husbandry/plant_seed" } ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 8 } ]
     },
     {
       "id": "wheat",
@@ -39,27 +24,11 @@
       "description": [
         "Wait for the wheat to turn golden and harvest it. Bone meal speeds it up."
       ],
-      "x": 2,
-      "y": 0,
+      "x": 2, "y": 0,
       "shape": "square",
-      "dependencies": [
-        "seeds"
-      ],
-      "tasks": [
-        {
-          "id": "wheat",
-          "type": "item",
-          "item": "minecraft:wheat",
-          "count": 16
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 20
-        }
-      ]
+      "dependencies": ["seeds"],
+      "tasks": [ { "id": "wheat", "type": "item", "item": "minecraft:wheat", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
     },
     {
       "id": "sugar_cane",
@@ -67,27 +36,11 @@
       "description": [
         "Sugar cane grows on sand or dirt next to water. It makes sugar, and paper for books and maps."
       ],
-      "x": 2,
-      "y": -1.5,
+      "x": 2, "y": -1.5,
       "shape": "square",
-      "dependencies": [
-        "seeds"
-      ],
-      "tasks": [
-        {
-          "id": "cane",
-          "type": "item",
-          "item": "minecraft:sugar_cane",
-          "count": 16
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 20
-        }
-      ]
+      "dependencies": ["seeds"],
+      "tasks": [ { "id": "cane", "type": "item", "item": "minecraft:sugar_cane", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
     },
     {
       "id": "breed",
@@ -96,27 +49,11 @@
         "Feed two animals of the same kind their favourite food: wheat for cows and sheep, carrots for pigs, seeds for chickens."
       ],
       "icon": "minecraft:lead",
-      "x": 2,
-      "y": 1.5,
+      "x": 2, "y": 1.5,
       "shape": "hexagon",
-      "dependencies": [
-        "seeds"
-      ],
-      "tasks": [
-        {
-          "id": "breed",
-          "type": "advancement",
-          "advancement": "minecraft:husbandry/breed_an_animal"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "leads",
-          "type": "item",
-          "item": "minecraft:lead",
-          "count": 2
-        }
-      ]
+      "dependencies": ["seeds"],
+      "tasks": [ { "id": "breed", "type": "advancement", "advancement": "minecraft:husbandry/breed_an_animal" } ],
+      "rewards": [ { "id": "leads", "type": "item", "item": "minecraft:lead", "count": 2 } ]
     },
     {
       "id": "leather",
@@ -124,27 +61,11 @@
       "description": [
         "Cows drop leather. It makes books, item frames and light armour."
       ],
-      "x": 4,
-      "y": 1.5,
+      "x": 4, "y": 1.5,
       "shape": "square",
-      "dependencies": [
-        "breed"
-      ],
-      "tasks": [
-        {
-          "id": "leather",
-          "type": "item",
-          "item": "minecraft:leather",
-          "count": 8
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 25
-        }
-      ]
+      "dependencies": ["breed"],
+      "tasks": [ { "id": "leather", "type": "item", "item": "minecraft:leather", "count": 8 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 25 } ]
     },
     {
       "id": "cake",
@@ -152,27 +73,11 @@
       "description": [
         "Milk, sugar, an egg and wheat. Place it and take a slice whenever you are hungry."
       ],
-      "x": 4,
-      "y": -1.5,
+      "x": 4, "y": -1.5,
       "shape": "hexagon",
-      "dependencies": [
-        "wheat",
-        "sugar_cane"
-      ],
-      "tasks": [
-        {
-          "id": "cake",
-          "type": "craft",
-          "item": "minecraft:cake"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 2
-        }
-      ]
+      "dependencies": ["wheat", "sugar_cane"],
+      "tasks": [ { "id": "cake", "type": "craft", "item": "minecraft:cake" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
     },
     {
       "id": "fishing",
@@ -181,27 +86,11 @@
         "Sticks and string make a fishing rod. Cast it into water and pull when the float dips."
       ],
       "icon": "minecraft:fishing_rod",
-      "x": 4,
-      "y": 0,
+      "x": 4, "y": 0,
       "shape": "circle",
-      "dependencies": [
-        "wheat"
-      ],
-      "tasks": [
-        {
-          "id": "fish",
-          "type": "advancement",
-          "advancement": "minecraft:husbandry/fishy_business"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "cod",
-          "type": "item",
-          "item": "minecraft:cooked_cod",
-          "count": 8
-        }
-      ]
+      "dependencies": ["wheat"],
+      "tasks": [ { "id": "fish", "type": "advancement", "advancement": "minecraft:husbandry/fishy_business" } ],
+      "rewards": [ { "id": "cod", "type": "item", "item": "minecraft:cooked_cod", "count": 8 } ]
     },
     {
       "id": "golden_carrots",
@@ -209,28 +98,11 @@
       "description": [
         "A carrot wrapped in gold nuggets: the most filling food you can farm."
       ],
-      "x": 6,
-      "y": 0,
+      "x": 6, "y": 0,
       "shape": "diamond",
-      "dependencies": [
-        "cake",
-        "fishing"
-      ],
-      "tasks": [
-        {
-          "id": "carrots",
-          "type": "craft",
-          "item": "minecraft:golden_carrot",
-          "count": 8
-        }
-      ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 2
-        }
-      ]
+      "dependencies": ["cake", "fishing"],
+      "tasks": [ { "id": "carrots", "type": "craft", "item": "minecraft:golden_carrot", "count": 8 } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
     },
     {
       "id": "tame",
@@ -240,28 +112,96 @@
         "Tame a wolf with bones, or a cat with raw fish. It follows you and fights by your side."
       ],
       "icon": "minecraft:bone",
-      "x": 6,
-      "y": 1.5,
+      "x": 6, "y": 1.5,
       "shape": "square",
       "optional": true,
-      "dependencies": [
-        "leather"
+      "dependencies": ["leather"],
+      "tasks": [ { "id": "tame", "type": "advancement", "advancement": "minecraft:husbandry/tame_an_animal" } ],
+      "rewards": [ { "id": "bones", "type": "item", "item": "minecraft:bone", "count": 8 } ]
+    },
+    {
+      "id": "bone_meal",
+      "title": "Grow faster",
+      "description": [
+        "Bone meal makes crops grow at once. A composter turns spare plants into more of it."
       ],
+      "x": 0, "y": -1.5,
+      "dependencies": ["seeds"],
       "tasks": [
-        {
-          "id": "tame",
-          "type": "advancement",
-          "advancement": "minecraft:husbandry/tame_an_animal"
-        }
+        { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 },
+        { "id": "composter", "type": "item", "item": "minecraft:composter" }
       ],
-      "rewards": [
-        {
-          "id": "bones",
-          "type": "item",
-          "item": "minecraft:bone",
-          "count": 8
-        }
-      ]
+      "rewards": [ { "id": "bone", "type": "item", "item": "minecraft:bone", "count": 8 } ]
+    },
+    {
+      "id": "vegetables",
+      "title": "The vegetable patch",
+      "description": [
+        "Carrots and potatoes come from zombies and village farms, beetroot seeds from chests. Plant them all."
+      ],
+      "icon": "minecraft:carrot",
+      "x": 2, "y": -3,
+      "dependencies": ["sugar_cane"],
+      "tasks": [
+        { "id": "carrot", "type": "item", "item": "minecraft:carrot", "count": 16 },
+        { "id": "potato", "type": "item", "item": "minecraft:potato", "count": 16 },
+        { "id": "beetroot", "type": "item", "item": "minecraft:beetroot", "count": 16 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "farmer_loot" } ]
+    },
+    {
+      "id": "pumpkins",
+      "title": "Gourds",
+      "description": [
+        "Pumpkins and melons grow on the block next to their stem. Leave them room."
+      ],
+      "icon": "minecraft:pumpkin",
+      "x": 4, "y": -3,
+      "dependencies": ["vegetables"],
+      "tasks": [
+        { "id": "pumpkin", "type": "item", "item": "minecraft:pumpkin", "count": 8 },
+        { "id": "melon_slice", "type": "item", "item": "minecraft:melon_slice", "count": 16 }
+      ],
+      "rewards": [ { "id": "pumpkin_pie", "type": "item", "item": "minecraft:pumpkin_pie", "count": 4 } ]
+    },
+    {
+      "id": "honey",
+      "title": "Bee our guest",
+      "description": [
+        "Put a campfire under a full beehive, then use a bottle for honey or shears for honeycomb. The bees stay calm."
+      ],
+      "icon": "minecraft:honey_bottle",
+      "x": 6, "y": -1.5,
+      "dependencies": ["cake"],
+      "tasks": [
+        { "id": "honey_bottle", "type": "item", "item": "minecraft:honey_bottle", "count": 4 },
+        { "id": "honeycomb", "type": "item", "item": "minecraft:honeycomb", "count": 6 }
+      ],
+      "rewards": [ { "id": "campfire", "type": "item", "item": "minecraft:campfire" } ]
+    },
+    {
+      "id": "bee_nest",
+      "title": "Total beelocation",
+      "description": [
+        "Mine a bee nest with silk touch and the bees inside move with it."
+      ],
+      "x": 8, "y": -1.5,
+      "optional": true,
+      "dependencies": ["honey"],
+      "tasks": [ { "id": "bee_nest", "type": "item", "item": "minecraft:bee_nest" } ],
+      "rewards": [ { "id": "honeycomb", "type": "item", "item": "minecraft:honeycomb", "count": 6 } ]
+    },
+    {
+      "id": "netherite_hoe",
+      "title": "Serious dedication",
+      "description": [
+        "A netherite ingot spent on a hoe. Your crops deserve it."
+      ],
+      "x": 8, "y": 0,
+      "optional": true,
+      "dependencies": ["golden_carrots", "beyond/netherite"],
+      "tasks": [ { "id": "netherite_hoe", "type": "item", "item": "minecraft:netherite_hoe" } ],
+      "rewards": [ { "id": "hay_block", "type": "item", "item": "minecraft:hay_block", "count": 16 } ]
     }
   ]
 }

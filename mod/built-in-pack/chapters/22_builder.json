@@ -1,0 +1,278 @@
+{
+  "id": "builder",
+  "title": "Builder",
+  "subtitle": "Blocks for every build",
+  "icon": "minecraft:bricks",
+  "group": "craft",
+  "quests": [
+    {
+      "id": "stonecutter",
+      "title": "Stonecutter",
+      "description": [
+        "Cuts stone into stairs, slabs and walls one block at a time, with nothing wasted."
+      ],
+      "x": 0, "y": 0,
+      "shape": "circle",
+      "dependencies": ["getting_started/settled"],
+      "tasks": [ { "id": "stonecutter", "type": "item", "item": "minecraft:stonecutter" } ],
+      "rewards": [ { "id": "stone", "type": "item", "item": "minecraft:stone", "count": 64 } ]
+    },
+    {
+      "id": "bricks",
+      "title": "Brickwork",
+      "description": [
+        "Dig clay from river beds, smelt it into bricks, then build."
+      ],
+      "x": 2, "y": -1.5,
+      "dependencies": ["stonecutter"],
+      "tasks": [ { "id": "bricks", "type": "item", "item": "minecraft:bricks", "count": 32 } ],
+      "rewards": [ { "id": "clay_ball", "type": "item", "item": "minecraft:clay_ball", "count": 16 } ]
+    },
+    {
+      "id": "glass",
+      "title": "Windows",
+      "description": [
+        "Smelt sand into glass; six glass make sixteen panes."
+      ],
+      "icon": "minecraft:glass",
+      "x": 2, "y": 1.5,
+      "dependencies": ["stonecutter"],
+      "tasks": [
+        { "id": "glass", "type": "item", "item": "minecraft:glass", "count": 32 },
+        { "id": "glass_pane", "type": "item", "item": "minecraft:glass_pane", "count": 16 }
+      ],
+      "rewards": [ { "id": "sand", "type": "item", "item": "minecraft:sand", "count": 32 } ]
+    },
+    {
+      "id": "masonry",
+      "title": "Stone masonry",
+      "description": [
+        "Stone bricks, and moss or vines on them for a ruined look."
+      ],
+      "icon": "minecraft:stone_bricks",
+      "x": 4, "y": -1.5,
+      "dependencies": ["bricks"],
+      "tasks": [
+        { "id": "stone_bricks", "type": "item", "item": "#minecraft:stone_bricks", "count": 32 },
+        { "id": "mossy_stone_bricks", "type": "item", "item": "minecraft:mossy_stone_bricks", "count": 8 }
+      ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "builder_choice" } ]
+    },
+    {
+      "id": "dyes",
+      "title": "A splash of colour",
+      "description": [
+        "Flowers give most dyes; green comes from smelting cactus and blue from lapis or cornflowers."
+      ],
+      "icon": "minecraft:red_dye",
+      "x": 4, "y": 1.5,
+      "dependencies": ["glass"],
+      "tasks": [
+        { "id": "red_dye", "type": "item", "item": "minecraft:red_dye" },
+        { "id": "yellow_dye", "type": "item", "item": "minecraft:yellow_dye" },
+        { "id": "blue_dye", "type": "item", "item": "minecraft:blue_dye" },
+        { "id": "green_dye", "type": "item", "item": "minecraft:green_dye" }
+      ],
+      "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 16 } ]
+    },
+    {
+      "id": "concrete",
+      "title": "Concrete and glaze",
+      "description": [
+        "Dye, sand and gravel make concrete powder, which hardens in water. Smelt dyed terracotta for glazed patterns."
+      ],
+      "icon": "minecraft:cyan_concrete",
+      "x": 6, "y": 1.5,
+      "dependencies": ["dyes"],
+      "tasks": [
+        { "id": "concrete", "type": "item", "item": "#minecraft:concrete", "count": 32 },
+        { "id": "glazed_terracotta", "type": "item", "item": "#minecraft:glazed_terracotta", "count": 8 }
+      ],
+      "rewards": [ { "id": "gravel", "type": "item", "item": "minecraft:gravel", "count": 32 } ]
+    },
+    {
+      "id": "copper_building",
+      "title": "Copper building",
+      "description": [
+        "Copper blocks, cut copper, grates you can see through, doors and trapdoors."
+      ],
+      "icon": "minecraft:cut_copper",
+      "x": 6, "y": -1.5,
+      "dependencies": ["masonry", "iron_age/copper_tools"],
+      "tasks": [
+        { "id": "copper_block", "type": "item", "item": "minecraft:copper_block", "count": 4 },
+        { "id": "cut_copper", "type": "item", "item": "minecraft:cut_copper", "count": 8 },
+        { "id": "copper_grate", "type": "item", "item": "minecraft:copper_grate", "count": 4 }
+      ],
+      "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 16 } ]
+    },
+    {
+      "id": "patina",
+      "title": "Patina",
+      "description": [
+        "Copper left in the open turns green with time. Scrape it back with an axe."
+      ],
+      "x": 8, "y": -1.5,
+      "dependencies": ["copper_building"],
+      "tasks": [ { "id": "oxidized_copper", "type": "item", "item": "minecraft:oxidized_copper", "count": 4 } ],
+      "rewards": [ { "id": "copper_block", "type": "item", "item": "minecraft:copper_block", "count": 4 } ]
+    },
+    {
+      "id": "wax_on",
+      "title": "Wax on",
+      "description": [
+        "Honeycomb on copper freezes it in its current colour."
+      ],
+      "icon": "minecraft:honeycomb",
+      "x": 10, "y": -1.5,
+      "dependencies": ["patina", "farming/honey"],
+      "tasks": [ { "id": "waxed_copper_block", "type": "item", "item": "minecraft:waxed_copper_block", "count": 4 } ],
+      "rewards": [ { "id": "honeycomb", "type": "item", "item": "minecraft:honeycomb", "count": 6 } ]
+    },
+    {
+      "id": "copper_golem",
+      "title": "A copper helper",
+      "description": [
+        "A carved pumpkin on a copper block makes a copper golem. It sorts items from copper chests into ordinary ones."
+      ],
+      "icon": "minecraft:copper_chest",
+      "x": 8, "y": -3,
+      "dependencies": ["copper_building"],
+      "tasks": [
+        { "id": "copper_chest", "type": "item", "item": "minecraft:copper_chest" },
+        { "id": "check", "type": "checkmark", "title": "I built a copper golem" }
+      ],
+      "rewards": [ { "id": "copper_block", "type": "item", "item": "minecraft:copper_block", "count": 2 } ]
+    },
+    {
+      "id": "statue",
+      "title": "Frozen in patina",
+      "description": [
+        "Left alone long enough, a copper golem oxidizes until it stops moving and becomes a statue."
+      ],
+      "icon": "minecraft:oxidized_copper_golem_statue",
+      "x": 10, "y": -3,
+      "optional": true,
+      "dependencies": ["copper_golem"],
+      "tasks": [ { "id": "copper_golem_statues", "type": "item", "item": "#minecraft:copper_golem_statues" } ],
+      "rewards": [ { "id": "honeycomb", "type": "item", "item": "minecraft:honeycomb", "count": 4 } ]
+    },
+    {
+      "id": "decorations",
+      "title": "Decorations",
+      "description": [
+        "Armour stands, item frames, paintings: a house becomes a home."
+      ],
+      "icon": "minecraft:painting",
+      "x": 8, "y": 0,
+      "dependencies": ["concrete", "patina"],
+      "tasks": [
+        { "id": "armor_stand", "type": "item", "item": "minecraft:armor_stand" },
+        { "id": "item_frame", "type": "item", "item": "minecraft:item_frame", "count": 4 },
+        { "id": "painting", "type": "item", "item": "minecraft:painting", "count": 2 }
+      ],
+      "rewards": [ { "id": "leather", "type": "item", "item": "minecraft:leather", "count": 8 } ]
+    },
+    {
+      "id": "banners",
+      "title": "Coat of arms",
+      "description": [
+        "Design a banner at a loom, then put it on a shield at a crafting table."
+      ],
+      "icon": "minecraft:white_banner",
+      "x": 8, "y": 1.5,
+      "dependencies": ["concrete"],
+      "tasks": [
+        { "id": "banners", "type": "item", "item": "#minecraft:banners" },
+        { "id": "loom", "type": "item", "item": "minecraft:loom" }
+      ],
+      "rewards": [ { "id": "shield", "type": "item", "item": "minecraft:shield" } ]
+    },
+    {
+      "id": "shop",
+      "title": "Shop fittings",
+      "description": [
+        "Hanging signs and shelves. A shelf holds three items in plain view, and swaps them with your hotbar."
+      ],
+      "icon": "minecraft:oak_shelf",
+      "x": 10, "y": 1.5,
+      "dependencies": ["banners"],
+      "tasks": [
+        { "id": "hanging_signs", "type": "item", "item": "#minecraft:hanging_signs", "count": 4 },
+        { "id": "wooden_shelves", "type": "item", "item": "#minecraft:wooden_shelves", "count": 2 }
+      ],
+      "rewards": [ { "id": "iron_chain", "type": "item", "item": "minecraft:iron_chain", "count": 8 } ]
+    },
+    {
+      "id": "candles",
+      "title": "Candlelight",
+      "description": [
+        "String and honeycomb make candles; up to four fit in one block."
+      ],
+      "icon": "minecraft:candle",
+      "x": 10, "y": 0,
+      "dependencies": ["decorations"],
+      "tasks": [
+        { "id": "candles", "type": "item", "item": "#minecraft:candles", "count": 4 },
+        { "id": "lantern", "type": "item", "item": "minecraft:lantern", "count": 2 }
+      ],
+      "rewards": [ { "id": "honeycomb", "type": "item", "item": "minecraft:honeycomb", "count": 4 } ]
+    },
+    {
+      "id": "library",
+      "title": "Book nook",
+      "description": [
+        "A chiseled bookshelf holds six books you can take and put back, and redstone can read it."
+      ],
+      "icon": "minecraft:chiseled_bookshelf",
+      "x": 12, "y": 0,
+      "dependencies": ["candles", "shop"],
+      "tasks": [
+        { "id": "chiseled_bookshelf", "type": "item", "item": "minecraft:chiseled_bookshelf" },
+        { "id": "book", "type": "item", "item": "minecraft:book", "count": 6 }
+      ],
+      "rewards": [ { "id": "bookshelf", "type": "item", "item": "minecraft:bookshelf", "count": 4 } ]
+    },
+    {
+      "id": "bundle",
+      "title": "Bundle up",
+      "description": [
+        "A bundle carries a stack of different small things in one slot."
+      ],
+      "icon": "minecraft:bundle",
+      "x": 12, "y": -1.5,
+      "dependencies": ["wax_on"],
+      "tasks": [ { "id": "bundles", "type": "item", "item": "#minecraft:bundles" } ],
+      "rewards": [ { "id": "rabbit_hide", "type": "item", "item": "minecraft:rabbit_hide", "count": 8 } ]
+    },
+    {
+      "id": "scaffolding",
+      "title": "Scaffolding",
+      "description": [
+        "Bamboo and string. Climb it, build on it, and break the bottom block to take it all down."
+      ],
+      "x": 0, "y": 1.5,
+      "dependencies": ["stonecutter"],
+      "tasks": [ { "id": "scaffolding", "type": "item", "item": "minecraft:scaffolding", "count": 16 } ],
+      "rewards": [ { "id": "bamboo", "type": "item", "item": "minecraft:bamboo", "count": 32 } ]
+    },
+    {
+      "id": "master_builder",
+      "title": "Master builder",
+      "description": [
+        "Brick, copper, glass, concrete and candles. Every build is within reach."
+      ],
+      "icon": "minecraft:bricks",
+      "x": 14, "y": 0,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["library", "bundle"],
+      "tasks": [],
+      "rewards": [
+        { "id": "choice", "type": "choice", "table": "builder_choice" },
+        { "id": "levels", "type": "xp_levels", "levels": 5 }
+      ]
+    }
+  ]
+}

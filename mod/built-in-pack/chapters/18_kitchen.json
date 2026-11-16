@@ -1,0 +1,139 @@
+{
+  "id": "kitchen",
+  "title": "The kitchen",
+  "subtitle": "Everything you can eat",
+  "icon": "minecraft:pumpkin_pie",
+  "group": "life",
+  "quests": [
+    {
+      "id": "smoker",
+      "title": "A smoker",
+      "description": [
+        "A furnace among four logs. It cooks food twice as fast."
+      ],
+      "x": 0, "y": 0,
+      "shape": "circle",
+      "dependencies": ["farming/wheat"],
+      "tasks": [ { "id": "smoker", "type": "item", "item": "minecraft:smoker" } ],
+      "rewards": [ { "id": "charcoal", "type": "item", "item": "minecraft:charcoal", "count": 16 } ]
+    },
+    {
+      "id": "butcher",
+      "title": "Butcher",
+      "description": [
+        "Cows, pigs, chickens. Keep a stock of cooked meat."
+      ],
+      "icon": "minecraft:cooked_porkchop",
+      "x": 2, "y": -1.5,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 },
+        { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 },
+        { "id": "cooked_chicken", "type": "item", "item": "minecraft:cooked_chicken", "count": 8 }
+      ],
+      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 4 } ]
+    },
+    {
+      "id": "fish_supper",
+      "title": "Fish supper",
+      "description": [
+        "Cooked fish from rivers and oceans."
+      ],
+      "icon": "minecraft:cooked_salmon",
+      "x": 2, "y": 1.5,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "cooked_cod", "type": "item", "item": "minecraft:cooked_cod", "count": 8 },
+        { "id": "cooked_salmon", "type": "item", "item": "minecraft:cooked_salmon", "count": 8 }
+      ],
+      "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
+    },
+    {
+      "id": "snacks",
+      "title": "Snacks",
+      "description": [
+        "Small foods you can eat fast: dried kelp and baked potatoes."
+      ],
+      "icon": "minecraft:baked_potato",
+      "x": 4, "y": 0,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
+        { "id": "baked_potato", "type": "item", "item": "minecraft:baked_potato", "count": 16 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
+    },
+    {
+      "id": "soups",
+      "title": "Soup kitchen",
+      "description": [
+        "Stews come in bowls. A suspicious stew, made with a flower, gives a short effect: guess which one."
+      ],
+      "icon": "minecraft:rabbit_stew",
+      "x": 4, "y": -1.5,
+      "dependencies": ["butcher"],
+      "tasks": [
+        { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" },
+        { "id": "rabbit_stew", "type": "item", "item": "minecraft:rabbit_stew" },
+        { "id": "beetroot_soup", "type": "item", "item": "minecraft:beetroot_soup" },
+        { "id": "suspicious_stew", "type": "item", "item": "minecraft:suspicious_stew" }
+      ],
+      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 8 } ]
+    },
+    {
+      "id": "sweets",
+      "title": "Sweet tooth",
+      "description": [
+        "Wheat and cocoa make cookies; pumpkin, sugar and an egg make a pie."
+      ],
+      "icon": "minecraft:cookie",
+      "x": 4, "y": 1.5,
+      "dependencies": ["fish_supper"],
+      "tasks": [
+        { "id": "cookie", "type": "item", "item": "minecraft:cookie", "count": 16 },
+        { "id": "pumpkin_pie", "type": "item", "item": "minecraft:pumpkin_pie", "count": 4 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "baker_loot" } ]
+    },
+    {
+      "id": "golden_food",
+      "title": "Golden food",
+      "description": [
+        "Gold nuggets around a melon slice or a carrot. Golden carrots are the best everyday food."
+      ],
+      "icon": "minecraft:glistering_melon_slice",
+      "x": 6, "y": 0,
+      "dependencies": ["snacks"],
+      "tasks": [
+        { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice", "count": 2 },
+        { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 }
+      ],
+      "rewards": [ { "id": "gold_nugget", "type": "item", "item": "minecraft:gold_nugget", "count": 16 } ]
+    },
+    {
+      "id": "notch_apple",
+      "title": "An enchanted apple",
+      "description": [
+        "It cannot be crafted. Only chests in ruins, temples and bastions hold one."
+      ],
+      "x": 8, "y": -1.5,
+      "optional": true,
+      "dependencies": ["golden_food"],
+      "tasks": [ { "id": "enchanted_golden_apple", "type": "item", "item": "minecraft:enchanted_golden_apple" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
+    },
+    {
+      "id": "balanced_diet",
+      "title": "A balanced diet",
+      "description": [
+        "Every food, even the strange ones: chorus fruit, poisonous potatoes, rotten flesh, spider eyes."
+      ],
+      "icon": "minecraft:golden_apple",
+      "x": 8, "y": 1.5,
+      "optional": true,
+      "dependencies": ["golden_food", "soups", "sweets"],
+      "tasks": [ { "id": "balanced_diet", "type": "advancement", "advancement": "minecraft:husbandry/balanced_diet", "title": "Eat everything that can be eaten" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    }
+  ]
+}

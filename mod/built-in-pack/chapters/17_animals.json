@@ -1,0 +1,209 @@
+{
+  "id": "animals",
+  "title": "Animal friends",
+  "subtitle": "Tame them, ride them, keep them",
+  "icon": "minecraft:lead",
+  "group": "life",
+  "quests": [
+    {
+      "id": "lead",
+      "title": "On a leash",
+      "description": [
+        "String and a slime ball make leads. Tie animals to fences, or walk them home."
+      ],
+      "x": 0, "y": 0,
+      "shape": "circle",
+      "dependencies": ["farming/breed"],
+      "tasks": [ { "id": "lead", "type": "craft", "item": "minecraft:lead", "count": 2 } ],
+      "rewards": [ { "id": "wheat", "type": "item", "item": "minecraft:wheat", "count": 16 } ]
+    },
+    {
+      "id": "name_tag",
+      "title": "What's in a name",
+      "description": [
+        "Name tags come from chests, fishing and librarians. Rename one at an anvil, then use it on an animal you love."
+      ],
+      "x": 0, "y": 1.5,
+      "dependencies": ["lead"],
+      "tasks": [ { "id": "name_tag", "type": "item", "item": "minecraft:name_tag" } ],
+      "rewards": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ]
+    },
+    {
+      "id": "horse",
+      "title": "Saddle up",
+      "description": [
+        "Mount a horse again and again until it stops throwing you off, then saddle it."
+      ],
+      "icon": "minecraft:saddle",
+      "x": 2, "y": -1.5,
+      "dependencies": ["lead"],
+      "tasks": [
+        { "id": "saddle", "type": "item", "item": "minecraft:saddle" },
+        { "id": "check", "type": "checkmark", "title": "I tamed and rode a horse" }
+      ],
+      "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
+    },
+    {
+      "id": "horse_armor",
+      "title": "Armoured steed",
+      "description": [
+        "Horse armour is found in chests. A horse wearing it takes far less damage."
+      ],
+      "x": 4, "y": -1.5,
+      "optional": true,
+      "dependencies": ["horse"],
+      "tasks": [ { "id": "iron_horse_armor", "type": "item", "item": "minecraft:iron_horse_armor" } ],
+      "rewards": [ { "id": "hay_block", "type": "item", "item": "minecraft:hay_block", "count": 8 } ]
+    },
+    {
+      "id": "camel",
+      "title": "Ship of the desert",
+      "description": [
+        "Camels wander deserts and savannas. Two can ride one, and they dash over gaps."
+      ],
+      "icon": "minecraft:cactus",
+      "x": 6, "y": -1.5,
+      "dependencies": ["horse"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I rode a camel" } ],
+      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 } ]
+    },
+    {
+      "id": "armadillo",
+      "title": "Isn't it scute?",
+      "description": [
+        "Brush an armadillo, or wait for it to shed: it drops scutes. They roll up when anything comes close."
+      ],
+      "icon": "minecraft:armadillo_scute",
+      "x": 2, "y": 1.5,
+      "dependencies": ["lead"],
+      "tasks": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 6 } ],
+      "rewards": [ { "id": "brush", "type": "item", "item": "minecraft:brush" } ]
+    },
+    {
+      "id": "wolf",
+      "title": "A loyal wolf",
+      "description": [
+        "Give bones to a wolf until hearts appear. It follows you, fights for you, and sits when told."
+      ],
+      "icon": "minecraft:bone",
+      "x": 2, "y": 0,
+      "dependencies": ["lead"],
+      "tasks": [
+        { "id": "bone", "type": "item", "item": "minecraft:bone", "count": 8 },
+        { "id": "check", "type": "checkmark", "title": "I tamed a wolf" }
+      ],
+      "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 } ]
+    },
+    {
+      "id": "wolf_armor",
+      "title": "Armour for a friend",
+      "description": [
+        "Armadillo scutes make wolf armour. It soaks up the damage and can be repaired with more scutes."
+      ],
+      "x": 4, "y": 1.5,
+      "dependencies": ["armadillo", "wolf"],
+      "tasks": [ { "id": "wolf_armor", "type": "craft", "item": "minecraft:wolf_armor" } ],
+      "rewards": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 4 } ]
+    },
+    {
+      "id": "whole_pack",
+      "title": "The whole pack",
+      "description": [
+        "Wolves look different in every forest and taiga. Tame one of each."
+      ],
+      "icon": "minecraft:wolf_armor",
+      "x": 6, "y": 1.5,
+      "optional": true,
+      "dependencies": ["wolf_armor"],
+      "tasks": [ { "id": "whole_pack", "type": "advancement", "advancement": "minecraft:husbandry/whole_pack", "title": "Tame one of each kind of wolf" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "cat",
+      "title": "A cat of your own",
+      "description": [
+        "Stray cats live in villages. Feed them raw fish and they keep phantoms and creepers away."
+      ],
+      "icon": "minecraft:cod",
+      "x": 4, "y": 0,
+      "dependencies": ["wolf"],
+      "tasks": [
+        { "id": "cod", "type": "item", "item": "minecraft:cod", "count": 4 },
+        { "id": "check", "type": "checkmark", "title": "I tamed a cat" }
+      ],
+      "rewards": [ { "id": "string", "type": "item", "item": "minecraft:string", "count": 8 } ]
+    },
+    {
+      "id": "allay",
+      "title": "You've got a friend",
+      "description": [
+        "Allays are kept in pillager outposts and woodland mansions. Free one and give it an item: it collects more of it for you."
+      ],
+      "icon": "minecraft:amethyst_shard",
+      "x": 6, "y": 0,
+      "dependencies": ["cat"],
+      "tasks": [ { "id": "allay_deliver_item_to_player", "type": "advancement", "advancement": "minecraft:husbandry/allay_deliver_item_to_player", "title": "An allay brings you an item" } ],
+      "rewards": [ { "id": "note_block", "type": "item", "item": "minecraft:note_block" } ]
+    },
+    {
+      "id": "dried_ghast",
+      "title": "A dried ghast",
+      "description": [
+        "Soul sand valleys hide dried ghasts. Put one in water and wait: something small wakes up."
+      ],
+      "icon": "minecraft:dried_ghast",
+      "x": 8, "y": -1.5,
+      "dependencies": ["camel", "the_nether/portal"],
+      "tasks": [ { "id": "dried_ghast", "type": "item", "item": "minecraft:dried_ghast" } ],
+      "rewards": [ { "id": "water_bucket", "type": "item", "item": "minecraft:water_bucket" } ]
+    },
+    {
+      "id": "happy_ghast",
+      "title": "Sky ride",
+      "description": [
+        "A grown happy ghast carries up to four players with a harness. Snowballs are its favourite treat."
+      ],
+      "icon": "minecraft:white_harness",
+      "x": 10, "y": -1.5,
+      "dependencies": ["dried_ghast"],
+      "tasks": [
+        { "id": "harnesses", "type": "item", "item": "#minecraft:harnesses" },
+        { "id": "check", "type": "checkmark", "title": "I flew on a happy ghast" }
+      ],
+      "rewards": [ { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 } ]
+    },
+    {
+      "id": "snow_golem",
+      "title": "Frosty",
+      "description": [
+        "Two snow blocks with a carved pumpkin on top. It throws snowballs at monsters and leaves snow behind."
+      ],
+      "icon": "minecraft:carved_pumpkin",
+      "x": 8, "y": 1.5,
+      "dependencies": ["cat"],
+      "tasks": [
+        { "id": "carved_pumpkin", "type": "item", "item": "minecraft:carved_pumpkin" },
+        { "id": "check", "type": "checkmark", "title": "I built a snow golem" }
+      ],
+      "rewards": [ { "id": "snow_block", "type": "item", "item": "minecraft:snow_block", "count": 16 } ]
+    },
+    {
+      "id": "animal_lover",
+      "title": "Animal lover",
+      "description": [
+        "Horses, wolves, cats, allays and a ghast to fly. You never travel alone now."
+      ],
+      "icon": "minecraft:lead",
+      "x": 10, "y": 0.75,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["happy_ghast", "allay", "wolf_armor", "snow_golem"],
+      "tasks": [],
+      "rewards": [
+        { "id": "random", "type": "random", "table": "farmer_loot" },
+        { "id": "levels", "type": "xp_levels", "levels": 5 }
+      ]
+    }
+  ]
+}

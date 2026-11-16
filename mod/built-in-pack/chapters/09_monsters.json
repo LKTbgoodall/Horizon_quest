@@ -1,8 +1,9 @@
 {
   "id": "monsters",
   "title": "Monster hunter",
+  "subtitle": "Know your enemies",
   "icon": "minecraft:iron_sword",
-  "group": "side",
+  "group": "combat",
   "quests": [
     {
       "id": "zombies",
@@ -11,28 +12,11 @@
         "Clear the night of zombies. Light your base well and they stop coming so close."
       ],
       "icon": "minecraft:zombie_head",
-      "x": 0,
-      "y": 0,
+      "x": 0, "y": 0,
       "shape": "circle",
-      "dependencies": [
-        "getting_started/stone"
-      ],
-      "tasks": [
-        {
-          "id": "zombies",
-          "type": "kill",
-          "entity": "minecraft:zombie",
-          "count": 10
-        }
-      ],
-      "rewards": [
-        {
-          "id": "bread",
-          "type": "item",
-          "item": "minecraft:bread",
-          "count": 6
-        }
-      ]
+      "dependencies": ["getting_started/stone"],
+      "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 10 } ],
+      "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 6 } ]
     },
     {
       "id": "skeletons",
@@ -41,27 +25,11 @@
         "Skeletons shoot from a distance: close in fast or use a shield."
       ],
       "icon": "minecraft:bone",
-      "x": 2,
-      "y": -1.5,
+      "x": 2, "y": -1.5,
       "shape": "square",
-      "dependencies": [
-        "zombies"
-      ],
-      "tasks": [
-        {
-          "id": "skeletons",
-          "type": "kill",
-          "entity": "minecraft:skeleton",
-          "count": 10
-        }
-      ],
-      "rewards": [
-        {
-          "id": "bow",
-          "type": "item",
-          "item": "minecraft:bow"
-        }
-      ]
+      "dependencies": ["zombies"],
+      "tasks": [ { "id": "skeletons", "type": "kill", "entity": "minecraft:skeleton", "count": 10 } ],
+      "rewards": [ { "id": "bow", "type": "item", "item": "minecraft:bow" } ]
     },
     {
       "id": "spiders",
@@ -70,28 +38,11 @@
         "Spiders climb walls and hunt at night. Their string makes bows and fishing rods."
       ],
       "icon": "minecraft:string",
-      "x": 2,
-      "y": 0,
+      "x": 2, "y": 0,
       "shape": "square",
-      "dependencies": [
-        "zombies"
-      ],
-      "tasks": [
-        {
-          "id": "spiders",
-          "type": "kill",
-          "entity": "minecraft:spider",
-          "count": 10
-        }
-      ],
-      "rewards": [
-        {
-          "id": "string",
-          "type": "item",
-          "item": "minecraft:string",
-          "count": 8
-        }
-      ]
+      "dependencies": ["zombies"],
+      "tasks": [ { "id": "spiders", "type": "kill", "entity": "minecraft:spider", "count": 10 } ],
+      "rewards": [ { "id": "string", "type": "item", "item": "minecraft:string", "count": 8 } ]
     },
     {
       "id": "creepers",
@@ -100,28 +51,11 @@
         "Creepers sneak up and explode. Hit them and step back."
       ],
       "icon": "minecraft:gunpowder",
-      "x": 2,
-      "y": 1.5,
+      "x": 2, "y": 1.5,
       "shape": "square",
-      "dependencies": [
-        "zombies"
-      ],
-      "tasks": [
-        {
-          "id": "creepers",
-          "type": "kill",
-          "entity": "minecraft:creeper",
-          "count": 5
-        }
-      ],
-      "rewards": [
-        {
-          "id": "tnt",
-          "type": "item",
-          "item": "minecraft:tnt",
-          "count": 2
-        }
-      ]
+      "dependencies": ["zombies"],
+      "tasks": [ { "id": "creepers", "type": "kill", "entity": "minecraft:creeper", "count": 5 } ],
+      "rewards": [ { "id": "tnt", "type": "item", "item": "minecraft:tnt", "count": 2 } ]
     },
     {
       "id": "endermen",
@@ -130,29 +64,11 @@
         "Endermen are tall, fast and strike hard. Fight them under a two-block-high roof, or in water's reach."
       ],
       "icon": "minecraft:ender_pearl",
-      "x": 4,
-      "y": 0,
+      "x": 4, "y": 0,
       "shape": "hexagon",
-      "dependencies": [
-        "skeletons",
-        "spiders",
-        "creepers"
-      ],
-      "tasks": [
-        {
-          "id": "endermen",
-          "type": "kill",
-          "entity": "minecraft:enderman",
-          "count": 3
-        }
-      ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 2
-        }
-      ]
+      "dependencies": ["skeletons", "spiders", "creepers"],
+      "tasks": [ { "id": "endermen", "type": "kill", "entity": "minecraft:enderman", "count": 3 } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
     },
     {
       "id": "witch",
@@ -162,28 +78,12 @@
         "Witches throw potions and drink their own. Rush them before they heal."
       ],
       "icon": "minecraft:glass_bottle",
-      "x": 6,
-      "y": -1.5,
+      "x": 6, "y": -1.5,
       "shape": "diamond",
       "optional": true,
-      "dependencies": [
-        "endermen"
-      ],
-      "tasks": [
-        {
-          "id": "witch",
-          "type": "kill",
-          "entity": "minecraft:witch"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "potions",
-          "type": "item",
-          "item": "minecraft:glass_bottle",
-          "count": 3
-        }
-      ]
+      "dependencies": ["endermen"],
+      "tasks": [ { "id": "witch", "type": "kill", "entity": "minecraft:witch" } ],
+      "rewards": [ { "id": "potions", "type": "item", "item": "minecraft:glass_bottle", "count": 3 } ]
     },
     {
       "id": "pillagers",
@@ -193,28 +93,12 @@
         "Defeat the captain of a pillager patrol: the one carrying a banner."
       ],
       "icon": "minecraft:crossbow",
-      "x": 6,
-      "y": 1.5,
+      "x": 6, "y": 1.5,
       "shape": "diamond",
       "optional": true,
-      "dependencies": [
-        "endermen"
-      ],
-      "tasks": [
-        {
-          "id": "exile",
-          "type": "advancement",
-          "advancement": "minecraft:adventure/voluntary_exile"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "emeralds",
-          "type": "item",
-          "item": "minecraft:emerald",
-          "count": 4
-        }
-      ]
+      "dependencies": ["endermen"],
+      "tasks": [ { "id": "exile", "type": "advancement", "advancement": "minecraft:adventure/voluntary_exile" } ],
+      "rewards": [ { "id": "emeralds", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
     },
     {
       "id": "hunter",
@@ -223,21 +107,116 @@
         "Zombies, skeletons, spiders, creepers and endermen: the night holds no more fear for you."
       ],
       "icon": "minecraft:diamond_sword",
-      "x": 8,
-      "y": 0,
+      "x": 8, "y": 0,
       "shape": "hexagon",
       "visibility": "until_deps_complete",
       "size": 1.5,
-      "dependencies": [
-        "endermen"
+      "dependencies": ["endermen"],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
+    },
+    {
+      "id": "slimes",
+      "title": "Bouncy",
+      "description": [
+        "Slimes live in swamps and deep underground in some chunks. Big ones split into small ones."
       ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 5
-        }
-      ]
+      "icon": "minecraft:slime_ball",
+      "x": 4, "y": -3,
+      "dependencies": ["skeletons"],
+      "tasks": [ { "id": "slime", "type": "kill", "entity": "minecraft:slime", "count": 5 } ],
+      "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
+    },
+    {
+      "id": "variants",
+      "title": "Local variants",
+      "description": [
+        "Deserts have husks that do not burn, snowy lands have strays with slowing arrows."
+      ],
+      "icon": "minecraft:sand",
+      "x": 2, "y": -3,
+      "dependencies": ["skeletons"],
+      "tasks": [
+        { "id": "husk", "type": "kill", "entity": "minecraft:husk", "count": 3 },
+        { "id": "stray", "type": "kill", "entity": "minecraft:stray", "count": 3 }
+      ],
+      "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
+    },
+    {
+      "id": "silverfish",
+      "title": "Infested",
+      "description": [
+        "Some stone in mountains and strongholds hides silverfish. Break one block and more pour out."
+      ],
+      "icon": "minecraft:stone_bricks",
+      "x": 6, "y": -3,
+      "dependencies": ["slimes"],
+      "tasks": [ { "id": "silverfish", "type": "kill", "entity": "minecraft:silverfish", "count": 5 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "phantoms",
+      "title": "Go to sleep",
+      "description": [
+        "Skip three nights of sleep and phantoms dive at you from the sky. Their membranes repair elytra."
+      ],
+      "icon": "minecraft:phantom_membrane",
+      "x": 4, "y": 3,
+      "dependencies": ["creepers"],
+      "tasks": [
+        { "id": "phantom", "type": "kill", "entity": "minecraft:phantom", "count": 3 },
+        { "id": "phantom_membrane", "type": "item", "item": "minecraft:phantom_membrane", "count": 2 }
+      ],
+      "rewards": [ { "id": "white_bed", "type": "item", "item": "minecraft:white_bed" } ]
+    },
+    {
+      "id": "parched",
+      "title": "Parched",
+      "description": [
+        "Desert skeletons dried by the sun. Their arrows weaken you."
+      ],
+      "icon": "minecraft:bone",
+      "x": 6, "y": 3,
+      "dependencies": ["phantoms"],
+      "tasks": [ { "id": "parched", "type": "kill", "entity": "minecraft:parched", "count": 3 } ],
+      "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
+    },
+    {
+      "id": "camel_husk",
+      "title": "Desert riders",
+      "description": [
+        "At night in the desert, husks ride undead camels. Bring the camel down."
+      ],
+      "icon": "minecraft:cactus",
+      "x": 8, "y": 3,
+      "optional": true,
+      "dependencies": ["parched"],
+      "tasks": [ { "id": "camel_husk", "type": "kill", "entity": "minecraft:camel_husk" } ],
+      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 } ]
+    },
+    {
+      "id": "zombie_villagers",
+      "title": "Lost villagers",
+      "description": [
+        "Zombies that were once villagers. Kill them, or cure them: see Village life."
+      ],
+      "icon": "minecraft:emerald",
+      "x": 2, "y": 3,
+      "dependencies": ["creepers"],
+      "tasks": [ { "id": "zombie_villager", "type": "kill", "entity": "minecraft:zombie_villager", "count": 3 } ],
+      "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
+    },
+    {
+      "id": "endermite",
+      "title": "Tiny pest",
+      "description": [
+        "Throw enough ender pearls and an endermite sometimes crawls out where you land."
+      ],
+      "icon": "minecraft:ender_pearl",
+      "x": 8, "y": -3,
+      "optional": true,
+      "dependencies": ["silverfish"],
+      "tasks": [ { "id": "endermite", "type": "kill", "entity": "minecraft:endermite" } ],
+      "rewards": [ { "id": "ender_pearl", "type": "item", "item": "minecraft:ender_pearl", "count": 2 } ]
     }
   ]
 }

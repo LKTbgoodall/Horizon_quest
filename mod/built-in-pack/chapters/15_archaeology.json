@@ -1,0 +1,142 @@
+{
+  "id": "archaeology",
+  "title": "Archaeology",
+  "subtitle": "What the sand remembers",
+  "icon": "minecraft:brush",
+  "group": "explore",
+  "quests": [
+    {
+      "id": "brush",
+      "title": "A brush",
+      "description": [
+        "A feather, a copper ingot and a stick. Brush suspicious sand and gravel to uncover what is buried in it."
+      ],
+      "x": 0, "y": 0,
+      "shape": "circle",
+      "dependencies": ["getting_started/settled"],
+      "tasks": [ { "id": "brush", "type": "craft", "item": "minecraft:brush" } ],
+      "rewards": [ { "id": "feather", "type": "item", "item": "minecraft:feather", "count": 4 } ]
+    },
+    {
+      "id": "first_sherd",
+      "title": "A first find",
+      "description": [
+        "Desert wells, desert pyramids, ocean ruins and trail ruins hide suspicious blocks. Pottery sherds are the prize."
+      ],
+      "icon": "minecraft:archer_pottery_sherd",
+      "x": 2, "y": -1.5,
+      "dependencies": ["brush"],
+      "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "decorated_pot",
+      "title": "Careful restoration",
+      "description": [
+        "Four sherds, or bricks, make a decorated pot. Each sherd paints one of its sides."
+      ],
+      "icon": "minecraft:decorated_pot",
+      "x": 4, "y": -1.5,
+      "dependencies": ["first_sherd"],
+      "tasks": [
+        { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 4 },
+        { "id": "decorated_pot", "type": "item", "item": "minecraft:decorated_pot" }
+      ],
+      "rewards": [ { "id": "brick", "type": "item", "item": "minecraft:brick", "count": 16 } ]
+    },
+    {
+      "id": "trail_ruins",
+      "title": "Trail ruins",
+      "description": [
+        "Old ruins, half buried under the forests and taigas. Most of them is under the ground: dig and brush."
+      ],
+      "icon": "minecraft:mud_bricks",
+      "x": 2, "y": 1.5,
+      "dependencies": ["brush"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I dug up trail ruins" } ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
+    },
+    {
+      "id": "relic",
+      "title": "A relic",
+      "description": [
+        "Some trail ruins keep a music disc in their suspicious gravel."
+      ],
+      "x": 4, "y": 1.5,
+      "optional": true,
+      "dependencies": ["trail_ruins"],
+      "tasks": [ { "id": "music_disc_relic", "type": "item", "item": "minecraft:music_disc_relic" } ],
+      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
+    },
+    {
+      "id": "sniffer_egg",
+      "title": "Smells interesting",
+      "description": [
+        "Warm ocean ruins hide sniffer eggs in their suspicious sand. Place one on moss: it hatches faster."
+      ],
+      "x": 4, "y": 0,
+      "dependencies": ["first_sherd", "trail_ruins"],
+      "tasks": [ { "id": "sniffer_egg", "type": "item", "item": "minecraft:sniffer_egg" } ],
+      "rewards": [ { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 8 } ]
+    },
+    {
+      "id": "ancient_seeds",
+      "title": "Ancient seeds",
+      "description": [
+        "A grown sniffer digs up seeds from a time long gone. Feed it torchflower seeds to breed it."
+      ],
+      "icon": "minecraft:torchflower_seeds",
+      "x": 6, "y": 0,
+      "dependencies": ["sniffer_egg"],
+      "tasks": [
+        { "id": "torchflower_seeds", "type": "item", "item": "minecraft:torchflower_seeds" },
+        { "id": "pitcher_pod", "type": "item", "item": "minecraft:pitcher_pod" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
+    },
+    {
+      "id": "old_flowers",
+      "title": "Planting the past",
+      "description": [
+        "Grow the ancient seeds into torchflowers and pitcher plants."
+      ],
+      "icon": "minecraft:torchflower",
+      "x": 8, "y": 0,
+      "dependencies": ["ancient_seeds"],
+      "tasks": [
+        { "id": "torchflower", "type": "item", "item": "minecraft:torchflower", "count": 4 },
+        { "id": "pitcher_plant", "type": "item", "item": "minecraft:pitcher_plant", "count": 2 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "farmer_loot" } ]
+    },
+    {
+      "id": "new_look",
+      "title": "A new look",
+      "description": [
+        "Armour trim templates turn up in structures all over the world. At a smithing table, with an ingot or a gem, they decorate armour."
+      ],
+      "icon": "minecraft:coast_armor_trim_smithing_template",
+      "x": 6, "y": -1.5,
+      "dependencies": ["decorated_pot"],
+      "tasks": [ { "id": "trim_with_any_armor_pattern", "type": "advancement", "advancement": "minecraft:adventure/trim_with_any_armor_pattern", "title": "Trim a piece of armour" } ],
+      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 8 } ]
+    },
+    {
+      "id": "templates",
+      "title": "Template hunter",
+      "description": [
+        "Pillager outposts, desert pyramids, shipwrecks and jungle temples each keep a trim of their own."
+      ],
+      "icon": "minecraft:sentry_armor_trim_smithing_template",
+      "x": 8, "y": -1.5,
+      "dependencies": ["new_look"],
+      "tasks": [
+        { "id": "sentry_armor_trim_smithing_template", "type": "item", "item": "minecraft:sentry_armor_trim_smithing_template" },
+        { "id": "dune_armor_trim_smithing_template", "type": "item", "item": "minecraft:dune_armor_trim_smithing_template" },
+        { "id": "coast_armor_trim_smithing_template", "type": "item", "item": "minecraft:coast_armor_trim_smithing_template" },
+        { "id": "wild_armor_trim_smithing_template", "type": "item", "item": "minecraft:wild_armor_trim_smithing_template" }
+      ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
+    }
+  ]
+}

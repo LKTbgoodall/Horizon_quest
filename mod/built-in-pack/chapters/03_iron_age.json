@@ -1,6 +1,7 @@
 {
   "id": "iron_age",
   "title": "Iron Age",
+  "subtitle": "Better tools, better armour",
   "icon": "minecraft:iron_pickaxe",
   "group": "main",
   "quests": [
@@ -10,26 +11,11 @@
       "description": [
         "Iron tools mine faster, last longer and can break the ores stone tools cannot. Start with a pickaxe."
       ],
-      "x": 0,
-      "y": 0,
+      "x": 0, "y": 0,
       "shape": "circle",
-      "dependencies": [
-        "getting_started/settled"
-      ],
-      "tasks": [
-        {
-          "id": "pickaxe",
-          "type": "item",
-          "item": "minecraft:iron_pickaxe"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 30
-        }
-      ]
+      "dependencies": ["getting_started/settled"],
+      "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:iron_pickaxe" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
     },
     {
       "id": "iron_armor",
@@ -38,41 +24,16 @@
         "A full set of iron armour takes 24 ingots and turns most fights in your favour."
       ],
       "icon": "minecraft:iron_chestplate",
-      "x": 2,
-      "y": -1.5,
+      "x": 2, "y": -1.5,
       "shape": "square",
-      "dependencies": [
-        "iron_pickaxe"
-      ],
+      "dependencies": ["iron_pickaxe"],
       "tasks": [
-        {
-          "id": "helmet",
-          "type": "item",
-          "item": "minecraft:iron_helmet"
-        },
-        {
-          "id": "chestplate",
-          "type": "item",
-          "item": "minecraft:iron_chestplate"
-        },
-        {
-          "id": "leggings",
-          "type": "item",
-          "item": "minecraft:iron_leggings"
-        },
-        {
-          "id": "boots",
-          "type": "item",
-          "item": "minecraft:iron_boots"
-        }
+        { "id": "helmet", "type": "item", "item": "minecraft:iron_helmet" },
+        { "id": "chestplate", "type": "item", "item": "minecraft:iron_chestplate" },
+        { "id": "leggings", "type": "item", "item": "minecraft:iron_leggings" },
+        { "id": "boots", "type": "item", "item": "minecraft:iron_boots" }
       ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 2
-        }
-      ]
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
     },
     {
       "id": "shield",
@@ -80,27 +41,11 @@
       "description": [
         "Planks and one iron ingot make a shield. Raise it to stop arrows and blows, even a creeper's blast."
       ],
-      "x": 4,
-      "y": -1.5,
+      "x": 4, "y": -1.5,
       "shape": "hexagon",
-      "dependencies": [
-        "iron_armor"
-      ],
-      "tasks": [
-        {
-          "id": "shield",
-          "type": "item",
-          "item": "minecraft:shield"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "arrows",
-          "type": "item",
-          "item": "minecraft:arrow",
-          "count": 16
-        }
-      ]
+      "dependencies": ["iron_armor"],
+      "tasks": [ { "id": "shield", "type": "item", "item": "minecraft:shield" } ],
+      "rewards": [ { "id": "arrows", "type": "item", "item": "minecraft:arrow", "count": 16 } ]
     },
     {
       "id": "bucket",
@@ -108,26 +53,11 @@
       "description": [
         "Three ingots make a bucket: carry water to put out fires, break a fall, or make a farm anywhere."
       ],
-      "x": 2,
-      "y": 0,
+      "x": 2, "y": 0,
       "shape": "square",
-      "dependencies": [
-        "iron_pickaxe"
-      ],
-      "tasks": [
-        {
-          "id": "bucket",
-          "type": "item",
-          "item": "minecraft:bucket"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 20
-        }
-      ]
+      "dependencies": ["iron_pickaxe"],
+      "tasks": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
     },
     {
       "id": "lava",
@@ -135,26 +65,11 @@
       "description": [
         "Scoop up some lava. It keeps a furnace burning for a long time, and water poured over it makes obsidian."
       ],
-      "x": 4,
-      "y": 0,
+      "x": 4, "y": 0,
       "shape": "diamond",
-      "dependencies": [
-        "bucket"
-      ],
-      "tasks": [
-        {
-          "id": "lava",
-          "type": "item",
-          "item": "minecraft:lava_bucket"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 30
-        }
-      ]
+      "dependencies": ["bucket"],
+      "tasks": [ { "id": "lava", "type": "item", "item": "minecraft:lava_bucket" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
     },
     {
       "id": "ores",
@@ -163,46 +78,16 @@
         "The deeper caves hide more than iron. Bring back a little of each."
       ],
       "icon": "minecraft:redstone",
-      "x": 2,
-      "y": 1.5,
+      "x": 2, "y": 1.5,
       "shape": "hexagon",
-      "dependencies": [
-        "iron_pickaxe"
-      ],
+      "dependencies": ["iron_pickaxe"],
       "tasks": [
-        {
-          "id": "coal",
-          "type": "item",
-          "item": "minecraft:coal",
-          "count": 16
-        },
-        {
-          "id": "copper",
-          "type": "item",
-          "item": "minecraft:copper_ingot",
-          "count": 8
-        },
-        {
-          "id": "redstone",
-          "type": "item",
-          "item": "minecraft:redstone",
-          "count": 8
-        },
-        {
-          "id": "lapis",
-          "type": "item",
-          "item": "minecraft:lapis_lazuli",
-          "count": 8
-        }
+        { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 16 },
+        { "id": "copper", "type": "item", "item": "minecraft:copper_ingot", "count": 8 },
+        { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 8 },
+        { "id": "lapis", "type": "item", "item": "minecraft:lapis_lazuli", "count": 8 }
       ],
-      "rewards": [
-        {
-          "id": "torches",
-          "type": "item",
-          "item": "minecraft:torch",
-          "count": 16
-        }
-      ]
+      "rewards": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 16 } ]
     },
     {
       "id": "compass",
@@ -210,26 +95,11 @@
       "description": [
         "Iron and redstone make a compass. It always points to where you first woke up."
       ],
-      "x": 4,
-      "y": 1.5,
+      "x": 4, "y": 1.5,
       "shape": "circle",
-      "dependencies": [
-        "ores"
-      ],
-      "tasks": [
-        {
-          "id": "compass",
-          "type": "item",
-          "item": "minecraft:compass"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "map",
-          "type": "item",
-          "item": "minecraft:map"
-        }
-      ]
+      "dependencies": ["ores"],
+      "tasks": [ { "id": "compass", "type": "item", "item": "minecraft:compass" } ],
+      "rewards": [ { "id": "map", "type": "item", "item": "minecraft:map" } ]
     },
     {
       "id": "iron_block",
@@ -238,29 +108,106 @@
         "Nine ingots press into a block of iron: proof that you have more than you need.",
         "Diamonds lie far below, near the bottom of the world. Time to go and look."
       ],
-      "x": 6,
-      "y": 0,
+      "x": 6, "y": 0,
       "shape": "hexagon",
       "size": 1.5,
-      "dependencies": [
-        "shield",
-        "lava",
-        "compass"
+      "dependencies": ["shield", "lava", "compass"],
+      "tasks": [ { "id": "block", "type": "item", "item": "minecraft:iron_block" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "iron_tools",
+      "title": "Full iron kit",
+      "description": [
+        "Iron tools last much longer than stone ones. Make the rest of the set."
       ],
+      "icon": "minecraft:iron_axe",
+      "x": 2, "y": -3,
+      "dependencies": ["iron_pickaxe"],
       "tasks": [
-        {
-          "id": "block",
-          "type": "item",
-          "item": "minecraft:iron_block"
-        }
+        { "id": "iron_axe", "type": "item", "item": "minecraft:iron_axe" },
+        { "id": "iron_shovel", "type": "item", "item": "minecraft:iron_shovel" },
+        { "id": "iron_sword", "type": "item", "item": "minecraft:iron_sword" }
       ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 3
-        }
-      ]
+      "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 4 } ]
+    },
+    {
+      "id": "shears",
+      "title": "Snip snip",
+      "description": [
+        "Two iron ingots make shears. Shear sheep for wool without hurting them; shears also collect leaves and vines."
+      ],
+      "icon": "minecraft:shears",
+      "x": 4, "y": -3,
+      "dependencies": ["iron_tools"],
+      "tasks": [
+        { "id": "shears", "type": "item", "item": "minecraft:shears" },
+        { "id": "wool", "type": "item", "item": "#minecraft:wool", "count": 16 }
+      ],
+      "rewards": [ { "id": "white_bed", "type": "item", "item": "minecraft:white_bed" } ]
+    },
+    {
+      "id": "better_furnaces",
+      "title": "Faster fires",
+      "description": [
+        "A blast furnace smelts ore twice as fast, a smoker cooks food twice as fast. Both need a furnace and some iron or logs."
+      ],
+      "icon": "minecraft:blast_furnace",
+      "x": 6, "y": -3,
+      "dependencies": ["iron_tools"],
+      "tasks": [
+        { "id": "blast_furnace", "type": "item", "item": "minecraft:blast_furnace" },
+        { "id": "smoker", "type": "item", "item": "minecraft:smoker" }
+      ],
+      "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 16 } ]
+    },
+    {
+      "id": "copper_tools",
+      "title": "Copper toolkit",
+      "description": [
+        "Copper is everywhere underground. Its tools sit between stone and iron: a fine step while you look for iron."
+      ],
+      "icon": "minecraft:copper_pickaxe",
+      "x": 2, "y": 3,
+      "dependencies": ["getting_started/furnace"],
+      "tasks": [
+        { "id": "copper_pickaxe", "type": "item", "item": "minecraft:copper_pickaxe" },
+        { "id": "copper_sword", "type": "item", "item": "minecraft:copper_sword" },
+        { "id": "copper_axe", "type": "item", "item": "minecraft:copper_axe" }
+      ],
+      "rewards": [ { "id": "raw_copper", "type": "item", "item": "minecraft:raw_copper", "count": 16 } ]
+    },
+    {
+      "id": "copper_armor",
+      "title": "Copper suit",
+      "description": [
+        "A full set of copper armour. Not as tough as iron, but much better than nothing."
+      ],
+      "icon": "minecraft:copper_chestplate",
+      "x": 4, "y": 3,
+      "dependencies": ["copper_tools"],
+      "tasks": [
+        { "id": "copper_helmet", "type": "item", "item": "minecraft:copper_helmet" },
+        { "id": "copper_chestplate", "type": "item", "item": "minecraft:copper_chestplate" },
+        { "id": "copper_leggings", "type": "item", "item": "minecraft:copper_leggings" },
+        { "id": "copper_boots", "type": "item", "item": "minecraft:copper_boots" }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "copper_light",
+      "title": "Copper light",
+      "description": [
+        "A copper nugget on a torch makes a copper torch, which burns with a green flame. Make a copper lantern too."
+      ],
+      "icon": "minecraft:copper_lantern",
+      "x": 6, "y": 3,
+      "dependencies": ["copper_tools"],
+      "tasks": [
+        { "id": "copper_torch", "type": "item", "item": "minecraft:copper_torch", "count": 8 },
+        { "id": "copper_lantern", "type": "item", "item": "minecraft:copper_lantern" }
+      ],
+      "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
     }
   ]
 }

@@ -1,6 +1,7 @@
 {
   "id": "diamonds",
   "title": "Diamonds",
+  "subtitle": "The deep and the shiny",
   "icon": "minecraft:diamond",
   "group": "main",
   "quests": [
@@ -11,28 +12,11 @@
         "Below level 0 the stone turns to deepslate: harder to mine, and home to the best ores.",
         "Mine your way down and bring some back."
       ],
-      "x": 0,
-      "y": 0,
+      "x": 0, "y": 0,
       "shape": "circle",
-      "dependencies": [
-        "iron_age/iron_block"
-      ],
-      "tasks": [
-        {
-          "id": "deepslate",
-          "type": "item",
-          "item": "minecraft:cobbled_deepslate",
-          "count": 32
-        }
-      ],
-      "rewards": [
-        {
-          "id": "torches",
-          "type": "item",
-          "item": "minecraft:torch",
-          "count": 32
-        }
-      ]
+      "dependencies": ["iron_age/iron_block"],
+      "tasks": [ { "id": "deepslate", "type": "item", "item": "minecraft:cobbled_deepslate", "count": 32 } ],
+      "rewards": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 32 } ]
     },
     {
       "id": "diamonds",
@@ -40,27 +24,11 @@
       "description": [
         "Diamond ore sparkles pale blue, mostly very deep down. Only an iron pickaxe or better can break it."
       ],
-      "x": 2,
-      "y": 0,
+      "x": 2, "y": 0,
       "shape": "diamond",
-      "dependencies": [
-        "deepslate"
-      ],
-      "tasks": [
-        {
-          "id": "diamonds",
-          "type": "item",
-          "item": "minecraft:diamond",
-          "count": 3
-        }
-      ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 2
-        }
-      ]
+      "dependencies": ["deepslate"],
+      "tasks": [ { "id": "diamonds", "type": "item", "item": "minecraft:diamond", "count": 3 } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
     },
     {
       "id": "diamond_pickaxe",
@@ -68,26 +36,11 @@
       "description": [
         "Three diamonds and two sticks. This pickaxe can mine obsidian."
       ],
-      "x": 4,
-      "y": -1.5,
+      "x": 4, "y": -1.5,
       "shape": "hexagon",
-      "dependencies": [
-        "diamonds"
-      ],
-      "tasks": [
-        {
-          "id": "pickaxe",
-          "type": "item",
-          "item": "minecraft:diamond_pickaxe"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 50
-        }
-      ]
+      "dependencies": ["diamonds"],
+      "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:diamond_pickaxe" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 50 } ]
     },
     {
       "id": "obsidian",
@@ -95,27 +48,11 @@
       "description": [
         "Pour water over still lava and mine the obsidian with your diamond pickaxe. Ten blocks build a portal."
       ],
-      "x": 6,
-      "y": -1.5,
+      "x": 6, "y": -1.5,
       "shape": "square",
-      "dependencies": [
-        "diamond_pickaxe"
-      ],
-      "tasks": [
-        {
-          "id": "obsidian",
-          "type": "item",
-          "item": "minecraft:obsidian",
-          "count": 10
-        }
-      ],
-      "rewards": [
-        {
-          "id": "flint_and_steel",
-          "type": "item",
-          "item": "minecraft:flint_and_steel"
-        }
-      ]
+      "dependencies": ["diamond_pickaxe"],
+      "tasks": [ { "id": "obsidian", "type": "item", "item": "minecraft:obsidian", "count": 10 } ],
+      "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
     },
     {
       "id": "diamond_sword",
@@ -123,26 +60,11 @@
       "description": [
         "Two diamonds and a stick. Nothing in the Overworld stands up to it for long."
       ],
-      "x": 4,
-      "y": 1.5,
+      "x": 4, "y": 1.5,
       "shape": "hexagon",
-      "dependencies": [
-        "diamonds"
-      ],
-      "tasks": [
-        {
-          "id": "sword",
-          "type": "item",
-          "item": "minecraft:diamond_sword"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "xp",
-          "type": "xp",
-          "points": 40
-        }
-      ]
+      "dependencies": ["diamonds"],
+      "tasks": [ { "id": "sword", "type": "item", "item": "minecraft:diamond_sword" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
     },
     {
       "id": "diamond_armor",
@@ -151,41 +73,16 @@
         "A full set of diamond armour. You will want it where you are going next."
       ],
       "icon": "minecraft:diamond_chestplate",
-      "x": 6,
-      "y": 1.5,
+      "x": 6, "y": 1.5,
       "shape": "circle",
-      "dependencies": [
-        "diamond_sword"
-      ],
+      "dependencies": ["diamond_sword"],
       "tasks": [
-        {
-          "id": "helmet",
-          "type": "item",
-          "item": "minecraft:diamond_helmet"
-        },
-        {
-          "id": "chestplate",
-          "type": "item",
-          "item": "minecraft:diamond_chestplate"
-        },
-        {
-          "id": "leggings",
-          "type": "item",
-          "item": "minecraft:diamond_leggings"
-        },
-        {
-          "id": "boots",
-          "type": "item",
-          "item": "minecraft:diamond_boots"
-        }
+        { "id": "helmet", "type": "item", "item": "minecraft:diamond_helmet" },
+        { "id": "chestplate", "type": "item", "item": "minecraft:diamond_chestplate" },
+        { "id": "leggings", "type": "item", "item": "minecraft:diamond_leggings" },
+        { "id": "boots", "type": "item", "item": "minecraft:diamond_boots" }
       ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 3
-        }
-      ]
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
     },
     {
       "id": "enchanting_table",
@@ -193,27 +90,11 @@
       "description": [
         "A book, two diamonds and four obsidian make an enchanting table. Lapis lazuli pays for the spells."
       ],
-      "x": 8,
-      "y": -1.5,
+      "x": 8, "y": -1.5,
       "shape": "hexagon",
-      "dependencies": [
-        "obsidian"
-      ],
-      "tasks": [
-        {
-          "id": "table",
-          "type": "item",
-          "item": "minecraft:enchanting_table"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "lapis",
-          "type": "item",
-          "item": "minecraft:lapis_lazuli",
-          "count": 16
-        }
-      ]
+      "dependencies": ["obsidian"],
+      "tasks": [ { "id": "table", "type": "item", "item": "minecraft:enchanting_table" } ],
+      "rewards": [ { "id": "lapis", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
     },
     {
       "id": "bookshelves",
@@ -221,27 +102,11 @@
       "description": [
         "Fifteen bookshelves around the table, one block away, unlock the strongest enchantments."
       ],
-      "x": 10,
-      "y": -1.5,
+      "x": 10, "y": -1.5,
       "shape": "square",
-      "dependencies": [
-        "enchanting_table"
-      ],
-      "tasks": [
-        {
-          "id": "shelves",
-          "type": "item",
-          "item": "minecraft:bookshelf",
-          "count": 15
-        }
-      ],
-      "rewards": [
-        {
-          "id": "levels",
-          "type": "xp_levels",
-          "levels": 5
-        }
-      ]
+      "dependencies": ["enchanting_table"],
+      "tasks": [ { "id": "shelves", "type": "item", "item": "minecraft:bookshelf", "count": 15 } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
     },
     {
       "id": "enchant",
@@ -250,27 +115,11 @@
         "Put a tool or a piece of armour on the table and pick an enchantment."
       ],
       "icon": "minecraft:enchanted_book",
-      "x": 10,
-      "y": 0,
+      "x": 10, "y": 0,
       "shape": "circle",
-      "dependencies": [
-        "enchanting_table"
-      ],
-      "tasks": [
-        {
-          "id": "enchant",
-          "type": "advancement",
-          "advancement": "minecraft:story/enchant_item"
-        }
-      ],
-      "rewards": [
-        {
-          "id": "bottles",
-          "type": "item",
-          "item": "minecraft:experience_bottle",
-          "count": 8
-        }
-      ]
+      "dependencies": ["enchanting_table"],
+      "tasks": [ { "id": "enchant", "type": "advancement", "advancement": "minecraft:story/enchant_item" } ],
+      "rewards": [ { "id": "bottles", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ]
     },
     {
       "id": "ready_for_nether",
@@ -280,30 +129,73 @@
         "Build a frame of obsidian, four wide and five tall, and light it."
       ],
       "icon": "minecraft:flint_and_steel",
-      "x": 12,
-      "y": 0,
+      "x": 12, "y": 0,
       "shape": "hexagon",
       "size": 1.5,
-      "dependencies": [
-        "bookshelves",
-        "enchant",
-        "diamond_armor"
+      "dependencies": ["bookshelves", "enchant", "diamond_armor"],
+      "tasks": [ { "id": "ready", "type": "checkmark", "title": "I am ready" } ],
+      "rewards": [ { "id": "golden_apples", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
+    },
+    {
+      "id": "bedrock",
+      "title": "Rock bottom",
+      "description": [
+        "Dig all the way down, until you see bedrock. Diamonds are most common just above it, around Y -58."
       ],
+      "icon": "minecraft:deepslate",
+      "x": 0, "y": -1.5,
+      "dependencies": ["deepslate"],
+      "tasks": [ { "id": "location", "type": "location", "title": "Stand at Y -58 or below", "from": [-30000000, -64, -30000000], "to": [30000000, -58, 30000000], "dimension": "minecraft:overworld" } ],
+      "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
+    },
+    {
+      "id": "diamond_tools",
+      "title": "Diamond toolkit",
+      "description": [
+        "The best tools you can make at a crafting table. Put enchantments on them later."
+      ],
+      "icon": "minecraft:diamond_axe",
+      "x": 4, "y": -3,
+      "dependencies": ["diamond_pickaxe"],
       "tasks": [
-        {
-          "id": "ready",
-          "type": "checkmark",
-          "title": "I am ready"
-        }
+        { "id": "diamond_axe", "type": "item", "item": "minecraft:diamond_axe" },
+        { "id": "diamond_shovel", "type": "item", "item": "minecraft:diamond_shovel" }
       ],
-      "rewards": [
-        {
-          "id": "golden_apples",
-          "type": "item",
-          "item": "minecraft:golden_apple",
-          "count": 2
-        }
-      ]
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond" } ]
+    },
+    {
+      "id": "jukebox",
+      "title": "Music to dig to",
+      "description": [
+        "One diamond and some planks make a jukebox. Here is a disc to go with it."
+      ],
+      "x": 4, "y": 3,
+      "dependencies": ["diamonds"],
+      "tasks": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ],
+      "rewards": [ { "id": "music_disc_cat", "type": "item", "item": "minecraft:music_disc_cat" } ]
+    },
+    {
+      "id": "golden_apple",
+      "title": "A golden apple",
+      "description": [
+        "Eight gold ingots around an apple. Eating it gives a burst of healing and extra hearts: keep one for a hard fight."
+      ],
+      "x": 8, "y": 1.5,
+      "dependencies": ["diamond_armor"],
+      "tasks": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ],
+      "rewards": [ { "id": "gold_ingot", "type": "item", "item": "minecraft:gold_ingot", "count": 8 } ]
+    },
+    {
+      "id": "fifteen_levels",
+      "title": "Saving up",
+      "description": [
+        "With fifteen bookshelves around the table, the best enchantments cost thirty levels. Save them up."
+      ],
+      "icon": "minecraft:experience_bottle",
+      "x": 12, "y": -1.5,
+      "dependencies": ["bookshelves"],
+      "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 30 } ],
+      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
     }
   ]
 }

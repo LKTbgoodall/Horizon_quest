@@ -1,0 +1,9 @@
+{
+  "id": "builder_choice",
+  "entries": [
+    { "type": "item", "item": "minecraft:stone_bricks", "count": 64 },
+    { "type": "item", "item": "minecraft:glass", "count": 32 },
+    { "type": "item", "item": "minecraft:oak_planks", "count": 64 },
+    { "type": "item", "item": "minecraft:lantern", "count": 8 }
+  ]
+}
