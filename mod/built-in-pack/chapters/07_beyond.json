@@ -14,6 +14,7 @@
       "icon": "minecraft:end_stone",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["the_end/dragon"],
       "tasks": [ { "id": "gateway", "type": "advancement", "advancement": "minecraft:end/enter_end_gateway" } ],
       "rewards": [ { "id": "pearls", "type": "item", "item": "minecraft:ender_pearl", "count": 4 } ]
@@ -25,8 +26,9 @@
         "Tall purple towers on the outer islands. Watch out for shulkers: their bullets make you float."
       ],
       "icon": "minecraft:purpur_block",
-      "x": 2, "y": 0,
+      "x": 0, "y": 1.5,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["gateway"],
       "tasks": [ { "id": "city", "type": "advancement", "advancement": "minecraft:end/find_end_city" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -37,8 +39,9 @@
       "description": [
         "Some cities have a ship floating nearby, with elytra on its wall. Glide, and use rockets to fly."
       ],
-      "x": 4, "y": -1.5,
-      "shape": "diamond",
+      "x": 0, "y": 3,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["end_city"],
       "tasks": [ { "id": "elytra", "type": "item", "item": "minecraft:elytra" } ],
       "rewards": [ { "id": "rockets", "type": "item", "item": "minecraft:firework_rocket", "count": 32 } ]
@@ -50,7 +53,7 @@
         "Two shulker shells around a chest make a shulker box: a chest that keeps its contents when broken."
       ],
       "icon": "minecraft:shulker_box",
-      "x": 4, "y": 1.5,
+      "x": -1.25, "y": 1.5,
       "shape": "square",
       "dependencies": ["end_city"],
       "tasks": [
@@ -65,7 +68,7 @@
       "description": [
         "Very rare, very deep in the Nether, and immune to lava. Only a diamond pickaxe mines it."
       ],
-      "x": 0, "y": 3,
+      "x": -1.25, "y": 3,
       "shape": "square",
       "dependencies": ["the_nether/portal"],
       "tasks": [ { "id": "debris", "type": "item", "item": "minecraft:ancient_debris", "count": 4 } ],
@@ -78,8 +81,8 @@
         "Smelt the debris into scrap; four scrap and four gold ingots make one netherite ingot."
       ],
       "icon": "minecraft:netherite_ingot",
-      "x": 2, "y": 3,
-      "shape": "hexagon",
+      "x": -2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["debris"],
       "tasks": [ { "id": "ingot", "type": "item", "item": "minecraft:netherite_ingot" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
@@ -92,8 +95,8 @@
         "Upgrade a full set of diamond armour at a smithing table with netherite (each piece needs an upgrade template, found in bastions)."
       ],
       "icon": "minecraft:netherite_chestplate",
-      "x": 4, "y": 3,
-      "shape": "circle",
+      "x": -3.75, "y": 2.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["netherite"],
       "tasks": [ { "id": "armor", "type": "advancement", "advancement": "minecraft:nether/netherite_armor" } ],
@@ -105,7 +108,7 @@
       "description": [
         "Wither skeletons roam nether fortresses and sometimes drop their skull. Three are needed for what comes next."
       ],
-      "x": 0, "y": -3,
+      "x": -1.25, "y": 4.5,
       "shape": "square",
       "dependencies": ["the_nether/fortress"],
       "tasks": [ { "id": "skulls", "type": "item", "item": "minecraft:wither_skeleton_skull", "count": 3 } ],
@@ -118,8 +121,8 @@
         "Four soul sand in a T and the three skulls on top summon the Wither. Fight it far from home."
       ],
       "icon": "minecraft:nether_star",
-      "x": 2, "y": -3,
-      "shape": "diamond",
+      "x": -2.5, "y": 4.5,
+      "shape": "square",
       "dependencies": ["skulls"],
       "tasks": [ { "id": "wither", "type": "kill", "entity": "minecraft:wither" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
@@ -130,8 +133,8 @@
       "description": [
         "The Wither's nether star, glass and obsidian make a beacon. On a pyramid of iron, gold, emerald or diamond blocks it gives powers to everyone near."
       ],
-      "x": 4, "y": -3,
-      "shape": "hexagon",
+      "x": -3.75, "y": 4.5,
+      "shape": "square",
       "dependencies": ["wither"],
       "tasks": [ { "id": "beacon", "type": "item", "item": "minecraft:beacon" } ],
       "rewards": [ { "id": "iron", "type": "item", "item": "minecraft:iron_block", "count": 9 } ]
@@ -144,10 +147,10 @@
         "Thank you for playing through these quests."
       ],
       "icon": "minecraft:nether_star",
-      "x": 7, "y": 0,
+      "x": 0, "y": 4.5,
       "shape": "hexagon",
-      "visibility": "until_deps_complete",
       "size": 2,
+      "visibility": "until_deps_complete",
       "dependencies": ["elytra", "shulker_box", "netherite", "beacon"],
       "rewards": [
         { "id": "done", "type": "toast", "title": "Well done", "text": "You have finished the vanilla quests.", "auto_claim": "enabled" },
@@ -160,7 +163,8 @@
       "description": [
         "Paper and gunpowder make rockets. Use one while gliding with elytra to climb and speed up."
       ],
-      "x": 6, "y": -1.5,
+      "x": 1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["elytra"],
       "tasks": [ { "id": "firework_rocket", "type": "item", "item": "minecraft:firework_rocket", "count": 32 } ],
       "rewards": [ { "id": "firework_rocket", "type": "item", "item": "minecraft:firework_rocket", "count": 32 } ]
@@ -172,7 +176,8 @@
         "Chorus plants grow on the outer islands. Their fruit teleports you; popped, it makes purpur blocks."
       ],
       "icon": "minecraft:purpur_block",
-      "x": 2, "y": 1.5,
+      "x": -1.25, "y": 0.5,
+      "shape": "square",
       "dependencies": ["end_city"],
       "tasks": [
         { "id": "chorus_fruit", "type": "item", "item": "minecraft:chorus_fruit", "count": 16 },
@@ -186,7 +191,8 @@
       "description": [
         "Shulkers hide in end cities and shoot bullets that make you float. Hunt a few for more shells."
       ],
-      "x": 6, "y": 1.5,
+      "x": -2.5, "y": 1.5,
+      "shape": "square",
       "dependencies": ["shulker_box"],
       "tasks": [ { "id": "shulker", "type": "kill", "entity": "minecraft:shulker", "count": 5 } ],
       "rewards": [ { "id": "shulker_shell", "type": "item", "item": "minecraft:shulker_shell", "count": 2 } ]
@@ -197,7 +203,8 @@
       "description": [
         "Upgrade diamond tools at a smithing table with a netherite ingot and an upgrade template."
       ],
-      "x": 6, "y": 3,
+      "x": -3.75, "y": 3.5,
+      "shape": "square",
       "dependencies": ["netherite"],
       "tasks": [
         { "id": "netherite_pickaxe", "type": "item", "item": "minecraft:netherite_pickaxe" },
@@ -212,7 +219,8 @@
         "A beacon on a four-level pyramid of iron, gold, emerald, diamond or netherite blocks: every power at once."
       ],
       "icon": "minecraft:beacon",
-      "x": 6, "y": -3,
+      "x": -5, "y": 4.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["beacon"],
       "tasks": [ { "id": "create_full_beacon", "type": "advancement", "advancement": "minecraft:nether/create_full_beacon", "title": "Power a full beacon" } ],
@@ -225,8 +233,8 @@
         "Fish from your boat. Pufferfish are poisonous to eat, but useful for water breathing potions."
       ],
       "icon": "minecraft:salmon",
-      "x": 0, "y": 7,
-      "shape": "circle",
+      "x": 1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["getting_started/boat"],
       "tasks": [
         { "id": "salmon", "type": "item", "item": "minecraft:salmon", "count": 4 },
@@ -241,7 +249,8 @@
         "Kelp forests grow in most oceans; dry it in a furnace for a quick snack. Sea pickles glow on warm reefs."
       ],
       "icon": "minecraft:kelp",
-      "x": 2, "y": 8.5,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["good_catch"],
       "tasks": [
         { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
@@ -255,7 +264,8 @@
       "description": [
         "Warm oceans are full of coloured fish. Catch one alive in a water bucket."
       ],
-      "x": 2, "y": 5.5,
+      "x": 2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["good_catch"],
       "tasks": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ],
       "rewards": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ]
@@ -267,7 +277,8 @@
         "Baby turtles drop a scute when they grow up. Five make a helmet that lets you breathe a little longer."
       ],
       "icon": "minecraft:turtle_helmet",
-      "x": 4, "y": 8.5,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["seaweed"],
       "tasks": [
         { "id": "turtle_scute", "type": "item", "item": "minecraft:turtle_scute", "count": 5 },
@@ -282,7 +293,8 @@
         "Zombies that sank. Some carry tridents, others nautilus shells."
       ],
       "icon": "minecraft:rotten_flesh",
-      "x": 4, "y": 7,
+      "x": 2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["good_catch"],
       "tasks": [ { "id": "drowned", "type": "kill", "entity": "minecraft:drowned", "count": 5 } ],
       "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
@@ -293,7 +305,8 @@
       "description": [
         "Only a drowned drops a trident. Throw it, and enchant it with loyalty so it comes back."
       ],
-      "x": 6, "y": 7,
+      "x": 3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["drowned"],
       "tasks": [ { "id": "trident", "type": "item", "item": "minecraft:trident" } ],
       "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
@@ -305,7 +318,8 @@
         "Wrecks lie on the sea floor and on beaches. One of their chests may hold a treasure map."
       ],
       "icon": "minecraft:oak_boat",
-      "x": 4, "y": 5.5,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["fish_bucket"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I looted a shipwreck" } ],
       "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 3 } ]
@@ -316,7 +330,8 @@
       "description": [
         "Follow a treasure map to the X and dig. Buried treasure always holds a heart of the sea."
       ],
-      "x": 6, "y": 5.5,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["shipwreck"],
       "tasks": [ { "id": "heart_of_the_sea", "type": "item", "item": "minecraft:heart_of_the_sea" } ],
       "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
@@ -327,7 +342,8 @@
       "description": [
         "A heart of the sea in eight nautilus shells. In a prismarine frame, a conduit lets you breathe and see underwater."
       ],
-      "x": 8, "y": 5.5,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["treasure"],
       "tasks": [
         { "id": "nautilus_shell", "type": "item", "item": "minecraft:nautilus_shell", "count": 8 },
@@ -343,7 +359,8 @@
         "A living nautilus can be tamed and saddled to ride underwater."
       ],
       "icon": "minecraft:nautilus_shell",
-      "x": 6, "y": 8.5,
+      "x": 5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["turtles"],
       "tasks": [
@@ -359,7 +376,8 @@
         "A temple of prismarine guarded by guardians and their lasers. Bring milk: the elders slow your mining."
       ],
       "icon": "minecraft:prismarine_bricks",
-      "x": 8, "y": 7,
+      "x": 5, "y": 2,
+      "shape": "square",
       "dependencies": ["trident"],
       "tasks": [
         { "id": "guardian", "type": "kill", "entity": "minecraft:guardian", "count": 5 },
@@ -374,9 +392,8 @@
         "Three elder guardians live in each monument. Beat one and take the sponges from its treasure room."
       ],
       "icon": "minecraft:prismarine_crystals",
-      "x": 10, "y": 7,
-      "shape": "hexagon",
-      "size": 1.25,
+      "x": 6.25, "y": 2,
+      "shape": "square",
       "dependencies": ["monument"],
       "tasks": [
         { "id": "elder_guardian", "type": "kill", "entity": "minecraft:elder_guardian" },
@@ -394,7 +411,7 @@
         "Monuments, shipwrecks and buried treasure: the sea has no more secrets for you."
       ],
       "icon": "minecraft:heart_of_the_sea",
-      "x": 12, "y": 6.25,
+      "x": 7.5, "y": 2,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",

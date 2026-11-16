@@ -14,6 +14,7 @@
       "icon": "minecraft:zombie_head",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["getting_started/stone"],
       "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 10 } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 6 } ]
@@ -25,7 +26,7 @@
         "Skeletons shoot from a distance: close in fast or use a shield."
       ],
       "icon": "minecraft:bone",
-      "x": 2, "y": -1.5,
+      "x": -1.25, "y": 4.5,
       "shape": "square",
       "dependencies": ["zombies"],
       "tasks": [ { "id": "skeletons", "type": "kill", "entity": "minecraft:skeleton", "count": 10 } ],
@@ -38,8 +39,9 @@
         "Spiders climb walls and hunt at night. Their string makes bows and fishing rods."
       ],
       "icon": "minecraft:string",
-      "x": 2, "y": 0,
-      "shape": "square",
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["zombies"],
       "tasks": [ { "id": "spiders", "type": "kill", "entity": "minecraft:spider", "count": 10 } ],
       "rewards": [ { "id": "string", "type": "item", "item": "minecraft:string", "count": 8 } ]
@@ -51,7 +53,7 @@
         "Creepers sneak up and explode. Hit them and step back."
       ],
       "icon": "minecraft:gunpowder",
-      "x": 2, "y": 1.5,
+      "x": 1.25, "y": 4.5,
       "shape": "square",
       "dependencies": ["zombies"],
       "tasks": [ { "id": "creepers", "type": "kill", "entity": "minecraft:creeper", "count": 5 } ],
@@ -64,8 +66,9 @@
         "Endermen are tall, fast and strike hard. Fight them under a two-block-high roof, or in water's reach."
       ],
       "icon": "minecraft:ender_pearl",
-      "x": 4, "y": 0,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["skeletons", "spiders", "creepers"],
       "tasks": [ { "id": "endermen", "type": "kill", "entity": "minecraft:enderman", "count": 3 } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -78,7 +81,7 @@
         "Witches throw potions and drink their own. Rush them before they heal."
       ],
       "icon": "minecraft:glass_bottle",
-      "x": 6, "y": -1.5,
+      "x": -1.25, "y": 3,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["endermen"],
@@ -93,7 +96,7 @@
         "Defeat the captain of a pillager patrol: the one carrying a banner."
       ],
       "icon": "minecraft:crossbow",
-      "x": 6, "y": 1.5,
+      "x": 1.25, "y": 3,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["endermen"],
@@ -107,10 +110,10 @@
         "Zombies, skeletons, spiders, creepers and endermen: the night holds no more fear for you."
       ],
       "icon": "minecraft:diamond_sword",
-      "x": 8, "y": 0,
+      "x": 0, "y": 4.5,
       "shape": "hexagon",
-      "visibility": "until_deps_complete",
       "size": 1.5,
+      "visibility": "until_deps_complete",
       "dependencies": ["endermen"],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
     },
@@ -121,7 +124,8 @@
         "Slimes live in swamps and deep underground in some chunks. Big ones split into small ones."
       ],
       "icon": "minecraft:slime_ball",
-      "x": 4, "y": -3,
+      "x": -2.5, "y": 4,
+      "shape": "square",
       "dependencies": ["skeletons"],
       "tasks": [ { "id": "slime", "type": "kill", "entity": "minecraft:slime", "count": 5 } ],
       "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
@@ -133,7 +137,8 @@
         "Deserts have husks that do not burn, snowy lands have strays with slowing arrows."
       ],
       "icon": "minecraft:sand",
-      "x": 2, "y": -3,
+      "x": -2.5, "y": 5,
+      "shape": "square",
       "dependencies": ["skeletons"],
       "tasks": [
         { "id": "husk", "type": "kill", "entity": "minecraft:husk", "count": 3 },
@@ -148,7 +153,8 @@
         "Some stone in mountains and strongholds hides silverfish. Break one block and more pour out."
       ],
       "icon": "minecraft:stone_bricks",
-      "x": 6, "y": -3,
+      "x": -3.75, "y": 4,
+      "shape": "square",
       "dependencies": ["slimes"],
       "tasks": [ { "id": "silverfish", "type": "kill", "entity": "minecraft:silverfish", "count": 5 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -160,7 +166,8 @@
         "Skip three nights of sleep and phantoms dive at you from the sky. Their membranes repair elytra."
       ],
       "icon": "minecraft:phantom_membrane",
-      "x": 4, "y": 3,
+      "x": 2.5, "y": 4,
+      "shape": "square",
       "dependencies": ["creepers"],
       "tasks": [
         { "id": "phantom", "type": "kill", "entity": "minecraft:phantom", "count": 3 },
@@ -175,7 +182,8 @@
         "Desert skeletons dried by the sun. Their arrows weaken you."
       ],
       "icon": "minecraft:bone",
-      "x": 6, "y": 3,
+      "x": 3.75, "y": 4,
+      "shape": "square",
       "dependencies": ["phantoms"],
       "tasks": [ { "id": "parched", "type": "kill", "entity": "minecraft:parched", "count": 3 } ],
       "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
@@ -187,7 +195,8 @@
         "At night in the desert, husks ride undead camels. Bring the camel down."
       ],
       "icon": "minecraft:cactus",
-      "x": 8, "y": 3,
+      "x": 5, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["parched"],
       "tasks": [ { "id": "camel_husk", "type": "kill", "entity": "minecraft:camel_husk" } ],
@@ -200,7 +209,8 @@
         "Zombies that were once villagers. Kill them, or cure them: see Village life."
       ],
       "icon": "minecraft:emerald",
-      "x": 2, "y": 3,
+      "x": 2.5, "y": 5,
+      "shape": "square",
       "dependencies": ["creepers"],
       "tasks": [ { "id": "zombie_villager", "type": "kill", "entity": "minecraft:zombie_villager", "count": 3 } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
@@ -212,7 +222,8 @@
         "Throw enough ender pearls and an endermite sometimes crawls out where you land."
       ],
       "icon": "minecraft:ender_pearl",
-      "x": 8, "y": -3,
+      "x": -5, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["silverfish"],
       "tasks": [ { "id": "endermite", "type": "kill", "entity": "minecraft:endermite" } ],
@@ -224,8 +235,8 @@
       "description": [
         "Villagers buy what they need for emeralds: wheat, paper, coal, sticks. Find one who buys what you have."
       ],
-      "x": 0, "y": 7,
-      "shape": "circle",
+      "x": 1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["iron_age/village"],
       "tasks": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 8 } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
@@ -237,7 +248,8 @@
         "A villager without a job takes the first free workstation it finds: a lectern makes a librarian, a fletching table a fletcher."
       ],
       "icon": "minecraft:lectern",
-      "x": 2, "y": 5.5,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["emeralds"],
       "tasks": [
         { "id": "lectern", "type": "item", "item": "minecraft:lectern" },
@@ -253,7 +265,8 @@
       "description": [
         "Librarians sell enchanted books. Reroll their trade by breaking and replacing the lectern before trading."
       ],
-      "x": 4, "y": 5.5,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["job_sites"],
       "tasks": [ { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book" } ],
       "rewards": [ { "id": "book", "type": "item", "item": "minecraft:book", "count": 8 } ]
@@ -264,7 +277,8 @@
       "description": [
         "Eighteen emeralds. Trade often and villagers level up and sell better things."
       ],
-      "x": 2, "y": 8.5,
+      "x": 2.5, "y": 1.5,
+      "shape": "square",
       "dependencies": ["emeralds"],
       "tasks": [ { "id": "emerald_block", "type": "item", "item": "minecraft:emerald_block", "count": 2 } ],
       "rewards": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ]
@@ -276,7 +290,8 @@
         "Four iron blocks in a T and a carved pumpkin on top. It protects the village; villagers build them too."
       ],
       "icon": "minecraft:iron_block",
-      "x": 4, "y": 7,
+      "x": 2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["emeralds"],
       "tasks": [
         { "id": "iron_block", "type": "item", "item": "minecraft:iron_block", "count": 4 },
@@ -291,7 +306,8 @@
         "Throw a splash potion of weakness at a zombie villager, then feed it a golden apple. It thanks you with cheap trades."
       ],
       "icon": "minecraft:golden_apple",
-      "x": 6, "y": 7,
+      "x": 3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["iron_golem", "the_nether/potion"],
       "tasks": [
         { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" },
@@ -306,7 +322,8 @@
         "Pillagers live in tall wooden towers. Their captain carries a banner and an ominous bottle."
       ],
       "icon": "minecraft:crossbow",
-      "x": 4, "y": 8.5,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["wealthy"],
       "tasks": [ { "id": "pillager", "type": "kill", "entity": "minecraft:pillager", "count": 5 } ],
       "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
@@ -319,9 +336,8 @@
         "Ravagers, vindicators, evokers. Save the villagers and they will give you gifts."
       ],
       "icon": "minecraft:white_banner",
-      "x": 6, "y": 8.5,
-      "shape": "hexagon",
-      "size": 1.25,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["outpost"],
       "tasks": [
         { "id": "vindicator", "type": "kill", "entity": "minecraft:vindicator", "count": 5 },
@@ -337,7 +353,8 @@
         "Evokers summon fangs from the ground and vexes that fly through walls. Kill the evoker first."
       ],
       "icon": "minecraft:totem_of_undying",
-      "x": 8, "y": 8.5,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["raid"],
       "tasks": [
         { "id": "evoker", "type": "kill", "entity": "minecraft:evoker" },
@@ -352,7 +369,8 @@
         "Now and then a trader comes by with two llamas, selling plants and things from far away."
       ],
       "icon": "minecraft:lead",
-      "x": 2, "y": 10,
+      "x": 3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["wealthy"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I traded with a wandering trader" } ],
       "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 2 } ]
@@ -364,7 +382,8 @@
         "Take a villager up to the build limit, then trade with it. It will not be easy."
       ],
       "icon": "minecraft:emerald",
-      "x": 8, "y": 5.5,
+      "x": 5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["librarian", "iron_age/top_of_world"],
       "tasks": [ { "id": "trade_at_world_height", "type": "advancement", "advancement": "minecraft:adventure/trade_at_world_height", "title": "Trade at the build limit" } ],
@@ -376,8 +395,8 @@
       "description": [
         "Slower to load than a bow, but it hits hard, and it can fire rockets."
       ],
-      "x": 0, "y": -7,
-      "shape": "circle",
+      "x": -1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["iron_age/iron_armor"],
       "tasks": [ { "id": "crossbow", "type": "item", "item": "minecraft:crossbow" } ],
       "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
@@ -389,7 +408,8 @@
         "Glowstone makes spectral arrows that show targets through walls. Lingering potions make tipped arrows."
       ],
       "icon": "minecraft:spectral_arrow",
-      "x": 2, "y": -8.5,
+      "x": -2.5, "y": 0.5,
+      "shape": "square",
       "dependencies": ["crossbow"],
       "tasks": [
         { "id": "spectral_arrow", "type": "item", "item": "minecraft:spectral_arrow", "count": 16 },
@@ -404,7 +424,8 @@
         "Spears reach further than swords. Charge with one held out and it lunges through what is in front."
       ],
       "icon": "minecraft:iron_spear",
-      "x": 2, "y": -5.5,
+      "x": -2.5, "y": 2.5,
+      "shape": "square",
       "dependencies": ["crossbow"],
       "tasks": [ { "id": "spears", "type": "item", "item": "#minecraft:spears" } ],
       "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 4 } ]
@@ -416,7 +437,8 @@
         "Line them up, charge, and skewer as many as you can at once."
       ],
       "icon": "minecraft:stone_spear",
-      "x": 4, "y": -5.5,
+      "x": -3.75, "y": 2,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["spear"],
       "tasks": [ { "id": "spear_many_mobs", "type": "advancement", "advancement": "minecraft:adventure/spear_many_mobs", "title": "Hit many mobs with one spear charge" } ],
@@ -428,7 +450,8 @@
       "description": [
         "Upgrade a diamond spear at a smithing table."
       ],
-      "x": 6, "y": -5.5,
+      "x": -3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["spear", "beyond/netherite"],
       "tasks": [ { "id": "netherite_spear", "type": "item", "item": "minecraft:netherite_spear" } ],
       "rewards": [ { "id": "netherite_scrap", "type": "item", "item": "minecraft:netherite_scrap" } ]
@@ -440,7 +463,8 @@
         "Evokers drop totems of undying. Hold one in either hand: the next time you would die, you don't."
       ],
       "icon": "minecraft:totem_of_undying",
-      "x": 4, "y": -8.5,
+      "x": -3.75, "y": 0.5,
+      "shape": "square",
       "dependencies": ["special_arrows"],
       "tasks": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
@@ -452,7 +476,8 @@
         "Take a skeleton down from fifty blocks away with an arrow."
       ],
       "icon": "minecraft:bow",
-      "x": 6, "y": -8.5,
+      "x": -5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["totem"],
       "tasks": [ { "id": "sniper_duel", "type": "advancement", "advancement": "minecraft:adventure/sniper_duel", "title": "Shoot a skeleton from 50 blocks" } ],
@@ -465,9 +490,8 @@
         "A shield, a bow, a crossbow and a trident on the wall. Ready for anything."
       ],
       "icon": "minecraft:shield",
-      "x": 6, "y": -7,
-      "shape": "hexagon",
-      "size": 1.25,
+      "x": -5, "y": 1,
+      "shape": "square",
       "dependencies": ["totem", "spear"],
       "tasks": [
         { "id": "shield", "type": "item", "item": "minecraft:shield" },

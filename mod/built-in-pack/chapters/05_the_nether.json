@@ -14,6 +14,7 @@
       "icon": "minecraft:obsidian",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["diamonds/ready_for_nether"],
       "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],
       "rewards": [
@@ -27,7 +28,7 @@
       "description": [
         "White ore all through the netherrack. It gives a lot of experience and makes fine building blocks."
       ],
-      "x": 2, "y": -1.5,
+      "x": -1.25, "y": 1,
       "shape": "square",
       "dependencies": ["portal"],
       "tasks": [ { "id": "quartz", "type": "item", "item": "minecraft:quartz", "count": 16 } ],
@@ -40,7 +41,7 @@
         "Piglins attack anyone not wearing gold. Wear a piece of golden armour, and bring gold to trade."
       ],
       "icon": "minecraft:gold_ingot",
-      "x": 2, "y": 1.5,
+      "x": -1.25, "y": 0,
       "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
@@ -57,7 +58,7 @@
         "Throw a gold ingot to a piglin and see what it gives you back."
       ],
       "icon": "minecraft:gold_nugget",
-      "x": 4, "y": 2.5,
+      "x": -2.5, "y": 0,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["gold"],
@@ -71,8 +72,9 @@
         "Nether fortresses are dark brick strongholds over the lava seas. Find one."
       ],
       "icon": "minecraft:nether_bricks",
-      "x": 4, "y": 0,
+      "x": 0, "y": 1.5,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["quartz", "gold"],
       "tasks": [ { "id": "fortress", "type": "advancement", "advancement": "minecraft:nether/find_fortress" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -84,8 +86,9 @@
         "Blazes guard the fortress. Defeat them for their rods: you will need them to brew, and to reach the End."
       ],
       "icon": "minecraft:blaze_rod",
-      "x": 6, "y": -1.5,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["fortress"],
       "tasks": [
         { "id": "blazes", "type": "kill", "entity": "minecraft:blaze", "count": 3 },
@@ -99,7 +102,7 @@
       "description": [
         "Red fungus growing on soul sand in the fortress. It is the base of almost every potion."
       ],
-      "x": 6, "y": 1.5,
+      "x": -1.25, "y": 3,
       "shape": "square",
       "dependencies": ["fortress"],
       "tasks": [ { "id": "wart", "type": "item", "item": "minecraft:nether_wart", "count": 8 } ],
@@ -111,8 +114,9 @@
       "description": [
         "A blaze rod and three cobblestone make a brewing stand."
       ],
-      "x": 8, "y": 0,
-      "shape": "circle",
+      "x": 0, "y": 4.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["blaze_rods", "nether_wart"],
       "tasks": [ { "id": "stand", "type": "item", "item": "minecraft:brewing_stand" } ],
       "rewards": [ { "id": "bottles", "type": "item", "item": "minecraft:glass_bottle", "count": 6 } ]
@@ -124,8 +128,9 @@
         "Fill bottles with water, add nether wart, then an ingredient: a potion of fire resistance is a good start (magma cream)."
       ],
       "icon": "minecraft:potion",
-      "x": 10, "y": 0,
-      "shape": "diamond",
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["brewing_stand"],
       "tasks": [ { "id": "brew", "type": "advancement", "advancement": "minecraft:nether/brew_potion" } ],
       "rewards": [ { "id": "blaze_powder", "type": "item", "item": "minecraft:blaze_powder", "count": 4 } ]
@@ -137,10 +142,10 @@
         "You have braved the Nether and come back with blaze rods. Next: the stronghold, and what lies beyond it."
       ],
       "icon": "minecraft:ender_eye",
-      "x": 12, "y": 0,
+      "x": 0, "y": 7.5,
       "shape": "hexagon",
-      "visibility": "until_deps_complete",
       "size": 1.5,
+      "visibility": "until_deps_complete",
       "dependencies": ["potion"],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
     },
@@ -151,7 +156,8 @@
         "Glowstone hangs from the Nether's ceiling. Break it for dust: it brews stronger potions and makes lamps."
       ],
       "icon": "minecraft:glowstone",
-      "x": 2, "y": -3,
+      "x": 1.25, "y": 0,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [ { "id": "glowstone_dust", "type": "item", "item": "minecraft:glowstone_dust", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
@@ -162,7 +168,8 @@
       "description": [
         "Ghasts float over lava and spit fireballs. Hit a fireball back at it, or shoot it, and take its tear."
       ],
-      "x": 4, "y": -3,
+      "x": -1.25, "y": 2,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
         { "id": "ghast", "type": "kill", "entity": "minecraft:ghast" },
@@ -176,7 +183,8 @@
       "description": [
         "Magma cubes hop around fortresses and basalt. Their cream brews fire resistance, the Nether's best friend."
       ],
-      "x": 6, "y": -3,
+      "x": -2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["fortress"],
       "tasks": [
         { "id": "magma_cube", "type": "kill", "entity": "minecraft:magma_cube", "count": 3 },
@@ -191,7 +199,8 @@
         "A valley of blue fire and skeletons. Soul sand slows you down; soul torches burn blue and keep piglins away."
       ],
       "icon": "minecraft:soul_sand",
-      "x": 8, "y": 2.5,
+      "x": -2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
         { "id": "soul_sand", "type": "item", "item": "minecraft:soul_sand", "count": 16 },
@@ -206,8 +215,8 @@
         "The Nether's forests grow giant fungi instead of trees: red crimson and blue warped. Their wood does not burn."
       ],
       "icon": "minecraft:warped_fungus",
-      "x": 2, "y": 6.5,
-      "shape": "circle",
+      "x": 1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
         { "id": "crimson_stem", "type": "item", "item": "minecraft:crimson_stem", "count": 16 },
@@ -221,7 +230,8 @@
       "description": [
         "Shroomlights glow among the huge fungi's caps, and vines hang under them."
       ],
-      "x": 4, "y": 5,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["forests"],
       "tasks": [
         { "id": "shroomlight", "type": "item", "item": "minecraft:shroomlight", "count": 4 },
@@ -236,7 +246,8 @@
         "Hoglins charge anything in crimson forests. Warped fungus scares them away."
       ],
       "icon": "minecraft:cooked_porkchop",
-      "x": 4, "y": 8,
+      "x": 2.5, "y": 1.5,
+      "shape": "square",
       "dependencies": ["forests"],
       "tasks": [ { "id": "hoglin", "type": "kill", "entity": "minecraft:hoglin", "count": 3 } ],
       "rewards": [ { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 } ]
@@ -248,7 +259,8 @@
         "Striders cross the lava seas. Saddle one and steer it with warped fungus on a stick."
       ],
       "icon": "minecraft:warped_fungus_on_a_stick",
-      "x": 6, "y": 8,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["hoglins"],
       "tasks": [
         { "id": "warped_fungus_on_a_stick", "type": "item", "item": "minecraft:warped_fungus_on_a_stick" },
@@ -263,7 +275,8 @@
         "Huge blackstone fortresses held by piglins. Wear gold, do not open their chests in front of them, and do not mine their gold."
       ],
       "icon": "minecraft:gilded_blackstone",
-      "x": 6, "y": 5,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["shroomlight"],
       "tasks": [ { "id": "gilded_blackstone", "type": "item", "item": "minecraft:gilded_blackstone" } ],
       "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
@@ -275,7 +288,8 @@
         "Piglin brutes guard the bastions' treasure. Gold does not calm them."
       ],
       "icon": "minecraft:golden_axe",
-      "x": 8, "y": 5,
+      "x": 5, "y": 0,
+      "shape": "square",
       "dependencies": ["bastion"],
       "tasks": [ { "id": "piglin_brute", "type": "kill", "entity": "minecraft:piglin_brute" } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
@@ -287,7 +301,8 @@
         "Bastion chests always have a chance of a netherite upgrade template. Duplicate it with diamonds and netherrack."
       ],
       "icon": "minecraft:netherite_upgrade_smithing_template",
-      "x": 10, "y": 5,
+      "x": 6.25, "y": 0,
+      "shape": "square",
       "dependencies": ["brute"],
       "tasks": [ { "id": "netherite_upgrade_smithing_template", "type": "item", "item": "minecraft:netherite_upgrade_smithing_template" } ],
       "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
@@ -299,7 +314,8 @@
         "Crying obsidian and glowstone make a respawn anchor: a bed that works in the Nether. Never use it in the Overworld."
       ],
       "icon": "minecraft:respawn_anchor",
-      "x": 8, "y": 6.5,
+      "x": 2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["forests"],
       "tasks": [
         { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian", "count": 6 },
@@ -313,7 +329,8 @@
       "description": [
         "A netherite ingot in chiseled stone. Use a compass on a lodestone and it will point to it, in any dimension."
       ],
-      "x": 10, "y": 6.5,
+      "x": 3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["respawn_anchor", "beyond/netherite"],
       "tasks": [ { "id": "lodestone", "type": "item", "item": "minecraft:lodestone" } ],
       "rewards": [ { "id": "compass", "type": "item", "item": "minecraft:compass" } ]
@@ -325,7 +342,8 @@
         "Grey pillars, ash and magma cubes. Blackstone works like cobblestone for tools and furnaces."
       ],
       "icon": "minecraft:basalt",
-      "x": 8, "y": 8,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["strider"],
       "tasks": [
         { "id": "basalt", "type": "item", "item": "minecraft:basalt", "count": 16 },
@@ -340,7 +358,8 @@
         "Soul fire burns blue and keeps piglins and hoglins at a distance."
       ],
       "icon": "minecraft:soul_lantern",
-      "x": 10, "y": 8,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["basalt", "soul_sand"],
       "tasks": [
         { "id": "soul_campfire", "type": "item", "item": "minecraft:soul_campfire" },
@@ -354,7 +373,8 @@
       "description": [
         "Bastions sometimes keep a music disc in their chests. Piglins dance to it."
       ],
-      "x": 12, "y": 5,
+      "x": 7.5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["upgrade_template"],
       "tasks": [ { "id": "music_disc_pigstep", "type": "item", "item": "minecraft:music_disc_pigstep" } ],
@@ -367,7 +387,8 @@
         "A hoglin taken to the Overworld turns into a zoglin, which attacks everything."
       ],
       "icon": "minecraft:rotten_flesh",
-      "x": 12, "y": 8,
+      "x": 3.75, "y": 2,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["hoglins"],
       "tasks": [ { "id": "zoglin", "type": "kill", "entity": "minecraft:zoglin" } ],
@@ -380,7 +401,8 @@
         "Every brewing stand burns blaze powder. Keep some aside."
       ],
       "icon": "minecraft:blaze_powder",
-      "x": 10, "y": -5.5,
+      "x": -1.25, "y": 4.5,
+      "shape": "square",
       "dependencies": ["brewing_stand"],
       "tasks": [ { "id": "blaze_powder", "type": "item", "item": "minecraft:blaze_powder", "count": 8 } ],
       "rewards": [ { "id": "glass_bottle", "type": "item", "item": "minecraft:glass_bottle", "count": 8 } ]
@@ -392,7 +414,8 @@
         "A spider eye with sugar and a mushroom, a golden melon, a rabbit's foot, magma cream: each brews something else."
       ],
       "icon": "minecraft:fermented_spider_eye",
-      "x": 12, "y": -5.5,
+      "x": -2.5, "y": 4.5,
+      "shape": "square",
       "dependencies": ["blaze_powder"],
       "tasks": [
         { "id": "fermented_spider_eye", "type": "item", "item": "minecraft:fermented_spider_eye", "count": 2 },
@@ -409,7 +432,8 @@
         "Gunpowder turns a potion into one you throw. It hits everything around where it breaks."
       ],
       "icon": "minecraft:splash_potion",
-      "x": 14, "y": -5.5,
+      "x": -3.75, "y": 4.5,
+      "shape": "square",
       "dependencies": ["ingredients"],
       "tasks": [ { "id": "splash_potion", "type": "item", "item": "minecraft:splash_potion", "count": 3 } ],
       "rewards": [ { "id": "gunpowder", "type": "item", "item": "minecraft:gunpowder", "count": 8 } ]
@@ -421,7 +445,8 @@
         "Dragon's breath turns a splash potion into a lingering cloud. Dip arrows in it for tipped arrows."
       ],
       "icon": "minecraft:lingering_potion",
-      "x": 16, "y": -5.5,
+      "x": -5, "y": 4.5,
+      "shape": "square",
       "dependencies": ["splash", "the_end/dragon_breath"],
       "tasks": [ { "id": "lingering_potion", "type": "item", "item": "minecraft:lingering_potion" } ],
       "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
@@ -433,7 +458,8 @@
         "Every potion effect on you at the same time. It takes planning."
       ],
       "icon": "minecraft:potion",
-      "x": 18, "y": -5.5,
+      "x": -6.25, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["lingering"],
       "tasks": [ { "id": "all_potions", "type": "advancement", "advancement": "minecraft:nether/all_potions", "title": "Have every potion effect at once" } ],
@@ -446,7 +472,7 @@
         "Enchanting, brewing and the anvil hold no more secrets for you."
       ],
       "icon": "minecraft:enchanting_table",
-      "x": 18, "y": -8.5,
+      "x": -6.25, "y": 5,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",

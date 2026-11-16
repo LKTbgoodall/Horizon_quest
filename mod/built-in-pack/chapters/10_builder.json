@@ -13,6 +13,7 @@
       ],
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["getting_started/settled"],
       "tasks": [ { "id": "stonecutter", "type": "item", "item": "minecraft:stonecutter" } ],
       "rewards": [ { "id": "stone", "type": "item", "item": "minecraft:stone", "count": 64 } ]
@@ -23,7 +24,9 @@
       "description": [
         "Dig clay from river beds, smelt it into bricks, then build."
       ],
-      "x": 2, "y": -1.5,
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["stonecutter"],
       "tasks": [ { "id": "bricks", "type": "item", "item": "minecraft:bricks", "count": 32 } ],
       "rewards": [ { "id": "clay_ball", "type": "item", "item": "minecraft:clay_ball", "count": 16 } ]
@@ -35,7 +38,8 @@
         "Smelt sand into glass; six glass make sixteen panes."
       ],
       "icon": "minecraft:glass",
-      "x": 2, "y": 1.5,
+      "x": -1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["stonecutter"],
       "tasks": [
         { "id": "glass", "type": "item", "item": "minecraft:glass", "count": 32 },
@@ -50,7 +54,9 @@
         "Stone bricks, and moss or vines on them for a ruined look."
       ],
       "icon": "minecraft:stone_bricks",
-      "x": 4, "y": -1.5,
+      "x": 0, "y": 3,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["bricks"],
       "tasks": [
         { "id": "stone_bricks", "type": "item", "item": "#minecraft:stone_bricks", "count": 32 },
@@ -65,7 +71,8 @@
         "Flowers give most dyes; green comes from smelting cactus and blue from lapis or cornflowers."
       ],
       "icon": "minecraft:red_dye",
-      "x": 4, "y": 1.5,
+      "x": -2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["glass"],
       "tasks": [
         { "id": "red_dye", "type": "item", "item": "minecraft:red_dye" },
@@ -82,7 +89,8 @@
         "Dye, sand and gravel make concrete powder, which hardens in water. Smelt dyed terracotta for glazed patterns."
       ],
       "icon": "minecraft:cyan_concrete",
-      "x": 6, "y": 1.5,
+      "x": -3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["dyes"],
       "tasks": [
         { "id": "concrete", "type": "item", "item": "#minecraft:concrete", "count": 32 },
@@ -97,7 +105,9 @@
         "Copper blocks, cut copper, grates you can see through, doors and trapdoors."
       ],
       "icon": "minecraft:cut_copper",
-      "x": 6, "y": -1.5,
+      "x": 0, "y": 4.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["masonry", "iron_age/copper_tools"],
       "tasks": [
         { "id": "copper_block", "type": "item", "item": "minecraft:copper_block", "count": 4 },
@@ -112,7 +122,9 @@
       "description": [
         "Copper left in the open turns green with time. Scrape it back with an axe."
       ],
-      "x": 8, "y": -1.5,
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["copper_building"],
       "tasks": [ { "id": "oxidized_copper", "type": "item", "item": "minecraft:oxidized_copper", "count": 4 } ],
       "rewards": [ { "id": "copper_block", "type": "item", "item": "minecraft:copper_block", "count": 4 } ]
@@ -124,7 +136,9 @@
         "Honeycomb on copper freezes it in its current colour."
       ],
       "icon": "minecraft:honeycomb",
-      "x": 10, "y": -1.5,
+      "x": 0, "y": 7.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["patina", "farming/honey"],
       "tasks": [ { "id": "waxed_copper_block", "type": "item", "item": "minecraft:waxed_copper_block", "count": 4 } ],
       "rewards": [ { "id": "honeycomb", "type": "item", "item": "minecraft:honeycomb", "count": 6 } ]
@@ -136,7 +150,8 @@
         "A carved pumpkin on a copper block makes a copper golem. It sorts items from copper chests into ordinary ones."
       ],
       "icon": "minecraft:copper_chest",
-      "x": 8, "y": -3,
+      "x": 1.25, "y": 4.5,
+      "shape": "square",
       "dependencies": ["copper_building"],
       "tasks": [
         { "id": "copper_chest", "type": "item", "item": "minecraft:copper_chest" },
@@ -151,7 +166,8 @@
         "Left alone long enough, a copper golem oxidizes until it stops moving and becomes a statue."
       ],
       "icon": "minecraft:oxidized_copper_golem_statue",
-      "x": 10, "y": -3,
+      "x": 2.5, "y": 4.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["copper_golem"],
       "tasks": [ { "id": "copper_golem_statues", "type": "item", "item": "#minecraft:copper_golem_statues" } ],
@@ -164,7 +180,8 @@
         "Armour stands, item frames, paintings: a house becomes a home."
       ],
       "icon": "minecraft:painting",
-      "x": 8, "y": 0,
+      "x": -1.25, "y": 6,
+      "shape": "square",
       "dependencies": ["concrete", "patina"],
       "tasks": [
         { "id": "armor_stand", "type": "item", "item": "minecraft:armor_stand" },
@@ -180,7 +197,8 @@
         "Design a banner at a loom, then put it on a shield at a crafting table."
       ],
       "icon": "minecraft:white_banner",
-      "x": 8, "y": 1.5,
+      "x": -5, "y": 3,
+      "shape": "square",
       "dependencies": ["concrete"],
       "tasks": [
         { "id": "banners", "type": "item", "item": "#minecraft:banners" },
@@ -195,7 +213,8 @@
         "Hanging signs and shelves. A shelf holds three items in plain view, and swaps them with your hotbar."
       ],
       "icon": "minecraft:oak_shelf",
-      "x": 10, "y": 1.5,
+      "x": -6.25, "y": 3,
+      "shape": "square",
       "dependencies": ["banners"],
       "tasks": [
         { "id": "hanging_signs", "type": "item", "item": "#minecraft:hanging_signs", "count": 4 },
@@ -210,7 +229,8 @@
         "String and honeycomb make candles; up to four fit in one block."
       ],
       "icon": "minecraft:candle",
-      "x": 10, "y": 0,
+      "x": -2.5, "y": 6,
+      "shape": "square",
       "dependencies": ["decorations"],
       "tasks": [
         { "id": "candles", "type": "item", "item": "#minecraft:candles", "count": 4 },
@@ -225,7 +245,8 @@
         "A chiseled bookshelf holds six books you can take and put back, and redstone can read it."
       ],
       "icon": "minecraft:chiseled_bookshelf",
-      "x": 12, "y": 0,
+      "x": -3.75, "y": 6,
+      "shape": "square",
       "dependencies": ["candles", "shop"],
       "tasks": [
         { "id": "chiseled_bookshelf", "type": "item", "item": "minecraft:chiseled_bookshelf" },
@@ -240,7 +261,9 @@
         "A bundle carries a stack of different small things in one slot."
       ],
       "icon": "minecraft:bundle",
-      "x": 12, "y": -1.5,
+      "x": 0, "y": 9,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["wax_on"],
       "tasks": [ { "id": "bundles", "type": "item", "item": "#minecraft:bundles" } ],
       "rewards": [ { "id": "rabbit_hide", "type": "item", "item": "minecraft:rabbit_hide", "count": 8 } ]
@@ -251,7 +274,8 @@
       "description": [
         "Bamboo and string. Climb it, build on it, and break the bottom block to take it all down."
       ],
-      "x": 0, "y": 1.5,
+      "x": 1.25, "y": 0,
+      "shape": "square",
       "dependencies": ["stonecutter"],
       "tasks": [ { "id": "scaffolding", "type": "item", "item": "minecraft:scaffolding", "count": 16 } ],
       "rewards": [ { "id": "bamboo", "type": "item", "item": "minecraft:bamboo", "count": 32 } ]
@@ -263,7 +287,7 @@
         "Brick, copper, glass, concrete and candles. Every build is within reach."
       ],
       "icon": "minecraft:bricks",
-      "x": 14, "y": 0,
+      "x": 0, "y": 10.5,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -281,8 +305,8 @@
         "Redstone dust carries power. A lever switches it, a redstone torch inverts it."
       ],
       "icon": "minecraft:lever",
-      "x": 0, "y": 5.5,
-      "shape": "circle",
+      "x": 1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["iron_age/ores"],
       "tasks": [
         { "id": "redstone_torch", "type": "item", "item": "minecraft:redstone_torch", "count": 4 },
@@ -297,7 +321,8 @@
         "Repeaters delay and strengthen signals; comparators read how full a chest is."
       ],
       "icon": "minecraft:repeater",
-      "x": 2, "y": 4,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["first_circuits"],
       "tasks": [
         { "id": "repeater", "type": "item", "item": "minecraft:repeater", "count": 4 },
@@ -312,7 +337,8 @@
         "Pistons push blocks; sticky pistons pull them back. Hidden doors start here."
       ],
       "icon": "minecraft:piston",
-      "x": 2, "y": 7,
+      "x": 2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["first_circuits"],
       "tasks": [
         { "id": "piston", "type": "item", "item": "minecraft:piston", "count": 4 },
@@ -326,7 +352,8 @@
       "description": [
         "An observer sends a pulse when the block it faces changes. It is the heart of most farms."
       ],
-      "x": 4, "y": 7,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["pistons"],
       "tasks": [ { "id": "observer", "type": "item", "item": "minecraft:observer", "count": 2 } ],
       "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
@@ -338,7 +365,8 @@
         "Hoppers move items between containers. Droppers spit them out; dispensers use them."
       ],
       "icon": "minecraft:hopper",
-      "x": 4, "y": 4,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["signals"],
       "tasks": [
         { "id": "hopper", "type": "item", "item": "minecraft:hopper", "count": 4 },
@@ -353,7 +381,8 @@
       "description": [
         "A crafter crafts each time it is powered, following the slots you leave open."
       ],
-      "x": 6, "y": 4,
+      "x": 5, "y": 0,
+      "shape": "square",
       "dependencies": ["logistics"],
       "tasks": [ { "id": "crafter", "type": "item", "item": "minecraft:crafter" } ],
       "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
@@ -365,7 +394,8 @@
         "Set a crafter up so that it crafts another crafter."
       ],
       "icon": "minecraft:crafter",
-      "x": 8, "y": 4,
+      "x": 6.25, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["crafter"],
       "tasks": [ { "id": "crafters_crafting_crafters", "type": "advancement", "advancement": "minecraft:adventure/crafters_crafting_crafters", "title": "Have a crafter craft a crafter" } ],
@@ -378,7 +408,8 @@
         "Powered rails need gold and a redstone signal to push carts along."
       ],
       "icon": "minecraft:powered_rail",
-      "x": 4, "y": 5.5,
+      "x": 2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["first_circuits"],
       "tasks": [
         { "id": "rail", "type": "item", "item": "minecraft:rail", "count": 32 },
@@ -394,7 +425,8 @@
         "A daylight detector senses the sun: wire it to lamps that turn on at night."
       ],
       "icon": "minecraft:redstone_lamp",
-      "x": 6, "y": 7,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["observer"],
       "tasks": [
         { "id": "daylight_detector", "type": "item", "item": "minecraft:daylight_detector" },
@@ -409,7 +441,8 @@
         "Gunpowder and sand. Light it, and stand back."
       ],
       "icon": "minecraft:tnt",
-      "x": 6, "y": 5.5,
+      "x": 3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["rails"],
       "tasks": [ { "id": "tnt", "type": "item", "item": "minecraft:tnt", "count": 4 } ],
       "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
@@ -421,7 +454,8 @@
         "A target block sends a stronger signal the closer to its centre you hit. Note blocks play a note on each pulse."
       ],
       "icon": "minecraft:target",
-      "x": 8, "y": 5.5,
+      "x": 5, "y": 2,
+      "shape": "square",
       "dependencies": ["tnt"],
       "tasks": [
         { "id": "target", "type": "item", "item": "minecraft:target" },
@@ -436,7 +470,8 @@
         "Slime and honey blocks drag their neighbours along with pistons, but not each other. Flying machines use both."
       ],
       "icon": "minecraft:slime_block",
-      "x": 8, "y": 7,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["lamps"],
       "tasks": [
         { "id": "slime_block", "type": "item", "item": "minecraft:slime_block", "count": 2 },
@@ -451,7 +486,7 @@
         "You know every part of the redstone toolbox. Now build something with it."
       ],
       "icon": "minecraft:comparator",
-      "x": 10, "y": 5.5,
+      "x": 7.5, "y": 1,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -470,8 +505,8 @@
         "Take your time. They are here for the long run."
       ],
       "icon": "minecraft:chest",
-      "x": 0, "y": -7,
-      "shape": "circle",
+      "x": -1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["getting_started/settled"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I am ready to collect" } ],
       "rewards": [ { "id": "chest", "type": "item", "item": "minecraft:chest", "count": 4 } ]
@@ -483,7 +518,8 @@
         "One log of every tree, from the Overworld and from the Nether."
       ],
       "icon": "minecraft:oak_log",
-      "x": 2, "y": -8.5,
+      "x": -2.5, "y": 0.5,
+      "shape": "square",
       "dependencies": ["start"],
       "tasks": [
         { "id": "oak_log", "type": "item", "item": "minecraft:oak_log" },
@@ -508,7 +544,8 @@
         "Every flower of the Overworld. Bone meal on grass helps, and so do the right biomes."
       ],
       "icon": "minecraft:poppy",
-      "x": 2, "y": -5.5,
+      "x": -2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["start"],
       "tasks": [
         { "id": "dandelion", "type": "item", "item": "minecraft:dandelion" },
@@ -537,7 +574,8 @@
         "All sixteen dyes."
       ],
       "icon": "minecraft:magenta_dye",
-      "x": 4, "y": -5.5,
+      "x": -3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["florist"],
       "tasks": [
         { "id": "white_dye", "type": "item", "item": "minecraft:white_dye" },
@@ -566,7 +604,8 @@
         "A block of every metal and gem. The netherite one hurts."
       ],
       "icon": "minecraft:gold_block",
-      "x": 4, "y": -8.5,
+      "x": -3.75, "y": 0.5,
+      "shape": "square",
       "dependencies": ["lumberjack"],
       "tasks": [
         { "id": "coal_block", "type": "item", "item": "minecraft:coal_block" },
@@ -591,7 +630,8 @@
         "Find these six."
       ],
       "icon": "minecraft:music_disc_13",
-      "x": 6, "y": -7,
+      "x": -5, "y": 0,
+      "shape": "square",
       "dependencies": ["treasury", "rainbow"],
       "tasks": [
         { "id": "music_disc_13", "type": "item", "item": "minecraft:music_disc_13" },
@@ -610,7 +650,8 @@
         "The rarest trims: from ancient cities, strongholds, woodland mansions, monuments, end cities, bastions and fortresses."
       ],
       "icon": "minecraft:silence_armor_trim_smithing_template",
-      "x": 6, "y": -8.5,
+      "x": -5, "y": 1,
+      "shape": "square",
       "dependencies": ["treasury"],
       "tasks": [
         { "id": "silence_armor_trim_smithing_template", "type": "item", "item": "minecraft:silence_armor_trim_smithing_template" },
@@ -631,7 +672,8 @@
         "Twelve pottery sherds, any kind."
       ],
       "icon": "minecraft:heart_pottery_sherd",
-      "x": 6, "y": -5.5,
+      "x": -5, "y": 2,
+      "shape": "square",
       "dependencies": ["rainbow", "iron_age/brush"],
       "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 12 } ],
       "rewards": [ { "id": "decorated_pot", "type": "item", "item": "minecraft:decorated_pot", "count": 2 } ]
@@ -643,7 +685,8 @@
         "Heads: charged creepers blow them off mobs, wither skeletons drop theirs, and end ships carry a dragon's."
       ],
       "icon": "minecraft:creeper_head",
-      "x": 8, "y": -7,
+      "x": -6.25, "y": 0,
+      "shape": "square",
       "dependencies": ["records"],
       "tasks": [
         { "id": "skeleton_skull", "type": "item", "item": "minecraft:skeleton_skull" },
@@ -662,7 +705,7 @@
         "Logs, flowers, dyes, metals, records, trims, sherds and heads. Nothing is missing from your collection."
       ],
       "icon": "minecraft:nether_star",
-      "x": 10, "y": -7,
+      "x": -7.5, "y": 0,
       "shape": "hexagon",
       "size": 1.75,
       "visibility": "until_deps_complete",

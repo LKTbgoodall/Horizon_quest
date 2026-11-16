@@ -38,6 +38,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "icon": "minecraft:writable_book",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "tasks": [ { "id": "ready", "type": "checkmark", "title": "I have read this" } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
     },
@@ -47,8 +48,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Everything starts with a tree. Gather a few logs; any kind of wood will do."
       ],
-      "x": 2, "y": 0,
-      "shape": "square",
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["welcome"],
       "tasks": [ { "id": "logs", "type": "item", "item": "#minecraft:logs", "count": 8 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 10 } ]
@@ -59,8 +61,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Turn a log into planks, and four planks into a crafting table. Most recipes need one."
       ],
-      "x": 4, "y": 0,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["first_wood"],
       "tasks": [ { "id": "table", "type": "item", "item": "minecraft:crafting_table" } ],
       "rewards": [ { "id": "apples", "type": "item", "item": "minecraft:apple", "count": 4 } ]
@@ -71,8 +74,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Planks and sticks make a wooden pickaxe. It will not last, but it gets you to stone."
       ],
-      "x": 6, "y": -1,
+      "x": 0, "y": 4.5,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:wooden_pickaxe" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 15 } ]
@@ -83,8 +87,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Dig down a little and bring back some cobblestone. Stone tools are faster and sturdier than wooden ones."
       ],
-      "x": 8, "y": -1,
-      "shape": "diamond",
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["wooden_pickaxe"],
       "tasks": [ { "id": "cobblestone", "type": "item", "item": "minecraft:cobblestone", "count": 16 } ],
       "rewards": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 8 } ]
@@ -95,8 +100,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Eight cobblestone in a ring make a furnace. Use it to cook food and to smelt ore."
       ],
-      "x": 10, "y": -1,
-      "shape": "square",
+      "x": 0, "y": 7.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["stone"],
       "tasks": [ { "id": "furnace", "type": "item", "item": "minecraft:furnace" } ],
       "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 8 } ]
@@ -107,8 +113,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Look for iron ore in caves and cliffs, then smelt it. Three ingots are enough for a pickaxe."
       ],
-      "x": 12, "y": -1,
-      "shape": "circle",
+      "x": 0, "y": 9,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["furnace"],
       "tasks": [ { "id": "ingots", "type": "item", "item": "minecraft:iron_ingot", "count": 3 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -119,8 +126,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Three wool and three planks make a bed. Sleeping skips the night and sets where you come back to."
       ],
-      "x": 6, "y": 1,
-      "shape": "hexagon",
+      "x": 1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "bed", "type": "item", "item": "#minecraft:beds" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
@@ -132,8 +139,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Monsters come out when it gets dark. Stand your ground against a few zombies."
       ],
       "icon": "minecraft:wooden_sword",
-      "x": 8, "y": 1,
-      "shape": "hexagon",
+      "x": 2.5, "y": 2.5,
+      "shape": "square",
       "dependencies": ["bed"],
       "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 3 } ],
       "rewards": [
@@ -149,7 +156,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Zombies leave rotten flesh behind. Hand some in and get something more useful for it.",
         "This quest takes the items: click the rotten flesh under Tasks while you carry them."
       ],
-      "x": 10, "y": 1,
+      "x": 3.75, "y": 2.5,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["first_night"],
@@ -163,11 +170,11 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Tools, light, a bed, and you made it through the night. You are ready for what comes next."
       ],
       "icon": "minecraft:iron_pickaxe",
-      "x": 14, "y": 0,
+      "x": 0, "y": 10.5,
       "shape": "hexagon",
       "size": 1.5,
-      "dependencies": ["iron", "first_night"],
       "visibility": "until_deps_complete",
+      "dependencies": ["iron", "first_night"],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
     },
     {
@@ -176,7 +183,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Eight planks in a ring make a chest. Two side by side make a double chest, and you will soon need the room."
       ],
-      "x": 4, "y": -2.5,
+      "x": -1.25, "y": 3,
       "shape": "square",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "chest", "type": "item", "item": "minecraft:chest", "count": 2 } ],
@@ -189,7 +196,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A stone pickaxe is not enough: an axe for wood, a shovel for dirt and gravel, a sword for whatever comes at night."
       ],
       "icon": "minecraft:stone_axe",
-      "x": 10, "y": -2.5,
+      "x": 1.25, "y": 6,
+      "shape": "square",
       "dependencies": ["stone"],
       "tasks": [
         { "id": "stone_axe", "type": "item", "item": "minecraft:stone_axe" },
@@ -204,8 +212,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Coal, or charcoal from logs in a furnace, on a stick makes four torches. Light keeps monsters from spawning."
       ],
-      "x": 12, "y": -2.5,
-      "shape": "diamond",
+      "x": 1.25, "y": 7.5,
+      "shape": "square",
       "dependencies": ["furnace"],
       "tasks": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ],
       "rewards": [ { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 16 } ]
@@ -217,7 +225,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Build yourself a shelter, even a small one, and close it with a door. Monsters stay outside."
       ],
       "icon": "minecraft:oak_door",
-      "x": 8, "y": 2.5,
+      "x": 2.5, "y": 3.5,
+      "shape": "square",
       "dependencies": ["bed"],
       "tasks": [ { "id": "wooden_doors", "type": "item", "item": "#minecraft:wooden_doors" } ],
       "rewards": [ { "id": "glass", "type": "item", "item": "minecraft:glass", "count": 8 } ]
@@ -228,8 +237,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Raw meat is a poor meal. Cook some beef in a furnace: it fills you up far better."
       ],
-      "x": 12, "y": 2.5,
-      "shape": "circle",
+      "x": -1.25, "y": 7.5,
+      "shape": "square",
       "dependencies": ["furnace"],
       "tasks": [ { "id": "cooked_beef", "type": "craft", "item": "minecraft:cooked_beef", "count": 4 } ],
       "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 4 } ]
@@ -242,11 +251,11 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Three wheat in a row make a loaf. Bake three loaves at a crafting table.",
         "This quest can be done again: a few minutes after you claim its reward, it starts over. The reward is drawn at random each time."
       ],
-      "x": 6, "y": 6,
-      "shape": "circle",
-      "dependencies": ["crafting_table"],
+      "x": -1.25, "y": 2,
+      "shape": "square",
       "repeatable": true,
       "repeat_cooldown": 300,
+      "dependencies": ["crafting_table"],
       "tasks": [ { "id": "bread", "type": "craft", "item": "minecraft:bread", "count": 3 } ],
       "rewards": [ { "id": "surprise", "type": "random", "table": "baker_loot" } ]
     },
@@ -257,10 +266,10 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Craft a stone sword, then put it to use on two skeletons.",
         "The tasks of this quest go in order: the skeletons only count once the sword is made."
       ],
-      "x": 8, "y": 5,
-      "shape": "hexagon",
-      "dependencies": ["stone"],
+      "x": -1.25, "y": 6,
+      "shape": "square",
       "sequential_tasks": true,
+      "dependencies": ["stone"],
       "tasks": [
         { "id": "sword", "type": "craft", "item": "minecraft:stone_sword" },
         { "id": "skeletons", "type": "kill", "entity": "minecraft:skeleton", "count": 2 }
@@ -273,8 +282,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Earn the advancement \"Stone Age\" by mining stone with your new pickaxe. If you already have it, this completes by itself."
       ],
-      "x": 8, "y": 7,
-      "shape": "diamond",
+      "x": 1.25, "y": 4.5,
+      "shape": "square",
       "dependencies": ["wooden_pickaxe"],
       "tasks": [ { "id": "advancement", "type": "advancement", "advancement": "minecraft:story/mine_stone" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 25 } ]
@@ -286,8 +295,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Reach experience level 5. Mining, smelting and fighting all give experience.",
         "The reward is yours to choose: pick one in the list below once the quest is completed."
       ],
-      "x": 10, "y": 6,
-      "shape": "hexagon",
+      "x": -2.5, "y": 6,
+      "shape": "square",
       "dependencies": ["armed", "stone_age"],
       "dependency_mode": "one_completed",
       "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ],
@@ -300,8 +309,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Every world has a point where X and Z are both zero. Go and stand there (F3 shows where you are)."
       ],
-      "x": 12, "y": 5,
-      "shape": "square",
+      "x": -3.75, "y": 5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "there", "type": "location", "dimension": "minecraft:overworld", "from": [-16, -64, -16], "to": [16, 320, 16] } ],
@@ -315,8 +324,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Build a portal of obsidian, light it, and step through to the Nether."
       ],
       "icon": "minecraft:obsidian",
-      "x": 12, "y": 7,
-      "shape": "circle",
+      "x": -3.75, "y": 6,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],
@@ -332,7 +341,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Five planks in a U make a boat. Water is the fastest road in the early game."
       ],
       "icon": "minecraft:oak_boat",
-      "x": 6, "y": 8,
+      "x": -1.25, "y": 4,
+      "shape": "square",
       "dependencies": ["crafting_table"],
       "tasks": [ { "id": "boats", "type": "item", "item": "#minecraft:boats" } ],
       "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
@@ -344,7 +354,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Wrap a compass in paper to make a map, then hold it and use it to draw the land around you."
       ],
       "icon": "minecraft:map",
-      "x": 14, "y": 5,
+      "x": -5, "y": 5,
+      "shape": "square",
       "dependencies": ["origin"],
       "tasks": [ { "id": "filled_map", "type": "item", "item": "minecraft:filled_map" } ],
       "rewards": [ { "id": "paper", "type": "item", "item": "minecraft:paper", "count": 16 } ]
@@ -355,7 +366,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Gold and redstone make a clock. Underground, it is the only way to know whether night has fallen."
       ],
-      "x": 14, "y": 7,
+      "x": -3.75, "y": 7,
+      "shape": "square",
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "clock", "type": "item", "item": "minecraft:clock" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
@@ -367,8 +379,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Pink trees on the hills, petals on the ground. Cherry wood makes the prettiest planks."
       ],
       "icon": "minecraft:cherry_sapling",
-      "x": 16, "y": -6.5,
-      "shape": "circle",
+      "x": 1.25, "y": 8.5,
+      "shape": "square",
       "dependencies": ["settled"],
       "tasks": [
         { "id": "cherry_log", "type": "item", "item": "minecraft:cherry_log", "count": 16 },
@@ -383,7 +395,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Roots in the water, mud underfoot. Pour water on dirt to make mud too."
       ],
       "icon": "minecraft:mangrove_propagule",
-      "x": 18, "y": -8,
+      "x": 2.5, "y": 5.5,
+      "shape": "square",
       "dependencies": ["cherry"],
       "tasks": [
         { "id": "mangrove_log", "type": "item", "item": "minecraft:mangrove_log", "count": 16 },
@@ -397,7 +410,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Mud and wheat make packed mud; four packed mud make mud bricks. A warm brown for any build."
       ],
-      "x": 20, "y": -8,
+      "x": 3.75, "y": 5.5,
+      "shape": "square",
       "dependencies": ["mangrove"],
       "tasks": [ { "id": "mud_bricks", "type": "item", "item": "minecraft:mud_bricks", "count": 32 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
@@ -409,7 +423,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Bamboo blocks make planks of their own, and a raft instead of a boat."
       ],
       "icon": "minecraft:bamboo_raft",
-      "x": 22, "y": -8,
+      "x": 5, "y": 5.5,
+      "shape": "square",
       "dependencies": ["mud_bricks"],
       "tasks": [
         { "id": "bamboo_block", "type": "item", "item": "minecraft:bamboo_block", "count": 8 },
@@ -423,7 +438,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Frogs lay frogspawn in swamp water. Catch a tadpole in a water bucket: where it grows up decides its colour."
       ],
-      "x": 18, "y": -5,
+      "x": 2.5, "y": 6.5,
+      "shape": "square",
       "dependencies": ["cherry"],
       "tasks": [ { "id": "tadpole_bucket", "type": "item", "item": "minecraft:tadpole_bucket" } ],
       "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
@@ -435,7 +451,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Frogs eat small magma cubes and leave a froglight. Each of the three frog colours makes its own."
       ],
       "icon": "minecraft:pearlescent_froglight",
-      "x": 20, "y": -5,
+      "x": 3.75, "y": 6.5,
+      "shape": "square",
       "dependencies": ["tadpole"],
       "tasks": [
         { "id": "ochre_froglight", "type": "item", "item": "minecraft:ochre_froglight" },
@@ -451,7 +468,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A grey, silent forest. At night its creaking hearts wake up the creakings: do not take your eyes off them."
       ],
       "icon": "minecraft:pale_oak_sapling",
-      "x": 22, "y": -6.5,
+      "x": 2.5, "y": 9.5,
+      "shape": "square",
       "dependencies": ["cherry"],
       "tasks": [
         { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 16 },
@@ -466,7 +484,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A flower that opens at night and closes by day. Pick one of each."
       ],
       "icon": "minecraft:open_eyeblossom",
-      "x": 24, "y": -8,
+      "x": 3.75, "y": 7.5,
+      "shape": "square",
       "dependencies": ["pale_garden"],
       "tasks": [
         { "id": "open_eyeblossom", "type": "item", "item": "minecraft:open_eyeblossom" },
@@ -480,7 +499,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "When a creaking is hit, its heart oozes resin onto the logs around it. Collect the clumps."
       ],
-      "x": 24, "y": -6.5,
+      "x": 3.75, "y": 9.5,
+      "shape": "square",
       "dependencies": ["pale_garden"],
       "tasks": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 16 } ],
       "rewards": [ { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 8 } ]
@@ -491,7 +511,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Smelt resin clumps into bricks: a warm orange stone with its own stairs, slabs and walls."
       ],
-      "x": 26, "y": -6.5,
+      "x": 5, "y": 9,
+      "shape": "square",
       "dependencies": ["resin"],
       "tasks": [ { "id": "resin_bricks", "type": "item", "item": "minecraft:resin_bricks", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -502,7 +523,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A silk touch tool lifts a creaking heart whole. Place it between two pale oak logs and it wakes at night."
       ],
-      "x": 26, "y": -8,
+      "x": 5, "y": 10.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["resin"],
       "tasks": [ { "id": "creaking_heart", "type": "item", "item": "minecraft:creaking_heart" } ],
@@ -515,7 +537,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Wildflowers in birch forests, leaf litter under the trees, fireflies over swamps and flowers on cactus tops."
       ],
       "icon": "minecraft:wildflowers",
-      "x": 22, "y": -5,
+      "x": 3.75, "y": 11.5,
+      "shape": "square",
       "dependencies": ["pale_garden"],
       "tasks": [
         { "id": "wildflowers", "type": "item", "item": "minecraft:wildflowers", "count": 8 },
@@ -532,7 +555,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Deserts and badlands have dry grass and bushes of their own. Shears bring them home."
       ],
       "icon": "minecraft:tall_dry_grass",
-      "x": 24, "y": -5,
+      "x": 5, "y": 11.5,
+      "shape": "square",
       "dependencies": ["spring"],
       "tasks": [
         { "id": "short_dry_grass", "type": "item", "item": "minecraft:short_dry_grass" },
@@ -548,7 +572,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Chickens from cold places lay blue eggs, those from warm places brown eggs. Throw one: the chick looks like its parent."
       ],
       "icon": "minecraft:blue_egg",
-      "x": 26, "y": -5,
+      "x": 6.25, "y": 11.5,
+      "shape": "square",
       "dependencies": ["dry_lands"],
       "tasks": [
         { "id": "egg", "type": "item", "item": "minecraft:egg" },
@@ -564,7 +589,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Tall poplars in red, orange and yellow leaves. Look for the shelf mushrooms that grow on their trunks: they bounce."
       ],
       "icon": "minecraft:poplar_sapling",
-      "x": 28, "y": -8,
+      "x": 5, "y": 7.5,
+      "shape": "square",
       "dependencies": ["eyeblossom"],
       "tasks": [
         { "id": "poplar_log", "type": "item", "item": "minecraft:poplar_log", "count": 16 },
@@ -579,7 +605,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Yellow caves of sulfur, where springs of noxious gas burst out. Do not breathe too deep."
       ],
       "icon": "minecraft:sulfur",
-      "x": 28, "y": -6.5,
+      "x": 6.25, "y": 9,
+      "shape": "square",
       "dependencies": ["resin_bricks"],
       "tasks": [ { "id": "sulfur", "type": "item", "item": "minecraft:sulfur", "count": 16 } ],
       "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
@@ -590,7 +617,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Sulfur takes a polish and makes bricks, stairs and walls of a sharp yellow."
       ],
-      "x": 30, "y": -8,
+      "x": 7.5, "y": 8.5,
+      "shape": "square",
       "dependencies": ["sulfur_caves"],
       "tasks": [ { "id": "sulfur_bricks", "type": "item", "item": "minecraft:sulfur_bricks", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -602,7 +630,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Sulfur cubes bounce around the sulfur caves and swallow blocks. A small one can be carried home in a bucket."
       ],
       "icon": "minecraft:sulfur_cube_bucket",
-      "x": 30, "y": -6.5,
+      "x": 7.5, "y": 9.5,
+      "shape": "square",
       "dependencies": ["sulfur_caves"],
       "tasks": [ { "id": "sulfur_cube_bucket", "type": "item", "item": "minecraft:sulfur_cube_bucket" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
@@ -614,7 +643,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A golden dandelion stops a baby animal from growing up. Use it again and the baby starts growing."
       ],
       "icon": "minecraft:golden_dandelion",
-      "x": 28, "y": -5,
+      "x": 7.5, "y": 11.5,
+      "shape": "square",
       "dependencies": ["eggs"],
       "tasks": [ { "id": "golden_dandelion", "type": "item", "item": "minecraft:golden_dandelion" } ],
       "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
@@ -626,7 +656,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Place a cushion and sit on it. Every colour of wool makes its own."
       ],
       "icon": "minecraft:red_cushion",
-      "x": 30, "y": -5,
+      "x": 8.75, "y": 11.5,
+      "shape": "square",
       "dependencies": ["golden_dandelion"],
       "tasks": [ { "id": "cushions", "type": "item", "item": "#minecraft:cushions", "count": 2 } ],
       "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 8 } ]
@@ -649,6 +680,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       ],
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["getting_started/settled"],
       "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:iron_pickaxe" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
@@ -660,9 +692,10 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A full set of iron armour takes 24 ingots and turns most fights in your favour."
       ],
       "icon": "minecraft:iron_chestplate",
-      "x": 2, "y": -1.5,
-      "shape": "square",
-      "dependencies": ["iron_pickaxe"],
+      "x": 0, "y": 3,
+      "shape": "hexagon",
+      "size": 1.25,
+      "dependencies": ["iron_tools"],
       "tasks": [
         { "id": "helmet", "type": "item", "item": "minecraft:iron_helmet" },
         { "id": "chestplate", "type": "item", "item": "minecraft:iron_chestplate" },
@@ -677,8 +710,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Planks and one iron ingot make a shield. Raise it to stop arrows and blows, even a creeper's blast."
       ],
-      "x": 4, "y": -1.5,
+      "x": 0, "y": 4.5,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["iron_armor"],
       "tasks": [ { "id": "shield", "type": "item", "item": "minecraft:shield" } ],
       "rewards": [ { "id": "arrows", "type": "item", "item": "minecraft:arrow", "count": 16 } ]
@@ -689,7 +723,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Three ingots make a bucket: carry water to put out fires, break a fall, or make a farm anywhere."
       ],
-      "x": 2, "y": 0,
+      "x": 1.25, "y": 0,
       "shape": "square",
       "dependencies": ["iron_pickaxe"],
       "tasks": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ],
@@ -701,8 +735,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Scoop up some lava. It keeps a furnace burning for a long time, and water poured over it makes obsidian."
       ],
-      "x": 4, "y": 0,
-      "shape": "diamond",
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["bucket"],
       "tasks": [ { "id": "lava", "type": "item", "item": "minecraft:lava_bucket" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
@@ -714,8 +748,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The deeper caves hide more than iron. Bring back a little of each."
       ],
       "icon": "minecraft:redstone",
-      "x": 2, "y": 1.5,
-      "shape": "hexagon",
+      "x": 1.25, "y": 2,
+      "shape": "square",
       "dependencies": ["iron_pickaxe"],
       "tasks": [
         { "id": "coal", "type": "item", "item": "minecraft:coal", "count": 16 },
@@ -731,8 +765,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Iron and redstone make a compass. It always points to where you first woke up."
       ],
-      "x": 4, "y": 1.5,
-      "shape": "circle",
+      "x": 2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["ores"],
       "tasks": [ { "id": "compass", "type": "item", "item": "minecraft:compass" } ],
       "rewards": [ { "id": "map", "type": "item", "item": "minecraft:map" } ]
@@ -744,9 +778,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Nine ingots press into a block of iron: proof that you have more than you need.",
         "Diamonds lie far below, near the bottom of the world. Time to go and look."
       ],
-      "x": 6, "y": 0,
+      "x": 0, "y": 6,
       "shape": "hexagon",
-      "size": 1.5,
+      "size": 1.25,
       "dependencies": ["shield", "lava", "compass"],
       "tasks": [ { "id": "block", "type": "item", "item": "minecraft:iron_block" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
@@ -758,7 +792,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Iron tools last much longer than stone ones. Make the rest of the set."
       ],
       "icon": "minecraft:iron_axe",
-      "x": 2, "y": -3,
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["iron_pickaxe"],
       "tasks": [
         { "id": "iron_axe", "type": "item", "item": "minecraft:iron_axe" },
@@ -774,7 +810,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Two iron ingots make shears. Shear sheep for wool without hurting them; shears also collect leaves and vines."
       ],
       "icon": "minecraft:shears",
-      "x": 4, "y": -3,
+      "x": -1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["iron_tools"],
       "tasks": [
         { "id": "shears", "type": "item", "item": "minecraft:shears" },
@@ -789,7 +826,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A blast furnace smelts ore twice as fast, a smoker cooks food twice as fast. Both need a furnace and some iron or logs."
       ],
       "icon": "minecraft:blast_furnace",
-      "x": 6, "y": -3,
+      "x": 1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["iron_tools"],
       "tasks": [
         { "id": "blast_furnace", "type": "item", "item": "minecraft:blast_furnace" },
@@ -804,7 +842,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Copper is everywhere underground. Its tools sit between stone and iron: a fine step while you look for iron."
       ],
       "icon": "minecraft:copper_pickaxe",
-      "x": 2, "y": 3,
+      "x": -1.25, "y": 2,
+      "shape": "square",
       "dependencies": ["getting_started/furnace"],
       "tasks": [
         { "id": "copper_pickaxe", "type": "item", "item": "minecraft:copper_pickaxe" },
@@ -820,7 +859,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A full set of copper armour. Not as tough as iron, but much better than nothing."
       ],
       "icon": "minecraft:copper_chestplate",
-      "x": 4, "y": 3,
+      "x": -2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["copper_tools"],
       "tasks": [
         { "id": "copper_helmet", "type": "item", "item": "minecraft:copper_helmet" },
@@ -837,7 +877,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A copper nugget on a torch makes a copper torch, which burns with a green flame. Make a copper lantern too."
       ],
       "icon": "minecraft:copper_lantern",
-      "x": 6, "y": 3,
+      "x": -2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["copper_tools"],
       "tasks": [
         { "id": "copper_torch", "type": "item", "item": "minecraft:copper_torch", "count": 8 },
@@ -852,8 +893,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Huge caves open under the hills. Bring torches, mark your way back, and mine what shines."
       ],
       "icon": "minecraft:raw_iron",
-      "x": 2, "y": 7,
-      "shape": "circle",
+      "x": -3.75, "y": 0.5,
+      "shape": "square",
       "dependencies": ["iron_pickaxe"],
       "tasks": [
         { "id": "raw_iron", "type": "item", "item": "minecraft:raw_iron", "count": 16 },
@@ -868,7 +909,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Stalactites hang over stalagmites. Do not fall on one, and do not stand under one that shakes."
       ],
       "icon": "minecraft:pointed_dripstone",
-      "x": 4, "y": 5.5,
+      "x": -5, "y": 0,
+      "shape": "square",
       "dependencies": ["going_under"],
       "tasks": [
         { "id": "pointed_dripstone", "type": "item", "item": "minecraft:pointed_dripstone", "count": 8 },
@@ -883,7 +925,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Under azalea trees lies a garden of moss, clay and glowing berry vines. Axolotls swim in its pools."
       ],
       "icon": "minecraft:moss_block",
-      "x": 4, "y": 8.5,
+      "x": -5, "y": 1,
+      "shape": "square",
       "dependencies": ["going_under"],
       "tasks": [
         { "id": "glow_berries", "type": "item", "item": "minecraft:glow_berries", "count": 8 },
@@ -898,7 +941,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Scoop an axolotl into a water bucket. It fights drowned and guardians at your side underwater."
       ],
-      "x": 6, "y": 8.5,
+      "x": -6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["lush"],
       "tasks": [ { "id": "axolotl_bucket", "type": "item", "item": "minecraft:axolotl_bucket" } ],
       "rewards": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ]
@@ -909,7 +953,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Glow squids swim in dark underground water. Their ink makes signs and item frames glow."
       ],
-      "x": 8, "y": 8.5,
+      "x": -7.5, "y": 1,
+      "shape": "square",
       "dependencies": ["axolotl"],
       "tasks": [
         { "id": "glow_ink_sac", "type": "item", "item": "minecraft:glow_ink_sac", "count": 4 },
@@ -924,7 +969,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Spheres of smooth basalt, calcite and amethyst hide in the rock. Mine the clusters for shards."
       ],
       "icon": "minecraft:amethyst_cluster",
-      "x": 6, "y": 5.5,
+      "x": -6.25, "y": 0,
+      "shape": "square",
       "dependencies": ["dripstone"],
       "tasks": [ { "id": "amethyst_shard", "type": "item", "item": "minecraft:amethyst_shard", "count": 16 } ],
       "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
@@ -935,7 +981,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "An amethyst shard on copper makes a spyglass. Tinted glass lets no light through."
       ],
-      "x": 8, "y": 5.5,
+      "x": -7.5, "y": 0,
+      "shape": "square",
       "dependencies": ["geode"],
       "tasks": [
         { "id": "spyglass", "type": "item", "item": "minecraft:spyglass" },
@@ -950,8 +997,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The world is huge and every biome has something of its own. Take a map, a bed and food, and go see it."
       ],
       "icon": "minecraft:map",
-      "x": 6, "y": -7,
-      "shape": "circle",
+      "x": 3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["compass"],
       "tasks": [
         { "id": "map", "type": "item", "item": "minecraft:map" },
@@ -967,7 +1014,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Villages grow on plains, deserts, savannas, taigas and snowy plains. A bell hangs in their middle.",
         "Their armourer also sells bells, if you would rather not take theirs."
       ],
-      "x": 8, "y": -7,
+      "x": 5, "y": 0,
+      "shape": "square",
       "dependencies": ["road"],
       "tasks": [ { "id": "bell", "type": "item", "item": "minecraft:bell" } ],
       "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
@@ -979,7 +1027,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Cactus, dead bushes and sandstone. Under a desert pyramid's floor waits a treasure room, and a trap: mind the pressure plate."
       ],
       "icon": "minecraft:cactus",
-      "x": 8, "y": -8.5,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["road"],
       "tasks": [
         { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 },
@@ -994,7 +1043,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Tall trees, cocoa pods, bamboo and parrots. Jungle temples hide behind vines, with tripwires and arrows."
       ],
       "icon": "minecraft:jungle_sapling",
-      "x": 10, "y": -8.5,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["desert"],
       "tasks": [
         { "id": "cocoa_beans", "type": "item", "item": "minecraft:cocoa_beans", "count": 8 },
@@ -1010,7 +1060,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Murky water, lily pads and slimes that come out under the moon. A witch lives in a hut on stilts."
       ],
       "icon": "minecraft:lily_pad",
-      "x": 12, "y": -8.5,
+      "x": 7.5, "y": 1,
+      "shape": "square",
       "dependencies": ["jungle"],
       "tasks": [
         { "id": "lily_pad", "type": "item", "item": "minecraft:lily_pad", "count": 4 },
@@ -1026,7 +1077,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A forest so thick that monsters spawn under its leaves at noon. Dark oak grows here, and huge mushrooms."
       ],
       "icon": "minecraft:dark_oak_sapling",
-      "x": 14, "y": -8.5,
+      "x": 8.75, "y": 1,
+      "shape": "square",
       "dependencies": ["swamp"],
       "tasks": [
         { "id": "dark_oak_log", "type": "item", "item": "minecraft:dark_oak_log", "count": 16 },
@@ -1041,8 +1093,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Deep in a dark forest stands a mansion full of illagers. A cartographer may sell you a map to it."
       ],
       "icon": "minecraft:dark_oak_planks",
-      "x": 16, "y": -8.5,
-      "shape": "hexagon",
+      "x": 10, "y": 1,
+      "shape": "square",
       "dependencies": ["dark_forest"],
       "tasks": [
         { "id": "check", "type": "checkmark", "title": "I found a woodland mansion" },
@@ -1057,7 +1109,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Stripes of coloured terracotta, red sand and gold close to the surface. Its mineshafts are built in plain sight."
       ],
       "icon": "minecraft:red_sand",
-      "x": 8, "y": -5.5,
+      "x": 5, "y": 2.5,
+      "shape": "square",
       "dependencies": ["road"],
       "tasks": [
         { "id": "red_sand", "type": "item", "item": "minecraft:red_sand", "count": 32 },
@@ -1072,7 +1125,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Powder snow lets you sink and freeze; leather boots let you walk on it. Igloos sometimes hide a basement."
       ],
       "icon": "minecraft:snow_block",
-      "x": 10, "y": -5.5,
+      "x": 6.25, "y": 2.5,
+      "shape": "square",
       "dependencies": ["badlands"],
       "tasks": [
         { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 },
@@ -1088,7 +1142,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Flat dry grass, acacia trees, horses and llamas. Armadillos roam here too."
       ],
       "icon": "minecraft:acacia_sapling",
-      "x": 12, "y": -5.5,
+      "x": 7.5, "y": 2.5,
+      "shape": "square",
       "dependencies": ["snowy"],
       "tasks": [ { "id": "acacia_log", "type": "item", "item": "minecraft:acacia_log", "count": 16 } ],
       "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
@@ -1100,7 +1155,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Spruce forests full of foxes, wolves and sweet berry bushes. The bushes sting: walk around them."
       ],
       "icon": "minecraft:spruce_sapling",
-      "x": 14, "y": -5.5,
+      "x": 8.75, "y": 2.5,
+      "shape": "square",
       "dependencies": ["savanna"],
       "tasks": [
         { "id": "spruce_log", "type": "item", "item": "minecraft:spruce_log", "count": 16 },
@@ -1115,7 +1171,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Far out at sea lie islands of mycelium and giant mushrooms, where no monster spawns and mooshrooms graze."
       ],
       "icon": "minecraft:red_mushroom_block",
-      "x": 16, "y": -5.5,
+      "x": 10, "y": 2,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["taiga"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I set foot on a mushroom island" } ],
@@ -1128,7 +1185,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Goats live on snowy peaks; a goat that rams a tree drops its horn. Emerald ore only shows up in mountains."
       ],
       "icon": "minecraft:goat_horn",
-      "x": 18, "y": -5.5,
+      "x": 10, "y": 3,
+      "shape": "square",
       "dependencies": ["taiga"],
       "tasks": [
         { "id": "goat_horn", "type": "item", "item": "minecraft:goat_horn" },
@@ -1143,7 +1201,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Climb or build all the way to the build limit, at Y 320. Look down."
       ],
       "icon": "minecraft:ladder",
-      "x": 20, "y": -5.5,
+      "x": 11.25, "y": 3,
+      "shape": "square",
       "dependencies": ["peaks"],
       "tasks": [ { "id": "location", "type": "location", "title": "Reach Y 320", "from": [-30000000, 320, -30000000], "to": [30000000, 4000, 30000000], "dimension": "minecraft:overworld" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
@@ -1155,7 +1214,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Old tunnels of planks and rails run through the caves. Cave spiders guard their webs, and the chests are worth it."
       ],
       "icon": "minecraft:rail",
-      "x": 8, "y": -10,
+      "x": 5, "y": 4,
+      "shape": "square",
       "dependencies": ["road"],
       "tasks": [
         { "id": "cave_spider", "type": "kill", "entity": "minecraft:cave_spider", "count": 3 },
@@ -1170,7 +1230,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Broken portals lie all over the world, with a chest of gold beside them. Some can be repaired."
       ],
       "icon": "minecraft:crying_obsidian",
-      "x": 10, "y": -10,
+      "x": 6.25, "y": 4,
+      "shape": "square",
       "dependencies": ["mineshaft"],
       "tasks": [
         { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian" },
@@ -1185,7 +1246,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Some forests hide a camp left behind by someone long gone. Find one and see what was left."
       ],
       "icon": "minecraft:campfire",
-      "x": 12, "y": -10,
+      "x": 7.5, "y": 4,
+      "shape": "square",
       "dependencies": ["ruined_portal"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I found an abandoned camp" } ],
       "rewards": [ { "id": "random", "type": "random", "table": "explorer_loot" } ]
@@ -1197,7 +1259,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "You have seen deserts, jungles, swamps, peaks and ruins. The world is a little smaller now."
       ],
       "icon": "minecraft:compass",
-      "x": 22, "y": -7,
+      "x": 12.5, "y": 3,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -1211,8 +1273,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A feather, a copper ingot and a stick. Brush suspicious sand and gravel to uncover what is buried in it."
       ],
-      "x": 4, "y": 12.5,
-      "shape": "circle",
+      "x": -2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["copper_tools"],
       "tasks": [ { "id": "brush", "type": "craft", "item": "minecraft:brush" } ],
       "rewards": [ { "id": "feather", "type": "item", "item": "minecraft:feather", "count": 4 } ]
@@ -1224,7 +1286,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Desert wells, desert pyramids, ocean ruins and trail ruins hide suspicious blocks. Pottery sherds are the prize."
       ],
       "icon": "minecraft:archer_pottery_sherd",
-      "x": 6, "y": 11,
+      "x": -3.75, "y": 2.5,
+      "shape": "square",
       "dependencies": ["brush"],
       "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
@@ -1236,7 +1299,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Four sherds, or bricks, make a decorated pot. Each sherd paints one of its sides."
       ],
       "icon": "minecraft:decorated_pot",
-      "x": 8, "y": 11,
+      "x": -5, "y": 2,
+      "shape": "square",
       "dependencies": ["first_sherd"],
       "tasks": [
         { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 4 },
@@ -1251,7 +1315,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Old ruins, half buried under the forests and taigas. Most of them is under the ground: dig and brush."
       ],
       "icon": "minecraft:mud_bricks",
-      "x": 6, "y": 14,
+      "x": -3.75, "y": 4,
+      "shape": "square",
       "dependencies": ["brush"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I dug up trail ruins" } ],
       "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
@@ -1262,7 +1327,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Some trail ruins keep a music disc in their suspicious gravel."
       ],
-      "x": 8, "y": 14,
+      "x": -5, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["trail_ruins"],
       "tasks": [ { "id": "music_disc_relic", "type": "item", "item": "minecraft:music_disc_relic" } ],
@@ -1274,7 +1340,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Warm ocean ruins hide sniffer eggs in their suspicious sand. Place one on moss: it hatches faster."
       ],
-      "x": 8, "y": 12.5,
+      "x": -5, "y": 3,
+      "shape": "square",
       "dependencies": ["first_sherd", "trail_ruins"],
       "tasks": [ { "id": "sniffer_egg", "type": "item", "item": "minecraft:sniffer_egg" } ],
       "rewards": [ { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 8 } ]
@@ -1286,7 +1353,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A grown sniffer digs up seeds from a time long gone. Feed it torchflower seeds to breed it."
       ],
       "icon": "minecraft:torchflower_seeds",
-      "x": 10, "y": 12.5,
+      "x": -6.25, "y": 3,
+      "shape": "square",
       "dependencies": ["sniffer_egg"],
       "tasks": [
         { "id": "torchflower_seeds", "type": "item", "item": "minecraft:torchflower_seeds" },
@@ -1301,7 +1369,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Grow the ancient seeds into torchflowers and pitcher plants."
       ],
       "icon": "minecraft:torchflower",
-      "x": 12, "y": 12.5,
+      "x": -7.5, "y": 3,
+      "shape": "square",
       "dependencies": ["ancient_seeds"],
       "tasks": [
         { "id": "torchflower", "type": "item", "item": "minecraft:torchflower", "count": 4 },
@@ -1316,7 +1385,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Armour trim templates turn up in structures all over the world. At a smithing table, with an ingot or a gem, they decorate armour."
       ],
       "icon": "minecraft:coast_armor_trim_smithing_template",
-      "x": 10, "y": 11,
+      "x": -6.25, "y": 2,
+      "shape": "square",
       "dependencies": ["decorated_pot"],
       "tasks": [ { "id": "trim_with_any_armor_pattern", "type": "advancement", "advancement": "minecraft:adventure/trim_with_any_armor_pattern", "title": "Trim a piece of armour" } ],
       "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 8 } ]
@@ -1328,7 +1398,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Pillager outposts, desert pyramids, shipwrecks and jungle temples each keep a trim of their own."
       ],
       "icon": "minecraft:sentry_armor_trim_smithing_template",
-      "x": 12, "y": 11,
+      "x": -7.5, "y": 2,
+      "shape": "square",
       "dependencies": ["new_look"],
       "tasks": [
         { "id": "sentry_armor_trim_smithing_template", "type": "item", "item": "minecraft:sentry_armor_trim_smithing_template" },
@@ -1357,6 +1428,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       ],
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["iron_age/iron_block"],
       "tasks": [ { "id": "deepslate", "type": "item", "item": "minecraft:cobbled_deepslate", "count": 32 } ],
       "rewards": [ { "id": "torches", "type": "item", "item": "minecraft:torch", "count": 32 } ]
@@ -1367,8 +1439,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Diamond ore sparkles pale blue, mostly very deep down. Only an iron pickaxe or better can break it."
       ],
-      "x": 2, "y": 0,
-      "shape": "diamond",
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["deepslate"],
       "tasks": [ { "id": "diamonds", "type": "item", "item": "minecraft:diamond", "count": 3 } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -1379,8 +1452,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Three diamonds and two sticks. This pickaxe can mine obsidian."
       ],
-      "x": 4, "y": -1.5,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["diamonds"],
       "tasks": [ { "id": "pickaxe", "type": "item", "item": "minecraft:diamond_pickaxe" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 50 } ]
@@ -1391,8 +1465,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Pour water over still lava and mine the obsidian with your diamond pickaxe. Ten blocks build a portal."
       ],
-      "x": 6, "y": -1.5,
-      "shape": "square",
+      "x": 0, "y": 4.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["diamond_pickaxe"],
       "tasks": [ { "id": "obsidian", "type": "item", "item": "minecraft:obsidian", "count": 10 } ],
       "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
@@ -1403,8 +1478,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Two diamonds and a stick. Nothing in the Overworld stands up to it for long."
       ],
-      "x": 4, "y": 1.5,
-      "shape": "hexagon",
+      "x": -1.25, "y": 4,
+      "shape": "square",
       "dependencies": ["diamonds"],
       "tasks": [ { "id": "sword", "type": "item", "item": "minecraft:diamond_sword" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -1416,8 +1491,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A full set of diamond armour. You will want it where you are going next."
       ],
       "icon": "minecraft:diamond_chestplate",
-      "x": 6, "y": 1.5,
-      "shape": "circle",
+      "x": -2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["diamond_sword"],
       "tasks": [
         { "id": "helmet", "type": "item", "item": "minecraft:diamond_helmet" },
@@ -1433,8 +1508,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A book, two diamonds and four obsidian make an enchanting table. Lapis lazuli pays for the spells."
       ],
-      "x": 8, "y": -1.5,
+      "x": 0, "y": 6,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["obsidian"],
       "tasks": [ { "id": "table", "type": "item", "item": "minecraft:enchanting_table" } ],
       "rewards": [ { "id": "lapis", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
@@ -1445,8 +1521,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Fifteen bookshelves around the table, one block away, unlock the strongest enchantments."
       ],
-      "x": 10, "y": -1.5,
-      "shape": "square",
+      "x": 0, "y": 7.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["enchanting_table"],
       "tasks": [ { "id": "shelves", "type": "item", "item": "minecraft:bookshelf", "count": 15 } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
@@ -1458,8 +1535,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Put a tool or a piece of armour on the table and pick an enchantment."
       ],
       "icon": "minecraft:enchanted_book",
-      "x": 10, "y": 0,
-      "shape": "circle",
+      "x": 1.25, "y": 5,
+      "shape": "square",
       "dependencies": ["enchanting_table"],
       "tasks": [ { "id": "enchant", "type": "advancement", "advancement": "minecraft:story/enchant_item" } ],
       "rewards": [ { "id": "bottles", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ]
@@ -1472,9 +1549,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Build a frame of obsidian, four wide and five tall, and light it."
       ],
       "icon": "minecraft:flint_and_steel",
-      "x": 12, "y": 0,
+      "x": 0, "y": 9,
       "shape": "hexagon",
-      "size": 1.5,
+      "size": 1.25,
       "dependencies": ["bookshelves", "enchant", "diamond_armor"],
       "tasks": [ { "id": "ready", "type": "checkmark", "title": "I am ready" } ],
       "rewards": [ { "id": "golden_apples", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
@@ -1486,7 +1563,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Dig all the way down, until you see bedrock. Diamonds are most common just above it, around Y -58."
       ],
       "icon": "minecraft:deepslate",
-      "x": 0, "y": -1.5,
+      "x": 1.25, "y": 0,
+      "shape": "square",
       "dependencies": ["deepslate"],
       "tasks": [ { "id": "location", "type": "location", "title": "Stand at Y -58 or below", "from": [-30000000, -64, -30000000], "to": [30000000, -58, 30000000], "dimension": "minecraft:overworld" } ],
       "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
@@ -1498,7 +1576,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The best tools you can make at a crafting table. Put enchantments on them later."
       ],
       "icon": "minecraft:diamond_axe",
-      "x": 4, "y": -3,
+      "x": 1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["diamond_pickaxe"],
       "tasks": [
         { "id": "diamond_axe", "type": "item", "item": "minecraft:diamond_axe" },
@@ -1512,7 +1591,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "One diamond and some planks make a jukebox. Here is a disc to go with it."
       ],
-      "x": 4, "y": 3,
+      "x": 1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["diamonds"],
       "tasks": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ],
       "rewards": [ { "id": "music_disc_cat", "type": "item", "item": "minecraft:music_disc_cat" } ]
@@ -1523,7 +1603,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Eight gold ingots around an apple. Eating it gives a burst of healing and extra hearts: keep one for a hard fight."
       ],
-      "x": 8, "y": 1.5,
+      "x": -3.75, "y": -1,
+      "shape": "square",
       "dependencies": ["diamond_armor"],
       "tasks": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ],
       "rewards": [ { "id": "gold_ingot", "type": "item", "item": "minecraft:gold_ingot", "count": 8 } ]
@@ -1535,7 +1616,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "With fifteen bookshelves around the table, the best enchantments cost thirty levels. Save them up."
       ],
       "icon": "minecraft:experience_bottle",
-      "x": 12, "y": -1.5,
+      "x": 1.25, "y": 7.5,
+      "shape": "square",
       "dependencies": ["bookshelves"],
       "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 30 } ],
       "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
@@ -1548,7 +1630,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Move crouching, and throw wool on the sensors to keep them quiet."
       ],
       "icon": "minecraft:sculk_catalyst",
-      "x": 8, "y": 7,
+      "x": -3.75, "y": 1.5,
+      "shape": "square",
       "dependencies": ["diamond_armor"],
       "tasks": [ { "id": "kill_mob_near_sculk_catalyst", "type": "advancement", "advancement": "minecraft:adventure/kill_mob_near_sculk_catalyst", "title": "Kill a mob next to a sculk catalyst" } ],
       "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 16 } ]
@@ -1559,7 +1642,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Sculk only drops itself to a silk touch tool. A sensor feels vibrations; calibrated, it listens to one kind only."
       ],
-      "x": 10, "y": 8.5,
+      "x": -5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["deep_dark"],
       "tasks": [
@@ -1575,7 +1659,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A ruined city of deepslate in the deep dark, with chests full of rare loot. Echo shards are only found here."
       ],
       "icon": "minecraft:echo_shard",
-      "x": 10, "y": 5.5,
+      "x": -5, "y": 2,
+      "shape": "square",
       "dependencies": ["deep_dark"],
       "tasks": [ { "id": "echo_shard", "type": "item", "item": "minecraft:echo_shard", "count": 2 } ],
       "rewards": [ { "id": "candle", "type": "item", "item": "minecraft:candle", "count": 8 } ]
@@ -1586,7 +1671,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Eight echo shards around a compass. It points to where you last died."
       ],
-      "x": 12, "y": 5.5,
+      "x": -6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["ancient_city"],
       "tasks": [ { "id": "recovery_compass", "type": "item", "item": "minecraft:recovery_compass" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 80 } ]
@@ -1597,7 +1683,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Nine disc fragments from the city's chests make a strange, unsettling music disc."
       ],
-      "x": 12, "y": 8.5,
+      "x": -6.25, "y": 2,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["ancient_city"],
       "tasks": [ { "id": "music_disc_5", "type": "item", "item": "minecraft:music_disc_5" } ],
@@ -1611,9 +1698,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Most players run. Beat it, with your best gear and potions."
       ],
       "icon": "minecraft:sculk_shrieker",
-      "x": 14, "y": 7,
-      "shape": "hexagon",
-      "size": 1.5,
+      "x": -6.25, "y": 3,
+      "shape": "square",
       "dependencies": ["ancient_city"],
       "tasks": [ { "id": "warden", "type": "kill", "entity": "minecraft:warden" } ],
       "rewards": [
@@ -1627,8 +1713,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Every enchantment costs lapis. Keep a good stock next to the table."
       ],
-      "x": 10, "y": -7,
-      "shape": "circle",
+      "x": 1.25, "y": 6,
+      "shape": "square",
       "dependencies": ["enchanting_table"],
       "tasks": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 32 } ],
       "rewards": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 4 } ]
@@ -1639,7 +1725,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Combine enchanted books with tools, repair them, and rename things. Mind the cost: it grows each time."
       ],
-      "x": 12, "y": -8.5,
+      "x": 2.5, "y": 5.5,
+      "shape": "square",
       "dependencies": ["lapis"],
       "tasks": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ],
       "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 8 } ]
@@ -1651,7 +1738,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Enchant plain books at the table, buy them from librarians, or fish them up."
       ],
       "icon": "minecraft:enchanted_book",
-      "x": 14, "y": -8.5,
+      "x": 3.75, "y": 5.5,
+      "shape": "square",
       "dependencies": ["anvil"],
       "tasks": [ { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book", "count": 3 } ],
       "rewards": [ { "id": "book", "type": "item", "item": "minecraft:book", "count": 6 } ]
@@ -1662,7 +1750,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A grindstone strips enchantments from an item and gives back some experience."
       ],
-      "x": 16, "y": -8.5,
+      "x": 5, "y": 5.5,
+      "shape": "square",
       "dependencies": ["books"],
       "tasks": [ { "id": "grindstone", "type": "item", "item": "minecraft:grindstone" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 50 } ]
@@ -1673,7 +1762,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Clerics sell bottles of experience. Throw them at your feet."
       ],
-      "x": 12, "y": -5.5,
+      "x": 2.5, "y": 6.5,
+      "shape": "square",
       "dependencies": ["lapis"],
       "tasks": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ],
       "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
@@ -1685,8 +1775,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Copper and tuff halls are buried deep underground. Their spawners release waves of mobs.",
         "Beat a wave and the spawner drops loot, sometimes a trial key."
       ],
-      "x": 6, "y": 12.5,
-      "shape": "circle",
+      "x": -2.5, "y": 6.5,
+      "shape": "square",
       "dependencies": ["diamond_sword"],
       "tasks": [ { "id": "trial_key", "type": "item", "item": "minecraft:trial_key" } ],
       "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 } ]
@@ -1697,7 +1787,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A mob made of wind that jumps around and shoots gusts. Its arrows bounce off; get close."
       ],
-      "x": 8, "y": 11,
+      "x": -3.75, "y": 4,
+      "shape": "square",
       "dependencies": ["trial_key"],
       "tasks": [
         { "id": "breeze", "type": "kill", "entity": "minecraft:breeze", "count": 3 },
@@ -1712,7 +1803,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A breeze rod makes four wind charges. Throw one at your feet to fly up, or at a mob to push it away."
       ],
       "icon": "minecraft:wind_charge",
-      "x": 10, "y": 11,
+      "x": -5, "y": 4,
+      "shape": "square",
       "dependencies": ["breeze"],
       "tasks": [ { "id": "wind_charge", "type": "craft", "item": "minecraft:wind_charge", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -1724,7 +1816,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Jump, throw a wind charge straight down, and go up and up."
       ],
       "icon": "minecraft:feather",
-      "x": 12, "y": 11,
+      "x": -6.25, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["wind_charge"],
       "tasks": [ { "id": "who_needs_rockets", "type": "advancement", "advancement": "minecraft:adventure/who_needs_rockets", "title": "Fly 8 blocks up with a wind charge" } ],
@@ -1737,7 +1830,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Mossy skeletons whose arrows poison you. They live in swamps and in trial chambers."
       ],
       "icon": "minecraft:bow",
-      "x": 8, "y": 14,
+      "x": -3.75, "y": 6.5,
+      "shape": "square",
       "dependencies": ["trial_key"],
       "tasks": [ { "id": "bogged", "type": "kill", "entity": "minecraft:bogged", "count": 5 } ],
       "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
@@ -1749,7 +1843,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The chambers' vaults open with a trial key, once for each player."
       ],
       "icon": "minecraft:vault",
-      "x": 10, "y": 14,
+      "x": -5, "y": 6.5,
+      "shape": "square",
       "dependencies": ["bogged"],
       "tasks": [ { "id": "under_lock_and_key", "type": "advancement", "advancement": "minecraft:adventure/under_lock_and_key", "title": "Open a vault" } ],
       "rewards": [ { "id": "trial_key", "type": "item", "item": "minecraft:trial_key" } ]
@@ -1761,7 +1856,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Vaults give food, tools, enchanted books, and some rare things you will not find elsewhere."
       ],
       "icon": "minecraft:guster_banner_pattern",
-      "x": 12, "y": 14,
+      "x": -6.25, "y": 5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["vault"],
       "tasks": [
@@ -1777,7 +1873,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The chambers are lit by copper bulbs. Make your own: they toggle on and off with each redstone pulse."
       ],
       "icon": "minecraft:copper_bulb",
-      "x": 8, "y": 12.5,
+      "x": -3.75, "y": 9,
+      "shape": "square",
       "dependencies": ["trial_key"],
       "tasks": [ { "id": "copper_bulb", "type": "item", "item": "minecraft:copper_bulb", "count": 4 } ],
       "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
@@ -1789,7 +1886,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Raid captains drop ominous bottles. Drink one and enter a trial chamber: its trials become ominous."
       ],
       "icon": "minecraft:ominous_bottle",
-      "x": 10, "y": 12.5,
+      "x": -6.25, "y": 7,
+      "shape": "square",
       "dependencies": ["vault"],
       "tasks": [ { "id": "ominous_bottle", "type": "item", "item": "minecraft:ominous_bottle" } ],
       "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
@@ -1801,7 +1899,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Ominous spawners send harder waves and drop ominous keys, for the ominous vaults."
       ],
       "icon": "minecraft:ominous_trial_key",
-      "x": 12, "y": 12.5,
+      "x": -7.5, "y": 7,
+      "shape": "square",
       "dependencies": ["ominous"],
       "tasks": [ { "id": "ominous_trial_key", "type": "item", "item": "minecraft:ominous_trial_key" } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
@@ -1812,7 +1911,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "The rarest thing an ominous vault gives. Very dense, very heavy, very valuable."
       ],
-      "x": 14, "y": 12.5,
+      "x": -8.75, "y": 6.5,
+      "shape": "square",
       "dependencies": ["ominous_key"],
       "tasks": [ { "id": "heavy_core", "type": "item", "item": "minecraft:heavy_core" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
@@ -1824,7 +1924,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Ominous vaults also give the flow trim and banner pattern, found nowhere else."
       ],
       "icon": "minecraft:flow_banner_pattern",
-      "x": 14, "y": 14,
+      "x": -8.75, "y": 8,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["ominous_key"],
       "tasks": [
@@ -1840,9 +1941,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A heavy core on a breeze rod makes a mace. The further you fall before you hit, the harder it hits.",
         "Wind charges and a mace go well together."
       ],
-      "x": 14, "y": 11,
-      "shape": "hexagon",
-      "size": 1.25,
+      "x": -10, "y": 6.5,
+      "shape": "square",
       "dependencies": ["heavy_core", "breeze"],
       "tasks": [ { "id": "mace", "type": "item", "item": "minecraft:mace" } ],
       "rewards": [ { "id": "wind_charge", "type": "item", "item": "minecraft:wind_charge", "count": 32 } ]
@@ -1854,7 +1954,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Climb high, fall far, and bring the mace down on something. Fifty hearts of damage in a single hit."
       ],
       "icon": "minecraft:mace",
-      "x": 16, "y": 11,
+      "x": -11.25, "y": 6,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["mace"],
       "tasks": [ { "id": "overoverkill", "type": "advancement", "advancement": "minecraft:adventure/overoverkill", "title": "Deal 50 hearts in one mace hit" } ],
@@ -1867,7 +1968,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "You beat the chambers and their ominous trials, and you have the mace to show for it."
       ],
       "icon": "minecraft:trial_spawner",
-      "x": 16, "y": 12.5,
+      "x": -11.25, "y": 7,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -1894,6 +1995,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "icon": "minecraft:obsidian",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["diamonds/ready_for_nether"],
       "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],
       "rewards": [
@@ -1907,7 +2009,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "White ore all through the netherrack. It gives a lot of experience and makes fine building blocks."
       ],
-      "x": 2, "y": -1.5,
+      "x": -1.25, "y": 1,
       "shape": "square",
       "dependencies": ["portal"],
       "tasks": [ { "id": "quartz", "type": "item", "item": "minecraft:quartz", "count": 16 } ],
@@ -1920,7 +2022,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Piglins attack anyone not wearing gold. Wear a piece of golden armour, and bring gold to trade."
       ],
       "icon": "minecraft:gold_ingot",
-      "x": 2, "y": 1.5,
+      "x": -1.25, "y": 0,
       "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
@@ -1937,7 +2039,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Throw a gold ingot to a piglin and see what it gives you back."
       ],
       "icon": "minecraft:gold_nugget",
-      "x": 4, "y": 2.5,
+      "x": -2.5, "y": 0,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["gold"],
@@ -1951,8 +2053,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Nether fortresses are dark brick strongholds over the lava seas. Find one."
       ],
       "icon": "minecraft:nether_bricks",
-      "x": 4, "y": 0,
+      "x": 0, "y": 1.5,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["quartz", "gold"],
       "tasks": [ { "id": "fortress", "type": "advancement", "advancement": "minecraft:nether/find_fortress" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -1964,8 +2067,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Blazes guard the fortress. Defeat them for their rods: you will need them to brew, and to reach the End."
       ],
       "icon": "minecraft:blaze_rod",
-      "x": 6, "y": -1.5,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["fortress"],
       "tasks": [
         { "id": "blazes", "type": "kill", "entity": "minecraft:blaze", "count": 3 },
@@ -1979,7 +2083,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Red fungus growing on soul sand in the fortress. It is the base of almost every potion."
       ],
-      "x": 6, "y": 1.5,
+      "x": -1.25, "y": 3,
       "shape": "square",
       "dependencies": ["fortress"],
       "tasks": [ { "id": "wart", "type": "item", "item": "minecraft:nether_wart", "count": 8 } ],
@@ -1991,8 +2095,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A blaze rod and three cobblestone make a brewing stand."
       ],
-      "x": 8, "y": 0,
-      "shape": "circle",
+      "x": 0, "y": 4.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["blaze_rods", "nether_wart"],
       "tasks": [ { "id": "stand", "type": "item", "item": "minecraft:brewing_stand" } ],
       "rewards": [ { "id": "bottles", "type": "item", "item": "minecraft:glass_bottle", "count": 6 } ]
@@ -2004,8 +2109,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Fill bottles with water, add nether wart, then an ingredient: a potion of fire resistance is a good start (magma cream)."
       ],
       "icon": "minecraft:potion",
-      "x": 10, "y": 0,
-      "shape": "diamond",
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["brewing_stand"],
       "tasks": [ { "id": "brew", "type": "advancement", "advancement": "minecraft:nether/brew_potion" } ],
       "rewards": [ { "id": "blaze_powder", "type": "item", "item": "minecraft:blaze_powder", "count": 4 } ]
@@ -2017,10 +2123,10 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "You have braved the Nether and come back with blaze rods. Next: the stronghold, and what lies beyond it."
       ],
       "icon": "minecraft:ender_eye",
-      "x": 12, "y": 0,
+      "x": 0, "y": 7.5,
       "shape": "hexagon",
-      "visibility": "until_deps_complete",
       "size": 1.5,
+      "visibility": "until_deps_complete",
       "dependencies": ["potion"],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
     },
@@ -2031,7 +2137,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Glowstone hangs from the Nether's ceiling. Break it for dust: it brews stronger potions and makes lamps."
       ],
       "icon": "minecraft:glowstone",
-      "x": 2, "y": -3,
+      "x": 1.25, "y": 0,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [ { "id": "glowstone_dust", "type": "item", "item": "minecraft:glowstone_dust", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
@@ -2042,7 +2149,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Ghasts float over lava and spit fireballs. Hit a fireball back at it, or shoot it, and take its tear."
       ],
-      "x": 4, "y": -3,
+      "x": -1.25, "y": 2,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
         { "id": "ghast", "type": "kill", "entity": "minecraft:ghast" },
@@ -2056,7 +2164,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Magma cubes hop around fortresses and basalt. Their cream brews fire resistance, the Nether's best friend."
       ],
-      "x": 6, "y": -3,
+      "x": -2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["fortress"],
       "tasks": [
         { "id": "magma_cube", "type": "kill", "entity": "minecraft:magma_cube", "count": 3 },
@@ -2071,7 +2180,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A valley of blue fire and skeletons. Soul sand slows you down; soul torches burn blue and keep piglins away."
       ],
       "icon": "minecraft:soul_sand",
-      "x": 8, "y": 2.5,
+      "x": -2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
         { "id": "soul_sand", "type": "item", "item": "minecraft:soul_sand", "count": 16 },
@@ -2086,8 +2196,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The Nether's forests grow giant fungi instead of trees: red crimson and blue warped. Their wood does not burn."
       ],
       "icon": "minecraft:warped_fungus",
-      "x": 2, "y": 6.5,
-      "shape": "circle",
+      "x": 1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["portal"],
       "tasks": [
         { "id": "crimson_stem", "type": "item", "item": "minecraft:crimson_stem", "count": 16 },
@@ -2101,7 +2211,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Shroomlights glow among the huge fungi's caps, and vines hang under them."
       ],
-      "x": 4, "y": 5,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["forests"],
       "tasks": [
         { "id": "shroomlight", "type": "item", "item": "minecraft:shroomlight", "count": 4 },
@@ -2116,7 +2227,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Hoglins charge anything in crimson forests. Warped fungus scares them away."
       ],
       "icon": "minecraft:cooked_porkchop",
-      "x": 4, "y": 8,
+      "x": 2.5, "y": 1.5,
+      "shape": "square",
       "dependencies": ["forests"],
       "tasks": [ { "id": "hoglin", "type": "kill", "entity": "minecraft:hoglin", "count": 3 } ],
       "rewards": [ { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 } ]
@@ -2128,7 +2240,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Striders cross the lava seas. Saddle one and steer it with warped fungus on a stick."
       ],
       "icon": "minecraft:warped_fungus_on_a_stick",
-      "x": 6, "y": 8,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["hoglins"],
       "tasks": [
         { "id": "warped_fungus_on_a_stick", "type": "item", "item": "minecraft:warped_fungus_on_a_stick" },
@@ -2143,7 +2256,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Huge blackstone fortresses held by piglins. Wear gold, do not open their chests in front of them, and do not mine their gold."
       ],
       "icon": "minecraft:gilded_blackstone",
-      "x": 6, "y": 5,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["shroomlight"],
       "tasks": [ { "id": "gilded_blackstone", "type": "item", "item": "minecraft:gilded_blackstone" } ],
       "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
@@ -2155,7 +2269,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Piglin brutes guard the bastions' treasure. Gold does not calm them."
       ],
       "icon": "minecraft:golden_axe",
-      "x": 8, "y": 5,
+      "x": 5, "y": 0,
+      "shape": "square",
       "dependencies": ["bastion"],
       "tasks": [ { "id": "piglin_brute", "type": "kill", "entity": "minecraft:piglin_brute" } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
@@ -2167,7 +2282,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Bastion chests always have a chance of a netherite upgrade template. Duplicate it with diamonds and netherrack."
       ],
       "icon": "minecraft:netherite_upgrade_smithing_template",
-      "x": 10, "y": 5,
+      "x": 6.25, "y": 0,
+      "shape": "square",
       "dependencies": ["brute"],
       "tasks": [ { "id": "netherite_upgrade_smithing_template", "type": "item", "item": "minecraft:netherite_upgrade_smithing_template" } ],
       "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
@@ -2179,7 +2295,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Crying obsidian and glowstone make a respawn anchor: a bed that works in the Nether. Never use it in the Overworld."
       ],
       "icon": "minecraft:respawn_anchor",
-      "x": 8, "y": 6.5,
+      "x": 2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["forests"],
       "tasks": [
         { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian", "count": 6 },
@@ -2193,7 +2310,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A netherite ingot in chiseled stone. Use a compass on a lodestone and it will point to it, in any dimension."
       ],
-      "x": 10, "y": 6.5,
+      "x": 3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["respawn_anchor", "beyond/netherite"],
       "tasks": [ { "id": "lodestone", "type": "item", "item": "minecraft:lodestone" } ],
       "rewards": [ { "id": "compass", "type": "item", "item": "minecraft:compass" } ]
@@ -2205,7 +2323,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Grey pillars, ash and magma cubes. Blackstone works like cobblestone for tools and furnaces."
       ],
       "icon": "minecraft:basalt",
-      "x": 8, "y": 8,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["strider"],
       "tasks": [
         { "id": "basalt", "type": "item", "item": "minecraft:basalt", "count": 16 },
@@ -2220,7 +2339,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Soul fire burns blue and keeps piglins and hoglins at a distance."
       ],
       "icon": "minecraft:soul_lantern",
-      "x": 10, "y": 8,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["basalt", "soul_sand"],
       "tasks": [
         { "id": "soul_campfire", "type": "item", "item": "minecraft:soul_campfire" },
@@ -2234,7 +2354,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Bastions sometimes keep a music disc in their chests. Piglins dance to it."
       ],
-      "x": 12, "y": 5,
+      "x": 7.5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["upgrade_template"],
       "tasks": [ { "id": "music_disc_pigstep", "type": "item", "item": "minecraft:music_disc_pigstep" } ],
@@ -2247,7 +2368,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A hoglin taken to the Overworld turns into a zoglin, which attacks everything."
       ],
       "icon": "minecraft:rotten_flesh",
-      "x": 12, "y": 8,
+      "x": 3.75, "y": 2,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["hoglins"],
       "tasks": [ { "id": "zoglin", "type": "kill", "entity": "minecraft:zoglin" } ],
@@ -2260,7 +2382,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Every brewing stand burns blaze powder. Keep some aside."
       ],
       "icon": "minecraft:blaze_powder",
-      "x": 10, "y": -5.5,
+      "x": -1.25, "y": 4.5,
+      "shape": "square",
       "dependencies": ["brewing_stand"],
       "tasks": [ { "id": "blaze_powder", "type": "item", "item": "minecraft:blaze_powder", "count": 8 } ],
       "rewards": [ { "id": "glass_bottle", "type": "item", "item": "minecraft:glass_bottle", "count": 8 } ]
@@ -2272,7 +2395,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A spider eye with sugar and a mushroom, a golden melon, a rabbit's foot, magma cream: each brews something else."
       ],
       "icon": "minecraft:fermented_spider_eye",
-      "x": 12, "y": -5.5,
+      "x": -2.5, "y": 4.5,
+      "shape": "square",
       "dependencies": ["blaze_powder"],
       "tasks": [
         { "id": "fermented_spider_eye", "type": "item", "item": "minecraft:fermented_spider_eye", "count": 2 },
@@ -2289,7 +2413,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Gunpowder turns a potion into one you throw. It hits everything around where it breaks."
       ],
       "icon": "minecraft:splash_potion",
-      "x": 14, "y": -5.5,
+      "x": -3.75, "y": 4.5,
+      "shape": "square",
       "dependencies": ["ingredients"],
       "tasks": [ { "id": "splash_potion", "type": "item", "item": "minecraft:splash_potion", "count": 3 } ],
       "rewards": [ { "id": "gunpowder", "type": "item", "item": "minecraft:gunpowder", "count": 8 } ]
@@ -2301,7 +2426,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Dragon's breath turns a splash potion into a lingering cloud. Dip arrows in it for tipped arrows."
       ],
       "icon": "minecraft:lingering_potion",
-      "x": 16, "y": -5.5,
+      "x": -5, "y": 4.5,
+      "shape": "square",
       "dependencies": ["splash", "the_end/dragon_breath"],
       "tasks": [ { "id": "lingering_potion", "type": "item", "item": "minecraft:lingering_potion" } ],
       "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
@@ -2313,7 +2439,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Every potion effect on you at the same time. It takes planning."
       ],
       "icon": "minecraft:potion",
-      "x": 18, "y": -5.5,
+      "x": -6.25, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["lingering"],
       "tasks": [ { "id": "all_potions", "type": "advancement", "advancement": "minecraft:nether/all_potions", "title": "Have every potion effect at once" } ],
@@ -2326,7 +2453,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Enchanting, brewing and the anvil hold no more secrets for you."
       ],
       "icon": "minecraft:enchanting_table",
-      "x": 18, "y": -8.5,
+      "x": -6.25, "y": 5,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -2355,6 +2482,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       ],
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["the_nether/nether_done"],
       "tasks": [ { "id": "pearls", "type": "item", "item": "minecraft:ender_pearl", "count": 12 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -2366,8 +2494,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A pearl and blaze powder make an eye of Ender. Throw one in the air and it flies towards a stronghold."
       ],
       "icon": "minecraft:ender_eye",
-      "x": 2, "y": 0,
-      "shape": "square",
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["pearls"],
       "tasks": [ { "id": "eyes", "type": "craft", "item": "minecraft:ender_eye", "count": 12 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -2380,8 +2509,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The dragon heals from crystals on top of the obsidian pillars. A bow and plenty of arrows will take them down."
       ],
       "icon": "minecraft:bow",
-      "x": 2, "y": -1.5,
-      "shape": "hexagon",
+      "x": 1.25, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["pearls"],
       "tasks": [
@@ -2397,8 +2526,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Follow the eyes to where they dive into the ground, dig down, and find the portal room."
       ],
       "icon": "minecraft:mossy_stone_bricks",
-      "x": 4, "y": 0,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["eyes"],
       "tasks": [ { "id": "follow", "type": "advancement", "advancement": "minecraft:story/follow_ender_eye" } ],
       "rewards": [ { "id": "food", "type": "item", "item": "minecraft:cooked_beef", "count": 16 } ]
@@ -2410,8 +2540,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Fill the portal frame with eyes and jump in. There is no way back until the dragon falls."
       ],
       "icon": "minecraft:end_portal_frame",
-      "x": 6, "y": 0,
-      "shape": "circle",
+      "x": 0, "y": 4.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["stronghold"],
       "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_end" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -2423,9 +2554,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Break the crystals, then bring down the Ender Dragon."
       ],
       "icon": "minecraft:dragon_head",
-      "x": 8, "y": 0,
-      "shape": "diamond",
-      "size": 1.5,
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["enter_end"],
       "tasks": [ { "id": "dragon", "type": "advancement", "advancement": "minecraft:end/kill_dragon" } ],
       "rewards": [ { "id": "bottles", "type": "item", "item": "minecraft:experience_bottle", "count": 16 } ]
@@ -2438,8 +2569,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The dragon leaves an egg on the portal. It teleports when touched: push it off with a piston, or catch it as it falls onto a torch."
       ],
       "icon": "minecraft:dragon_egg",
-      "x": 10, "y": -1.5,
-      "shape": "square",
+      "x": -1.25, "y": 6,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["dragon"],
       "tasks": [ { "id": "egg", "type": "advancement", "advancement": "minecraft:end/dragon_egg" } ],
@@ -2452,8 +2583,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "You have beaten the Ender Dragon. The game is yours, but the End still hides cities and treasure."
       ],
       "icon": "minecraft:end_crystal",
-      "x": 10, "y": 0,
+      "x": 0, "y": 7.5,
       "shape": "hexagon",
+      "size": 1.5,
       "visibility": "until_deps_complete",
       "dependencies": ["dragon"],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
@@ -2464,7 +2596,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "An eye of Ender in obsidian makes an ender chest. Every one of them opens the same private storage."
       ],
-      "x": 2, "y": 1.5,
+      "x": -1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["eyes"],
       "tasks": [ { "id": "ender_chest", "type": "item", "item": "minecraft:ender_chest" } ],
       "rewards": [ { "id": "obsidian", "type": "item", "item": "minecraft:obsidian", "count": 8 } ]
@@ -2475,7 +2608,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Catch the dragon's purple breath in empty bottles. It brews lingering potions."
       ],
-      "x": 10, "y": 1.5,
+      "x": 1.25, "y": 6,
+      "shape": "square",
       "dependencies": ["dragon"],
       "tasks": [ { "id": "dragon_breath", "type": "item", "item": "minecraft:dragon_breath", "count": 4 } ],
       "rewards": [ { "id": "glass_bottle", "type": "item", "item": "minecraft:glass_bottle", "count": 8 } ]
@@ -2488,7 +2622,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Beat it a second time. It drops no egg, but a lot of experience."
       ],
       "icon": "minecraft:end_crystal",
-      "x": 12, "y": 1.5,
+      "x": 2.5, "y": 6,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["dragon_breath"],
       "tasks": [
@@ -2516,6 +2651,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "icon": "minecraft:end_stone",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["the_end/dragon"],
       "tasks": [ { "id": "gateway", "type": "advancement", "advancement": "minecraft:end/enter_end_gateway" } ],
       "rewards": [ { "id": "pearls", "type": "item", "item": "minecraft:ender_pearl", "count": 4 } ]
@@ -2527,8 +2663,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Tall purple towers on the outer islands. Watch out for shulkers: their bullets make you float."
       ],
       "icon": "minecraft:purpur_block",
-      "x": 2, "y": 0,
+      "x": 0, "y": 1.5,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["gateway"],
       "tasks": [ { "id": "city", "type": "advancement", "advancement": "minecraft:end/find_end_city" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -2539,8 +2676,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Some cities have a ship floating nearby, with elytra on its wall. Glide, and use rockets to fly."
       ],
-      "x": 4, "y": -1.5,
-      "shape": "diamond",
+      "x": 0, "y": 3,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["end_city"],
       "tasks": [ { "id": "elytra", "type": "item", "item": "minecraft:elytra" } ],
       "rewards": [ { "id": "rockets", "type": "item", "item": "minecraft:firework_rocket", "count": 32 } ]
@@ -2552,7 +2690,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Two shulker shells around a chest make a shulker box: a chest that keeps its contents when broken."
       ],
       "icon": "minecraft:shulker_box",
-      "x": 4, "y": 1.5,
+      "x": -1.25, "y": 1.5,
       "shape": "square",
       "dependencies": ["end_city"],
       "tasks": [
@@ -2567,7 +2705,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Very rare, very deep in the Nether, and immune to lava. Only a diamond pickaxe mines it."
       ],
-      "x": 0, "y": 3,
+      "x": -1.25, "y": 3,
       "shape": "square",
       "dependencies": ["the_nether/portal"],
       "tasks": [ { "id": "debris", "type": "item", "item": "minecraft:ancient_debris", "count": 4 } ],
@@ -2580,8 +2718,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Smelt the debris into scrap; four scrap and four gold ingots make one netherite ingot."
       ],
       "icon": "minecraft:netherite_ingot",
-      "x": 2, "y": 3,
-      "shape": "hexagon",
+      "x": -2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["debris"],
       "tasks": [ { "id": "ingot", "type": "item", "item": "minecraft:netherite_ingot" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
@@ -2594,8 +2732,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Upgrade a full set of diamond armour at a smithing table with netherite (each piece needs an upgrade template, found in bastions)."
       ],
       "icon": "minecraft:netherite_chestplate",
-      "x": 4, "y": 3,
-      "shape": "circle",
+      "x": -3.75, "y": 2.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["netherite"],
       "tasks": [ { "id": "armor", "type": "advancement", "advancement": "minecraft:nether/netherite_armor" } ],
@@ -2607,7 +2745,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Wither skeletons roam nether fortresses and sometimes drop their skull. Three are needed for what comes next."
       ],
-      "x": 0, "y": -3,
+      "x": -1.25, "y": 4.5,
       "shape": "square",
       "dependencies": ["the_nether/fortress"],
       "tasks": [ { "id": "skulls", "type": "item", "item": "minecraft:wither_skeleton_skull", "count": 3 } ],
@@ -2620,8 +2758,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Four soul sand in a T and the three skulls on top summon the Wither. Fight it far from home."
       ],
       "icon": "minecraft:nether_star",
-      "x": 2, "y": -3,
-      "shape": "diamond",
+      "x": -2.5, "y": 4.5,
+      "shape": "square",
       "dependencies": ["skulls"],
       "tasks": [ { "id": "wither", "type": "kill", "entity": "minecraft:wither" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
@@ -2632,8 +2770,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "The Wither's nether star, glass and obsidian make a beacon. On a pyramid of iron, gold, emerald or diamond blocks it gives powers to everyone near."
       ],
-      "x": 4, "y": -3,
-      "shape": "hexagon",
+      "x": -3.75, "y": 4.5,
+      "shape": "square",
       "dependencies": ["wither"],
       "tasks": [ { "id": "beacon", "type": "item", "item": "minecraft:beacon" } ],
       "rewards": [ { "id": "iron", "type": "item", "item": "minecraft:iron_block", "count": 9 } ]
@@ -2646,10 +2784,10 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Thank you for playing through these quests."
       ],
       "icon": "minecraft:nether_star",
-      "x": 7, "y": 0,
+      "x": 0, "y": 4.5,
       "shape": "hexagon",
-      "visibility": "until_deps_complete",
       "size": 2,
+      "visibility": "until_deps_complete",
       "dependencies": ["elytra", "shulker_box", "netherite", "beacon"],
       "rewards": [
         { "id": "done", "type": "toast", "title": "Well done", "text": "You have finished the vanilla quests.", "auto_claim": "enabled" },
@@ -2662,7 +2800,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Paper and gunpowder make rockets. Use one while gliding with elytra to climb and speed up."
       ],
-      "x": 6, "y": -1.5,
+      "x": 1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["elytra"],
       "tasks": [ { "id": "firework_rocket", "type": "item", "item": "minecraft:firework_rocket", "count": 32 } ],
       "rewards": [ { "id": "firework_rocket", "type": "item", "item": "minecraft:firework_rocket", "count": 32 } ]
@@ -2674,7 +2813,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Chorus plants grow on the outer islands. Their fruit teleports you; popped, it makes purpur blocks."
       ],
       "icon": "minecraft:purpur_block",
-      "x": 2, "y": 1.5,
+      "x": -1.25, "y": 0.5,
+      "shape": "square",
       "dependencies": ["end_city"],
       "tasks": [
         { "id": "chorus_fruit", "type": "item", "item": "minecraft:chorus_fruit", "count": 16 },
@@ -2688,7 +2828,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Shulkers hide in end cities and shoot bullets that make you float. Hunt a few for more shells."
       ],
-      "x": 6, "y": 1.5,
+      "x": -2.5, "y": 1.5,
+      "shape": "square",
       "dependencies": ["shulker_box"],
       "tasks": [ { "id": "shulker", "type": "kill", "entity": "minecraft:shulker", "count": 5 } ],
       "rewards": [ { "id": "shulker_shell", "type": "item", "item": "minecraft:shulker_shell", "count": 2 } ]
@@ -2699,7 +2840,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Upgrade diamond tools at a smithing table with a netherite ingot and an upgrade template."
       ],
-      "x": 6, "y": 3,
+      "x": -3.75, "y": 3.5,
+      "shape": "square",
       "dependencies": ["netherite"],
       "tasks": [
         { "id": "netherite_pickaxe", "type": "item", "item": "minecraft:netherite_pickaxe" },
@@ -2714,7 +2856,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A beacon on a four-level pyramid of iron, gold, emerald, diamond or netherite blocks: every power at once."
       ],
       "icon": "minecraft:beacon",
-      "x": 6, "y": -3,
+      "x": -5, "y": 4.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["beacon"],
       "tasks": [ { "id": "create_full_beacon", "type": "advancement", "advancement": "minecraft:nether/create_full_beacon", "title": "Power a full beacon" } ],
@@ -2727,8 +2870,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Fish from your boat. Pufferfish are poisonous to eat, but useful for water breathing potions."
       ],
       "icon": "minecraft:salmon",
-      "x": 0, "y": 7,
-      "shape": "circle",
+      "x": 1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["getting_started/boat"],
       "tasks": [
         { "id": "salmon", "type": "item", "item": "minecraft:salmon", "count": 4 },
@@ -2743,7 +2886,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Kelp forests grow in most oceans; dry it in a furnace for a quick snack. Sea pickles glow on warm reefs."
       ],
       "icon": "minecraft:kelp",
-      "x": 2, "y": 8.5,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["good_catch"],
       "tasks": [
         { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
@@ -2757,7 +2901,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Warm oceans are full of coloured fish. Catch one alive in a water bucket."
       ],
-      "x": 2, "y": 5.5,
+      "x": 2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["good_catch"],
       "tasks": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ],
       "rewards": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ]
@@ -2769,7 +2914,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Baby turtles drop a scute when they grow up. Five make a helmet that lets you breathe a little longer."
       ],
       "icon": "minecraft:turtle_helmet",
-      "x": 4, "y": 8.5,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["seaweed"],
       "tasks": [
         { "id": "turtle_scute", "type": "item", "item": "minecraft:turtle_scute", "count": 5 },
@@ -2784,7 +2930,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Zombies that sank. Some carry tridents, others nautilus shells."
       ],
       "icon": "minecraft:rotten_flesh",
-      "x": 4, "y": 7,
+      "x": 2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["good_catch"],
       "tasks": [ { "id": "drowned", "type": "kill", "entity": "minecraft:drowned", "count": 5 } ],
       "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
@@ -2795,7 +2942,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Only a drowned drops a trident. Throw it, and enchant it with loyalty so it comes back."
       ],
-      "x": 6, "y": 7,
+      "x": 3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["drowned"],
       "tasks": [ { "id": "trident", "type": "item", "item": "minecraft:trident" } ],
       "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
@@ -2807,7 +2955,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Wrecks lie on the sea floor and on beaches. One of their chests may hold a treasure map."
       ],
       "icon": "minecraft:oak_boat",
-      "x": 4, "y": 5.5,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["fish_bucket"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I looted a shipwreck" } ],
       "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 3 } ]
@@ -2818,7 +2967,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Follow a treasure map to the X and dig. Buried treasure always holds a heart of the sea."
       ],
-      "x": 6, "y": 5.5,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["shipwreck"],
       "tasks": [ { "id": "heart_of_the_sea", "type": "item", "item": "minecraft:heart_of_the_sea" } ],
       "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
@@ -2829,7 +2979,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A heart of the sea in eight nautilus shells. In a prismarine frame, a conduit lets you breathe and see underwater."
       ],
-      "x": 8, "y": 5.5,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["treasure"],
       "tasks": [
         { "id": "nautilus_shell", "type": "item", "item": "minecraft:nautilus_shell", "count": 8 },
@@ -2845,7 +2996,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A living nautilus can be tamed and saddled to ride underwater."
       ],
       "icon": "minecraft:nautilus_shell",
-      "x": 6, "y": 8.5,
+      "x": 5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["turtles"],
       "tasks": [
@@ -2861,7 +3013,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A temple of prismarine guarded by guardians and their lasers. Bring milk: the elders slow your mining."
       ],
       "icon": "minecraft:prismarine_bricks",
-      "x": 8, "y": 7,
+      "x": 5, "y": 2,
+      "shape": "square",
       "dependencies": ["trident"],
       "tasks": [
         { "id": "guardian", "type": "kill", "entity": "minecraft:guardian", "count": 5 },
@@ -2876,9 +3029,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Three elder guardians live in each monument. Beat one and take the sponges from its treasure room."
       ],
       "icon": "minecraft:prismarine_crystals",
-      "x": 10, "y": 7,
-      "shape": "hexagon",
-      "size": 1.25,
+      "x": 6.25, "y": 2,
+      "shape": "square",
       "dependencies": ["monument"],
       "tasks": [
         { "id": "elder_guardian", "type": "kill", "entity": "minecraft:elder_guardian" },
@@ -2896,7 +3048,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Monuments, shipwrecks and buried treasure: the sea has no more secrets for you."
       ],
       "icon": "minecraft:heart_of_the_sea",
-      "x": 12, "y": 6.25,
+      "x": 7.5, "y": 2,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -2923,6 +3075,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "icon": "minecraft:wheat_seeds",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["getting_started/crafting_table"],
       "tasks": [ { "id": "plant", "type": "advancement", "advancement": "minecraft:husbandry/plant_seed" } ],
       "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 8 } ]
@@ -2933,8 +3086,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Wait for the wheat to turn golden and harvest it. Bone meal speeds it up."
       ],
-      "x": 2, "y": 0,
-      "shape": "square",
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["seeds"],
       "tasks": [ { "id": "wheat", "type": "item", "item": "minecraft:wheat", "count": 16 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
@@ -2945,7 +3099,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Sugar cane grows on sand or dirt next to water. It makes sugar, and paper for books and maps."
       ],
-      "x": 2, "y": -1.5,
+      "x": -1.25, "y": 0,
       "shape": "square",
       "dependencies": ["seeds"],
       "tasks": [ { "id": "cane", "type": "item", "item": "minecraft:sugar_cane", "count": 16 } ],
@@ -2958,8 +3112,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Feed two animals of the same kind their favourite food: wheat for cows and sheep, carrots for pigs, seeds for chickens."
       ],
       "icon": "minecraft:lead",
-      "x": 2, "y": 1.5,
-      "shape": "hexagon",
+      "x": 1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["seeds"],
       "tasks": [ { "id": "breed", "type": "advancement", "advancement": "minecraft:husbandry/breed_an_animal" } ],
       "rewards": [ { "id": "leads", "type": "item", "item": "minecraft:lead", "count": 2 } ]
@@ -2970,7 +3124,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Cows drop leather. It makes books, item frames and light armour."
       ],
-      "x": 4, "y": 1.5,
+      "x": 2.5, "y": 0,
       "shape": "square",
       "dependencies": ["breed"],
       "tasks": [ { "id": "leather", "type": "item", "item": "minecraft:leather", "count": 8 } ],
@@ -2982,8 +3136,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Milk, sugar, an egg and wheat. Place it and take a slice whenever you are hungry."
       ],
-      "x": 4, "y": -1.5,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["wheat", "sugar_cane"],
       "tasks": [ { "id": "cake", "type": "craft", "item": "minecraft:cake" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -2995,8 +3150,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Sticks and string make a fishing rod. Cast it into water and pull when the float dips."
       ],
       "icon": "minecraft:fishing_rod",
-      "x": 4, "y": 0,
-      "shape": "circle",
+      "x": 1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["wheat"],
       "tasks": [ { "id": "fish", "type": "advancement", "advancement": "minecraft:husbandry/fishy_business" } ],
       "rewards": [ { "id": "cod", "type": "item", "item": "minecraft:cooked_cod", "count": 8 } ]
@@ -3007,8 +3162,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A carrot wrapped in gold nuggets: the most filling food you can farm."
       ],
-      "x": 6, "y": 0,
-      "shape": "diamond",
+      "x": 0, "y": 4.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["cake", "fishing"],
       "tasks": [ { "id": "carrots", "type": "craft", "item": "minecraft:golden_carrot", "count": 8 } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -3021,8 +3177,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Tame a wolf with bones, or a cat with raw fish. It follows you and fights by your side."
       ],
       "icon": "minecraft:bone",
-      "x": 6, "y": 1.5,
-      "shape": "square",
+      "x": 3.75, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["leather"],
       "tasks": [ { "id": "tame", "type": "advancement", "advancement": "minecraft:husbandry/tame_an_animal" } ],
@@ -3034,7 +3190,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Bone meal makes crops grow at once. A composter turns spare plants into more of it."
       ],
-      "x": 0, "y": -1.5,
+      "x": -1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["seeds"],
       "tasks": [
         { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 },
@@ -3049,7 +3206,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Carrots and potatoes come from zombies and village farms, beetroot seeds from chests. Plant them all."
       ],
       "icon": "minecraft:carrot",
-      "x": 2, "y": -3,
+      "x": -2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["sugar_cane"],
       "tasks": [
         { "id": "carrot", "type": "item", "item": "minecraft:carrot", "count": 16 },
@@ -3065,7 +3223,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Pumpkins and melons grow on the block next to their stem. Leave them room."
       ],
       "icon": "minecraft:pumpkin",
-      "x": 4, "y": -3,
+      "x": -3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["vegetables"],
       "tasks": [
         { "id": "pumpkin", "type": "item", "item": "minecraft:pumpkin", "count": 8 },
@@ -3080,7 +3239,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Put a campfire under a full beehive, then use a bottle for honey or shears for honeycomb. The bees stay calm."
       ],
       "icon": "minecraft:honey_bottle",
-      "x": 6, "y": -1.5,
+      "x": -1.25, "y": 4.5,
+      "shape": "square",
       "dependencies": ["cake"],
       "tasks": [
         { "id": "honey_bottle", "type": "item", "item": "minecraft:honey_bottle", "count": 4 },
@@ -3094,7 +3254,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Mine a bee nest with silk touch and the bees inside move with it."
       ],
-      "x": 8, "y": -1.5,
+      "x": -2.5, "y": 4.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["honey"],
       "tasks": [ { "id": "bee_nest", "type": "item", "item": "minecraft:bee_nest" } ],
@@ -3106,7 +3267,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A netherite ingot spent on a hoe. Your crops deserve it."
       ],
-      "x": 8, "y": 0,
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "optional": true,
       "dependencies": ["golden_carrots", "beyond/netherite"],
       "tasks": [ { "id": "netherite_hoe", "type": "item", "item": "minecraft:netherite_hoe" } ],
@@ -3118,8 +3281,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "String and a slime ball make leads. Tie animals to fences, or walk them home."
       ],
-      "x": 4, "y": 5.5,
-      "shape": "circle",
+      "x": 2.5, "y": 3.5,
+      "shape": "square",
       "dependencies": ["breed"],
       "tasks": [ { "id": "lead", "type": "craft", "item": "minecraft:lead", "count": 2 } ],
       "rewards": [ { "id": "wheat", "type": "item", "item": "minecraft:wheat", "count": 16 } ]
@@ -3130,7 +3293,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Name tags come from chests, fishing and librarians. Rename one at an anvil, then use it on an animal you love."
       ],
-      "x": 4, "y": 7,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["lead"],
       "tasks": [ { "id": "name_tag", "type": "item", "item": "minecraft:name_tag" } ],
       "rewards": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ]
@@ -3142,7 +3306,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Mount a horse again and again until it stops throwing you off, then saddle it."
       ],
       "icon": "minecraft:saddle",
-      "x": 6, "y": 4,
+      "x": 3.75, "y": 2.5,
+      "shape": "square",
       "dependencies": ["lead"],
       "tasks": [
         { "id": "saddle", "type": "item", "item": "minecraft:saddle" },
@@ -3156,7 +3321,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Horse armour is found in chests. A horse wearing it takes far less damage."
       ],
-      "x": 8, "y": 4,
+      "x": 5, "y": 2,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["horse"],
       "tasks": [ { "id": "iron_horse_armor", "type": "item", "item": "minecraft:iron_horse_armor" } ],
@@ -3169,7 +3335,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Camels wander deserts and savannas. Two can ride one, and they dash over gaps."
       ],
       "icon": "minecraft:cactus",
-      "x": 10, "y": 4,
+      "x": 5, "y": 3,
+      "shape": "square",
       "dependencies": ["horse"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I rode a camel" } ],
       "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 } ]
@@ -3181,7 +3348,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Brush an armadillo, or wait for it to shed: it drops scutes. They roll up when anything comes close."
       ],
       "icon": "minecraft:armadillo_scute",
-      "x": 6, "y": 7,
+      "x": 3.75, "y": 4,
+      "shape": "square",
       "dependencies": ["lead"],
       "tasks": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 6 } ],
       "rewards": [ { "id": "brush", "type": "item", "item": "minecraft:brush" } ]
@@ -3193,7 +3361,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Give bones to a wolf until hearts appear. It follows you, fights for you, and sits when told."
       ],
       "icon": "minecraft:bone",
-      "x": 6, "y": 5.5,
+      "x": 3.75, "y": 5.5,
+      "shape": "square",
       "dependencies": ["lead"],
       "tasks": [
         { "id": "bone", "type": "item", "item": "minecraft:bone", "count": 8 },
@@ -3207,7 +3376,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Armadillo scutes make wolf armour. It soaks up the damage and can be repaired with more scutes."
       ],
-      "x": 8, "y": 7,
+      "x": 5, "y": 4,
+      "shape": "square",
       "dependencies": ["armadillo", "wolf"],
       "tasks": [ { "id": "wolf_armor", "type": "craft", "item": "minecraft:wolf_armor" } ],
       "rewards": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 4 } ]
@@ -3219,7 +3389,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Wolves look different in every forest and taiga. Tame one of each."
       ],
       "icon": "minecraft:wolf_armor",
-      "x": 10, "y": 7,
+      "x": 6.25, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["wolf_armor"],
       "tasks": [ { "id": "whole_pack", "type": "advancement", "advancement": "minecraft:husbandry/whole_pack", "title": "Tame one of each kind of wolf" } ],
@@ -3232,7 +3403,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Stray cats live in villages. Feed them raw fish and they keep phantoms and creepers away."
       ],
       "icon": "minecraft:cod",
-      "x": 8, "y": 5.5,
+      "x": 5, "y": 5.5,
+      "shape": "square",
       "dependencies": ["wolf"],
       "tasks": [
         { "id": "cod", "type": "item", "item": "minecraft:cod", "count": 4 },
@@ -3247,7 +3419,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Allays are kept in pillager outposts and woodland mansions. Free one and give it an item: it collects more of it for you."
       ],
       "icon": "minecraft:amethyst_shard",
-      "x": 10, "y": 5.5,
+      "x": 6.25, "y": 5,
+      "shape": "square",
       "dependencies": ["cat"],
       "tasks": [ { "id": "allay_deliver_item_to_player", "type": "advancement", "advancement": "minecraft:husbandry/allay_deliver_item_to_player", "title": "An allay brings you an item" } ],
       "rewards": [ { "id": "note_block", "type": "item", "item": "minecraft:note_block" } ]
@@ -3259,7 +3432,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Soul sand valleys hide dried ghasts. Put one in water and wait: something small wakes up."
       ],
       "icon": "minecraft:dried_ghast",
-      "x": 12, "y": 4,
+      "x": 6.25, "y": 3,
+      "shape": "square",
       "dependencies": ["camel", "the_nether/portal"],
       "tasks": [ { "id": "dried_ghast", "type": "item", "item": "minecraft:dried_ghast" } ],
       "rewards": [ { "id": "water_bucket", "type": "item", "item": "minecraft:water_bucket" } ]
@@ -3271,7 +3445,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A grown happy ghast carries up to four players with a harness. Snowballs are its favourite treat."
       ],
       "icon": "minecraft:white_harness",
-      "x": 14, "y": 4,
+      "x": 7.5, "y": 3,
+      "shape": "square",
       "dependencies": ["dried_ghast"],
       "tasks": [
         { "id": "harnesses", "type": "item", "item": "#minecraft:harnesses" },
@@ -3286,7 +3461,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Two snow blocks with a carved pumpkin on top. It throws snowballs at monsters and leaves snow behind."
       ],
       "icon": "minecraft:carved_pumpkin",
-      "x": 12, "y": 7,
+      "x": 6.25, "y": 6,
+      "shape": "square",
       "dependencies": ["cat"],
       "tasks": [
         { "id": "carved_pumpkin", "type": "item", "item": "minecraft:carved_pumpkin" },
@@ -3301,7 +3477,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Horses, wolves, cats, allays and a ghast to fly. You never travel alone now."
       ],
       "icon": "minecraft:lead",
-      "x": 14, "y": 6.25,
+      "x": 8.75, "y": 3,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -3318,8 +3494,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A furnace among four logs. It cooks food twice as fast."
       ],
-      "x": 4, "y": -7,
-      "shape": "circle",
+      "x": -1.25, "y": 2.5,
+      "shape": "square",
       "dependencies": ["wheat"],
       "tasks": [ { "id": "smoker", "type": "item", "item": "minecraft:smoker" } ],
       "rewards": [ { "id": "charcoal", "type": "item", "item": "minecraft:charcoal", "count": 16 } ]
@@ -3331,7 +3507,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Cows, pigs, chickens. Keep a stock of cooked meat."
       ],
       "icon": "minecraft:cooked_porkchop",
-      "x": 6, "y": -8.5,
+      "x": -2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["smoker"],
       "tasks": [
         { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 },
@@ -3347,7 +3524,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Cooked fish from rivers and oceans."
       ],
       "icon": "minecraft:cooked_salmon",
-      "x": 6, "y": -5.5,
+      "x": -2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["smoker"],
       "tasks": [
         { "id": "cooked_cod", "type": "item", "item": "minecraft:cooked_cod", "count": 8 },
@@ -3362,7 +3540,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Small foods you can eat fast: dried kelp and baked potatoes."
       ],
       "icon": "minecraft:baked_potato",
-      "x": 8, "y": -7,
+      "x": -2.5, "y": 3.5,
+      "shape": "square",
       "dependencies": ["smoker"],
       "tasks": [
         { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
@@ -3377,7 +3556,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Stews come in bowls. A suspicious stew, made with a flower, gives a short effect: guess which one."
       ],
       "icon": "minecraft:rabbit_stew",
-      "x": 8, "y": -8.5,
+      "x": -3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["butcher"],
       "tasks": [
         { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" },
@@ -3394,7 +3574,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Wheat and cocoa make cookies; pumpkin, sugar and an egg make a pie."
       ],
       "icon": "minecraft:cookie",
-      "x": 8, "y": -5.5,
+      "x": -3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["fish_supper"],
       "tasks": [
         { "id": "cookie", "type": "item", "item": "minecraft:cookie", "count": 16 },
@@ -3409,7 +3590,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Gold nuggets around a melon slice or a carrot. Golden carrots are the best everyday food."
       ],
       "icon": "minecraft:glistering_melon_slice",
-      "x": 10, "y": -7,
+      "x": -3.75, "y": 3.5,
+      "shape": "square",
       "dependencies": ["snacks"],
       "tasks": [
         { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice", "count": 2 },
@@ -3423,7 +3605,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "It cannot be crafted. Only chests in ruins, temples and bastions hold one."
       ],
-      "x": 12, "y": -8.5,
+      "x": -5, "y": 3,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["golden_food"],
       "tasks": [ { "id": "enchanted_golden_apple", "type": "item", "item": "minecraft:enchanted_golden_apple" } ],
@@ -3436,7 +3619,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Every food, even the strange ones: chorus fruit, poisonous potatoes, rotten flesh, spider eyes."
       ],
       "icon": "minecraft:golden_apple",
-      "x": 12, "y": -5.5,
+      "x": -5, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["golden_food", "soups", "sweets"],
       "tasks": [ { "id": "balanced_diet", "type": "advancement", "advancement": "minecraft:husbandry/balanced_diet", "title": "Eat everything that can be eaten" } ],
@@ -3461,6 +3645,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "icon": "minecraft:zombie_head",
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["getting_started/stone"],
       "tasks": [ { "id": "zombies", "type": "kill", "entity": "minecraft:zombie", "count": 10 } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 6 } ]
@@ -3472,7 +3657,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Skeletons shoot from a distance: close in fast or use a shield."
       ],
       "icon": "minecraft:bone",
-      "x": 2, "y": -1.5,
+      "x": -1.25, "y": 4.5,
       "shape": "square",
       "dependencies": ["zombies"],
       "tasks": [ { "id": "skeletons", "type": "kill", "entity": "minecraft:skeleton", "count": 10 } ],
@@ -3485,8 +3670,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Spiders climb walls and hunt at night. Their string makes bows and fishing rods."
       ],
       "icon": "minecraft:string",
-      "x": 2, "y": 0,
-      "shape": "square",
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["zombies"],
       "tasks": [ { "id": "spiders", "type": "kill", "entity": "minecraft:spider", "count": 10 } ],
       "rewards": [ { "id": "string", "type": "item", "item": "minecraft:string", "count": 8 } ]
@@ -3498,7 +3684,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Creepers sneak up and explode. Hit them and step back."
       ],
       "icon": "minecraft:gunpowder",
-      "x": 2, "y": 1.5,
+      "x": 1.25, "y": 4.5,
       "shape": "square",
       "dependencies": ["zombies"],
       "tasks": [ { "id": "creepers", "type": "kill", "entity": "minecraft:creeper", "count": 5 } ],
@@ -3511,8 +3697,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Endermen are tall, fast and strike hard. Fight them under a two-block-high roof, or in water's reach."
       ],
       "icon": "minecraft:ender_pearl",
-      "x": 4, "y": 0,
+      "x": 0, "y": 3,
       "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["skeletons", "spiders", "creepers"],
       "tasks": [ { "id": "endermen", "type": "kill", "entity": "minecraft:enderman", "count": 3 } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 2 } ]
@@ -3525,7 +3712,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Witches throw potions and drink their own. Rush them before they heal."
       ],
       "icon": "minecraft:glass_bottle",
-      "x": 6, "y": -1.5,
+      "x": -1.25, "y": 3,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["endermen"],
@@ -3540,7 +3727,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Defeat the captain of a pillager patrol: the one carrying a banner."
       ],
       "icon": "minecraft:crossbow",
-      "x": 6, "y": 1.5,
+      "x": 1.25, "y": 3,
       "shape": "diamond",
       "optional": true,
       "dependencies": ["endermen"],
@@ -3554,10 +3741,10 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Zombies, skeletons, spiders, creepers and endermen: the night holds no more fear for you."
       ],
       "icon": "minecraft:diamond_sword",
-      "x": 8, "y": 0,
+      "x": 0, "y": 4.5,
       "shape": "hexagon",
-      "visibility": "until_deps_complete",
       "size": 1.5,
+      "visibility": "until_deps_complete",
       "dependencies": ["endermen"],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
     },
@@ -3568,7 +3755,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Slimes live in swamps and deep underground in some chunks. Big ones split into small ones."
       ],
       "icon": "minecraft:slime_ball",
-      "x": 4, "y": -3,
+      "x": -2.5, "y": 4,
+      "shape": "square",
       "dependencies": ["skeletons"],
       "tasks": [ { "id": "slime", "type": "kill", "entity": "minecraft:slime", "count": 5 } ],
       "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
@@ -3580,7 +3768,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Deserts have husks that do not burn, snowy lands have strays with slowing arrows."
       ],
       "icon": "minecraft:sand",
-      "x": 2, "y": -3,
+      "x": -2.5, "y": 5,
+      "shape": "square",
       "dependencies": ["skeletons"],
       "tasks": [
         { "id": "husk", "type": "kill", "entity": "minecraft:husk", "count": 3 },
@@ -3595,7 +3784,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Some stone in mountains and strongholds hides silverfish. Break one block and more pour out."
       ],
       "icon": "minecraft:stone_bricks",
-      "x": 6, "y": -3,
+      "x": -3.75, "y": 4,
+      "shape": "square",
       "dependencies": ["slimes"],
       "tasks": [ { "id": "silverfish", "type": "kill", "entity": "minecraft:silverfish", "count": 5 } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
@@ -3607,7 +3797,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Skip three nights of sleep and phantoms dive at you from the sky. Their membranes repair elytra."
       ],
       "icon": "minecraft:phantom_membrane",
-      "x": 4, "y": 3,
+      "x": 2.5, "y": 4,
+      "shape": "square",
       "dependencies": ["creepers"],
       "tasks": [
         { "id": "phantom", "type": "kill", "entity": "minecraft:phantom", "count": 3 },
@@ -3622,7 +3813,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Desert skeletons dried by the sun. Their arrows weaken you."
       ],
       "icon": "minecraft:bone",
-      "x": 6, "y": 3,
+      "x": 3.75, "y": 4,
+      "shape": "square",
       "dependencies": ["phantoms"],
       "tasks": [ { "id": "parched", "type": "kill", "entity": "minecraft:parched", "count": 3 } ],
       "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
@@ -3634,7 +3826,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "At night in the desert, husks ride undead camels. Bring the camel down."
       ],
       "icon": "minecraft:cactus",
-      "x": 8, "y": 3,
+      "x": 5, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["parched"],
       "tasks": [ { "id": "camel_husk", "type": "kill", "entity": "minecraft:camel_husk" } ],
@@ -3647,7 +3840,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Zombies that were once villagers. Kill them, or cure them: see Village life."
       ],
       "icon": "minecraft:emerald",
-      "x": 2, "y": 3,
+      "x": 2.5, "y": 5,
+      "shape": "square",
       "dependencies": ["creepers"],
       "tasks": [ { "id": "zombie_villager", "type": "kill", "entity": "minecraft:zombie_villager", "count": 3 } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
@@ -3659,7 +3853,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Throw enough ender pearls and an endermite sometimes crawls out where you land."
       ],
       "icon": "minecraft:ender_pearl",
-      "x": 8, "y": -3,
+      "x": -5, "y": 4,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["silverfish"],
       "tasks": [ { "id": "endermite", "type": "kill", "entity": "minecraft:endermite" } ],
@@ -3671,8 +3866,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Villagers buy what they need for emeralds: wheat, paper, coal, sticks. Find one who buys what you have."
       ],
-      "x": 0, "y": 7,
-      "shape": "circle",
+      "x": 1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["iron_age/village"],
       "tasks": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 8 } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
@@ -3684,7 +3879,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A villager without a job takes the first free workstation it finds: a lectern makes a librarian, a fletching table a fletcher."
       ],
       "icon": "minecraft:lectern",
-      "x": 2, "y": 5.5,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["emeralds"],
       "tasks": [
         { "id": "lectern", "type": "item", "item": "minecraft:lectern" },
@@ -3700,7 +3896,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Librarians sell enchanted books. Reroll their trade by breaking and replacing the lectern before trading."
       ],
-      "x": 4, "y": 5.5,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["job_sites"],
       "tasks": [ { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book" } ],
       "rewards": [ { "id": "book", "type": "item", "item": "minecraft:book", "count": 8 } ]
@@ -3711,7 +3908,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Eighteen emeralds. Trade often and villagers level up and sell better things."
       ],
-      "x": 2, "y": 8.5,
+      "x": 2.5, "y": 1.5,
+      "shape": "square",
       "dependencies": ["emeralds"],
       "tasks": [ { "id": "emerald_block", "type": "item", "item": "minecraft:emerald_block", "count": 2 } ],
       "rewards": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ]
@@ -3723,7 +3921,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Four iron blocks in a T and a carved pumpkin on top. It protects the village; villagers build them too."
       ],
       "icon": "minecraft:iron_block",
-      "x": 4, "y": 7,
+      "x": 2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["emeralds"],
       "tasks": [
         { "id": "iron_block", "type": "item", "item": "minecraft:iron_block", "count": 4 },
@@ -3738,7 +3937,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Throw a splash potion of weakness at a zombie villager, then feed it a golden apple. It thanks you with cheap trades."
       ],
       "icon": "minecraft:golden_apple",
-      "x": 6, "y": 7,
+      "x": 3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["iron_golem", "the_nether/potion"],
       "tasks": [
         { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" },
@@ -3753,7 +3953,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Pillagers live in tall wooden towers. Their captain carries a banner and an ominous bottle."
       ],
       "icon": "minecraft:crossbow",
-      "x": 4, "y": 8.5,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["wealthy"],
       "tasks": [ { "id": "pillager", "type": "kill", "entity": "minecraft:pillager", "count": 5 } ],
       "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
@@ -3766,9 +3967,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Ravagers, vindicators, evokers. Save the villagers and they will give you gifts."
       ],
       "icon": "minecraft:white_banner",
-      "x": 6, "y": 8.5,
-      "shape": "hexagon",
-      "size": 1.25,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["outpost"],
       "tasks": [
         { "id": "vindicator", "type": "kill", "entity": "minecraft:vindicator", "count": 5 },
@@ -3784,7 +3984,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Evokers summon fangs from the ground and vexes that fly through walls. Kill the evoker first."
       ],
       "icon": "minecraft:totem_of_undying",
-      "x": 8, "y": 8.5,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["raid"],
       "tasks": [
         { "id": "evoker", "type": "kill", "entity": "minecraft:evoker" },
@@ -3799,7 +4000,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Now and then a trader comes by with two llamas, selling plants and things from far away."
       ],
       "icon": "minecraft:lead",
-      "x": 2, "y": 10,
+      "x": 3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["wealthy"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I traded with a wandering trader" } ],
       "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 2 } ]
@@ -3811,7 +4013,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Take a villager up to the build limit, then trade with it. It will not be easy."
       ],
       "icon": "minecraft:emerald",
-      "x": 8, "y": 5.5,
+      "x": 5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["librarian", "iron_age/top_of_world"],
       "tasks": [ { "id": "trade_at_world_height", "type": "advancement", "advancement": "minecraft:adventure/trade_at_world_height", "title": "Trade at the build limit" } ],
@@ -3823,8 +4026,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Slower to load than a bow, but it hits hard, and it can fire rockets."
       ],
-      "x": 0, "y": -7,
-      "shape": "circle",
+      "x": -1.25, "y": 1.5,
+      "shape": "square",
       "dependencies": ["iron_age/iron_armor"],
       "tasks": [ { "id": "crossbow", "type": "item", "item": "minecraft:crossbow" } ],
       "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
@@ -3836,7 +4039,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Glowstone makes spectral arrows that show targets through walls. Lingering potions make tipped arrows."
       ],
       "icon": "minecraft:spectral_arrow",
-      "x": 2, "y": -8.5,
+      "x": -2.5, "y": 0.5,
+      "shape": "square",
       "dependencies": ["crossbow"],
       "tasks": [
         { "id": "spectral_arrow", "type": "item", "item": "minecraft:spectral_arrow", "count": 16 },
@@ -3851,7 +4055,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Spears reach further than swords. Charge with one held out and it lunges through what is in front."
       ],
       "icon": "minecraft:iron_spear",
-      "x": 2, "y": -5.5,
+      "x": -2.5, "y": 2.5,
+      "shape": "square",
       "dependencies": ["crossbow"],
       "tasks": [ { "id": "spears", "type": "item", "item": "#minecraft:spears" } ],
       "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 4 } ]
@@ -3863,7 +4068,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Line them up, charge, and skewer as many as you can at once."
       ],
       "icon": "minecraft:stone_spear",
-      "x": 4, "y": -5.5,
+      "x": -3.75, "y": 2,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["spear"],
       "tasks": [ { "id": "spear_many_mobs", "type": "advancement", "advancement": "minecraft:adventure/spear_many_mobs", "title": "Hit many mobs with one spear charge" } ],
@@ -3875,7 +4081,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Upgrade a diamond spear at a smithing table."
       ],
-      "x": 6, "y": -5.5,
+      "x": -3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["spear", "beyond/netherite"],
       "tasks": [ { "id": "netherite_spear", "type": "item", "item": "minecraft:netherite_spear" } ],
       "rewards": [ { "id": "netherite_scrap", "type": "item", "item": "minecraft:netherite_scrap" } ]
@@ -3887,7 +4094,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Evokers drop totems of undying. Hold one in either hand: the next time you would die, you don't."
       ],
       "icon": "minecraft:totem_of_undying",
-      "x": 4, "y": -8.5,
+      "x": -3.75, "y": 0.5,
+      "shape": "square",
       "dependencies": ["special_arrows"],
       "tasks": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
@@ -3899,7 +4107,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Take a skeleton down from fifty blocks away with an arrow."
       ],
       "icon": "minecraft:bow",
-      "x": 6, "y": -8.5,
+      "x": -5, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["totem"],
       "tasks": [ { "id": "sniper_duel", "type": "advancement", "advancement": "minecraft:adventure/sniper_duel", "title": "Shoot a skeleton from 50 blocks" } ],
@@ -3912,9 +4121,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A shield, a bow, a crossbow and a trident on the wall. Ready for anything."
       ],
       "icon": "minecraft:shield",
-      "x": 6, "y": -7,
-      "shape": "hexagon",
-      "size": 1.25,
+      "x": -5, "y": 1,
+      "shape": "square",
       "dependencies": ["totem", "spear"],
       "tasks": [
         { "id": "shield", "type": "item", "item": "minecraft:shield" },
@@ -3942,6 +4150,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       ],
       "x": 0, "y": 0,
       "shape": "circle",
+      "size": 1.25,
       "dependencies": ["getting_started/settled"],
       "tasks": [ { "id": "stonecutter", "type": "item", "item": "minecraft:stonecutter" } ],
       "rewards": [ { "id": "stone", "type": "item", "item": "minecraft:stone", "count": 64 } ]
@@ -3952,7 +4161,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Dig clay from river beds, smelt it into bricks, then build."
       ],
-      "x": 2, "y": -1.5,
+      "x": 0, "y": 1.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["stonecutter"],
       "tasks": [ { "id": "bricks", "type": "item", "item": "minecraft:bricks", "count": 32 } ],
       "rewards": [ { "id": "clay_ball", "type": "item", "item": "minecraft:clay_ball", "count": 16 } ]
@@ -3964,7 +4175,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Smelt sand into glass; six glass make sixteen panes."
       ],
       "icon": "minecraft:glass",
-      "x": 2, "y": 1.5,
+      "x": -1.25, "y": 3,
+      "shape": "square",
       "dependencies": ["stonecutter"],
       "tasks": [
         { "id": "glass", "type": "item", "item": "minecraft:glass", "count": 32 },
@@ -3979,7 +4191,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Stone bricks, and moss or vines on them for a ruined look."
       ],
       "icon": "minecraft:stone_bricks",
-      "x": 4, "y": -1.5,
+      "x": 0, "y": 3,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["bricks"],
       "tasks": [
         { "id": "stone_bricks", "type": "item", "item": "#minecraft:stone_bricks", "count": 32 },
@@ -3994,7 +4208,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Flowers give most dyes; green comes from smelting cactus and blue from lapis or cornflowers."
       ],
       "icon": "minecraft:red_dye",
-      "x": 4, "y": 1.5,
+      "x": -2.5, "y": 3,
+      "shape": "square",
       "dependencies": ["glass"],
       "tasks": [
         { "id": "red_dye", "type": "item", "item": "minecraft:red_dye" },
@@ -4011,7 +4226,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Dye, sand and gravel make concrete powder, which hardens in water. Smelt dyed terracotta for glazed patterns."
       ],
       "icon": "minecraft:cyan_concrete",
-      "x": 6, "y": 1.5,
+      "x": -3.75, "y": 3,
+      "shape": "square",
       "dependencies": ["dyes"],
       "tasks": [
         { "id": "concrete", "type": "item", "item": "#minecraft:concrete", "count": 32 },
@@ -4026,7 +4242,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Copper blocks, cut copper, grates you can see through, doors and trapdoors."
       ],
       "icon": "minecraft:cut_copper",
-      "x": 6, "y": -1.5,
+      "x": 0, "y": 4.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["masonry", "iron_age/copper_tools"],
       "tasks": [
         { "id": "copper_block", "type": "item", "item": "minecraft:copper_block", "count": 4 },
@@ -4041,7 +4259,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Copper left in the open turns green with time. Scrape it back with an axe."
       ],
-      "x": 8, "y": -1.5,
+      "x": 0, "y": 6,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["copper_building"],
       "tasks": [ { "id": "oxidized_copper", "type": "item", "item": "minecraft:oxidized_copper", "count": 4 } ],
       "rewards": [ { "id": "copper_block", "type": "item", "item": "minecraft:copper_block", "count": 4 } ]
@@ -4053,7 +4273,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Honeycomb on copper freezes it in its current colour."
       ],
       "icon": "minecraft:honeycomb",
-      "x": 10, "y": -1.5,
+      "x": 0, "y": 7.5,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["patina", "farming/honey"],
       "tasks": [ { "id": "waxed_copper_block", "type": "item", "item": "minecraft:waxed_copper_block", "count": 4 } ],
       "rewards": [ { "id": "honeycomb", "type": "item", "item": "minecraft:honeycomb", "count": 6 } ]
@@ -4065,7 +4287,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A carved pumpkin on a copper block makes a copper golem. It sorts items from copper chests into ordinary ones."
       ],
       "icon": "minecraft:copper_chest",
-      "x": 8, "y": -3,
+      "x": 1.25, "y": 4.5,
+      "shape": "square",
       "dependencies": ["copper_building"],
       "tasks": [
         { "id": "copper_chest", "type": "item", "item": "minecraft:copper_chest" },
@@ -4080,7 +4303,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Left alone long enough, a copper golem oxidizes until it stops moving and becomes a statue."
       ],
       "icon": "minecraft:oxidized_copper_golem_statue",
-      "x": 10, "y": -3,
+      "x": 2.5, "y": 4.5,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["copper_golem"],
       "tasks": [ { "id": "copper_golem_statues", "type": "item", "item": "#minecraft:copper_golem_statues" } ],
@@ -4093,7 +4317,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Armour stands, item frames, paintings: a house becomes a home."
       ],
       "icon": "minecraft:painting",
-      "x": 8, "y": 0,
+      "x": -1.25, "y": 6,
+      "shape": "square",
       "dependencies": ["concrete", "patina"],
       "tasks": [
         { "id": "armor_stand", "type": "item", "item": "minecraft:armor_stand" },
@@ -4109,7 +4334,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Design a banner at a loom, then put it on a shield at a crafting table."
       ],
       "icon": "minecraft:white_banner",
-      "x": 8, "y": 1.5,
+      "x": -5, "y": 3,
+      "shape": "square",
       "dependencies": ["concrete"],
       "tasks": [
         { "id": "banners", "type": "item", "item": "#minecraft:banners" },
@@ -4124,7 +4350,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Hanging signs and shelves. A shelf holds three items in plain view, and swaps them with your hotbar."
       ],
       "icon": "minecraft:oak_shelf",
-      "x": 10, "y": 1.5,
+      "x": -6.25, "y": 3,
+      "shape": "square",
       "dependencies": ["banners"],
       "tasks": [
         { "id": "hanging_signs", "type": "item", "item": "#minecraft:hanging_signs", "count": 4 },
@@ -4139,7 +4366,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "String and honeycomb make candles; up to four fit in one block."
       ],
       "icon": "minecraft:candle",
-      "x": 10, "y": 0,
+      "x": -2.5, "y": 6,
+      "shape": "square",
       "dependencies": ["decorations"],
       "tasks": [
         { "id": "candles", "type": "item", "item": "#minecraft:candles", "count": 4 },
@@ -4154,7 +4382,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A chiseled bookshelf holds six books you can take and put back, and redstone can read it."
       ],
       "icon": "minecraft:chiseled_bookshelf",
-      "x": 12, "y": 0,
+      "x": -3.75, "y": 6,
+      "shape": "square",
       "dependencies": ["candles", "shop"],
       "tasks": [
         { "id": "chiseled_bookshelf", "type": "item", "item": "minecraft:chiseled_bookshelf" },
@@ -4169,7 +4398,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A bundle carries a stack of different small things in one slot."
       ],
       "icon": "minecraft:bundle",
-      "x": 12, "y": -1.5,
+      "x": 0, "y": 9,
+      "shape": "hexagon",
+      "size": 1.25,
       "dependencies": ["wax_on"],
       "tasks": [ { "id": "bundles", "type": "item", "item": "#minecraft:bundles" } ],
       "rewards": [ { "id": "rabbit_hide", "type": "item", "item": "minecraft:rabbit_hide", "count": 8 } ]
@@ -4180,7 +4411,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Bamboo and string. Climb it, build on it, and break the bottom block to take it all down."
       ],
-      "x": 0, "y": 1.5,
+      "x": 1.25, "y": 0,
+      "shape": "square",
       "dependencies": ["stonecutter"],
       "tasks": [ { "id": "scaffolding", "type": "item", "item": "minecraft:scaffolding", "count": 16 } ],
       "rewards": [ { "id": "bamboo", "type": "item", "item": "minecraft:bamboo", "count": 32 } ]
@@ -4192,7 +4424,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Brick, copper, glass, concrete and candles. Every build is within reach."
       ],
       "icon": "minecraft:bricks",
-      "x": 14, "y": 0,
+      "x": 0, "y": 10.5,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -4210,8 +4442,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Redstone dust carries power. A lever switches it, a redstone torch inverts it."
       ],
       "icon": "minecraft:lever",
-      "x": 0, "y": 5.5,
-      "shape": "circle",
+      "x": 1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["iron_age/ores"],
       "tasks": [
         { "id": "redstone_torch", "type": "item", "item": "minecraft:redstone_torch", "count": 4 },
@@ -4226,7 +4458,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Repeaters delay and strengthen signals; comparators read how full a chest is."
       ],
       "icon": "minecraft:repeater",
-      "x": 2, "y": 4,
+      "x": 2.5, "y": 0,
+      "shape": "square",
       "dependencies": ["first_circuits"],
       "tasks": [
         { "id": "repeater", "type": "item", "item": "minecraft:repeater", "count": 4 },
@@ -4241,7 +4474,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Pistons push blocks; sticky pistons pull them back. Hidden doors start here."
       ],
       "icon": "minecraft:piston",
-      "x": 2, "y": 7,
+      "x": 2.5, "y": 1,
+      "shape": "square",
       "dependencies": ["first_circuits"],
       "tasks": [
         { "id": "piston", "type": "item", "item": "minecraft:piston", "count": 4 },
@@ -4255,7 +4489,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "An observer sends a pulse when the block it faces changes. It is the heart of most farms."
       ],
-      "x": 4, "y": 7,
+      "x": 3.75, "y": 1,
+      "shape": "square",
       "dependencies": ["pistons"],
       "tasks": [ { "id": "observer", "type": "item", "item": "minecraft:observer", "count": 2 } ],
       "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
@@ -4267,7 +4502,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Hoppers move items between containers. Droppers spit them out; dispensers use them."
       ],
       "icon": "minecraft:hopper",
-      "x": 4, "y": 4,
+      "x": 3.75, "y": 0,
+      "shape": "square",
       "dependencies": ["signals"],
       "tasks": [
         { "id": "hopper", "type": "item", "item": "minecraft:hopper", "count": 4 },
@@ -4282,7 +4518,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "A crafter crafts each time it is powered, following the slots you leave open."
       ],
-      "x": 6, "y": 4,
+      "x": 5, "y": 0,
+      "shape": "square",
       "dependencies": ["logistics"],
       "tasks": [ { "id": "crafter", "type": "item", "item": "minecraft:crafter" } ],
       "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
@@ -4294,7 +4531,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Set a crafter up so that it crafts another crafter."
       ],
       "icon": "minecraft:crafter",
-      "x": 8, "y": 4,
+      "x": 6.25, "y": 0,
+      "shape": "diamond",
       "optional": true,
       "dependencies": ["crafter"],
       "tasks": [ { "id": "crafters_crafting_crafters", "type": "advancement", "advancement": "minecraft:adventure/crafters_crafting_crafters", "title": "Have a crafter craft a crafter" } ],
@@ -4307,7 +4545,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Powered rails need gold and a redstone signal to push carts along."
       ],
       "icon": "minecraft:powered_rail",
-      "x": 4, "y": 5.5,
+      "x": 2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["first_circuits"],
       "tasks": [
         { "id": "rail", "type": "item", "item": "minecraft:rail", "count": 32 },
@@ -4323,7 +4562,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A daylight detector senses the sun: wire it to lamps that turn on at night."
       ],
       "icon": "minecraft:redstone_lamp",
-      "x": 6, "y": 7,
+      "x": 5, "y": 1,
+      "shape": "square",
       "dependencies": ["observer"],
       "tasks": [
         { "id": "daylight_detector", "type": "item", "item": "minecraft:daylight_detector" },
@@ -4338,7 +4578,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Gunpowder and sand. Light it, and stand back."
       ],
       "icon": "minecraft:tnt",
-      "x": 6, "y": 5.5,
+      "x": 3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["rails"],
       "tasks": [ { "id": "tnt", "type": "item", "item": "minecraft:tnt", "count": 4 } ],
       "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
@@ -4350,7 +4591,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A target block sends a stronger signal the closer to its centre you hit. Note blocks play a note on each pulse."
       ],
       "icon": "minecraft:target",
-      "x": 8, "y": 5.5,
+      "x": 5, "y": 2,
+      "shape": "square",
       "dependencies": ["tnt"],
       "tasks": [
         { "id": "target", "type": "item", "item": "minecraft:target" },
@@ -4365,7 +4607,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Slime and honey blocks drag their neighbours along with pistons, but not each other. Flying machines use both."
       ],
       "icon": "minecraft:slime_block",
-      "x": 8, "y": 7,
+      "x": 6.25, "y": 1,
+      "shape": "square",
       "dependencies": ["lamps"],
       "tasks": [
         { "id": "slime_block", "type": "item", "item": "minecraft:slime_block", "count": 2 },
@@ -4380,7 +4623,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "You know every part of the redstone toolbox. Now build something with it."
       ],
       "icon": "minecraft:comparator",
-      "x": 10, "y": 5.5,
+      "x": 7.5, "y": 1,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
@@ -4399,8 +4642,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Take your time. They are here for the long run."
       ],
       "icon": "minecraft:chest",
-      "x": 0, "y": -7,
-      "shape": "circle",
+      "x": -1.25, "y": 1,
+      "shape": "square",
       "dependencies": ["getting_started/settled"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I am ready to collect" } ],
       "rewards": [ { "id": "chest", "type": "item", "item": "minecraft:chest", "count": 4 } ]
@@ -4412,7 +4655,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "One log of every tree, from the Overworld and from the Nether."
       ],
       "icon": "minecraft:oak_log",
-      "x": 2, "y": -8.5,
+      "x": -2.5, "y": 0.5,
+      "shape": "square",
       "dependencies": ["start"],
       "tasks": [
         { "id": "oak_log", "type": "item", "item": "minecraft:oak_log" },
@@ -4437,7 +4681,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Every flower of the Overworld. Bone meal on grass helps, and so do the right biomes."
       ],
       "icon": "minecraft:poppy",
-      "x": 2, "y": -5.5,
+      "x": -2.5, "y": 2,
+      "shape": "square",
       "dependencies": ["start"],
       "tasks": [
         { "id": "dandelion", "type": "item", "item": "minecraft:dandelion" },
@@ -4466,7 +4711,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "All sixteen dyes."
       ],
       "icon": "minecraft:magenta_dye",
-      "x": 4, "y": -5.5,
+      "x": -3.75, "y": 2,
+      "shape": "square",
       "dependencies": ["florist"],
       "tasks": [
         { "id": "white_dye", "type": "item", "item": "minecraft:white_dye" },
@@ -4495,7 +4741,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A block of every metal and gem. The netherite one hurts."
       ],
       "icon": "minecraft:gold_block",
-      "x": 4, "y": -8.5,
+      "x": -3.75, "y": 0.5,
+      "shape": "square",
       "dependencies": ["lumberjack"],
       "tasks": [
         { "id": "coal_block", "type": "item", "item": "minecraft:coal_block" },
@@ -4520,7 +4767,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Find these six."
       ],
       "icon": "minecraft:music_disc_13",
-      "x": 6, "y": -7,
+      "x": -5, "y": 0,
+      "shape": "square",
       "dependencies": ["treasury", "rainbow"],
       "tasks": [
         { "id": "music_disc_13", "type": "item", "item": "minecraft:music_disc_13" },
@@ -4539,7 +4787,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The rarest trims: from ancient cities, strongholds, woodland mansions, monuments, end cities, bastions and fortresses."
       ],
       "icon": "minecraft:silence_armor_trim_smithing_template",
-      "x": 6, "y": -8.5,
+      "x": -5, "y": 1,
+      "shape": "square",
       "dependencies": ["treasury"],
       "tasks": [
         { "id": "silence_armor_trim_smithing_template", "type": "item", "item": "minecraft:silence_armor_trim_smithing_template" },
@@ -4560,7 +4809,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Twelve pottery sherds, any kind."
       ],
       "icon": "minecraft:heart_pottery_sherd",
-      "x": 6, "y": -5.5,
+      "x": -5, "y": 2,
+      "shape": "square",
       "dependencies": ["rainbow", "iron_age/brush"],
       "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 12 } ],
       "rewards": [ { "id": "decorated_pot", "type": "item", "item": "minecraft:decorated_pot", "count": 2 } ]
@@ -4572,7 +4822,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Heads: charged creepers blow them off mobs, wither skeletons drop theirs, and end ships carry a dragon's."
       ],
       "icon": "minecraft:creeper_head",
-      "x": 8, "y": -7,
+      "x": -6.25, "y": 0,
+      "shape": "square",
       "dependencies": ["records"],
       "tasks": [
         { "id": "skeleton_skull", "type": "item", "item": "minecraft:skeleton_skull" },
@@ -4591,7 +4842,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Logs, flowers, dyes, metals, records, trims, sherds and heads. Nothing is missing from your collection."
       ],
       "icon": "minecraft:nether_star",
-      "x": 10, "y": -7,
+      "x": -7.5, "y": 0,
       "shape": "hexagon",
       "size": 1.75,
       "visibility": "until_deps_complete",
