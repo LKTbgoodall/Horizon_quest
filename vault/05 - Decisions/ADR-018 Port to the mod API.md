@@ -1,6 +1,6 @@
 ---
 tags: [adr, platform]
-status: proposed
+status: accepted
 date: 2026-11-16
 ---
 # ADR-018: Port the mod to Horizon's mod API
@@ -30,9 +30,10 @@ In code: the pure modules (`hq_*.rs`, ~15,600 lines, the tests) move as they are
 Option 1, with the inventory of option 2 done first on paper (this note). The freeze for 1.0.0 stays; 1.0.0 becomes "the first version on the mod API".
 
 ## Decision
-⏳ **Waiting for Bastien.**
+✅ **Accepted** (Bastien, 2026-11-16): **option 1**. Port the mod to `mod_api` as soon as the first Nightly built with the mod API and its SDK is out, then release **1.0.0 as the first version on the mod API**. The feature freeze stays: the port changes the plumbing, not what the mod does. Until that Nightly exists, nothing is written against the new API (no blind code, option 2 dropped beyond the inventory above); the current code in the old format stays as it is.
 
-## Consequences (if accepted)
+## Consequences
+Effective when the port lands (the old rules keep governing the current code until then):
 - [[ADR-003 Hook points over raw injections]] and [[ADR-004 Mixin bundle style like smp]] are superseded: hooks are `mod_api::Hooks`, no `[[native.*]]` tables (they would tie the mod to one build).
 - The CLAUDE.md rule "only crates in Horizon's `Cargo.lock`" becomes "crates.io crates pinned in our `Cargo.lock`, SDK re-exports preferred" (`mod_api::serde_json`).
 - [[ADR-014 Publish one hmod with content and code]] is met by the format itself; [[ADR-015 Embed the content pack in the native mod]] is no longer needed.

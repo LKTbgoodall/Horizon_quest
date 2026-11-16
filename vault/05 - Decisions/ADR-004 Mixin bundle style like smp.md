@@ -1,9 +1,11 @@
 ---
 tags: [adr]
-status: accepted
+status: superseded
 date: 2026-11-10
 ---
 # ADR-004: Mixin bundle style like smp (not a pure trait mod)
+
+> ⚠️ **Superseded by [[ADR-018 Port to the mod API]]** (accepted 2026-11-16), effective when the port to `mod_api` lands. It still governs the current code in the old format until then.
 
 ## Context
 There are two styles:

@@ -1,9 +1,11 @@
 ---
 tags: [adr]
-status: accepted
+status: superseded
 date: 2026-11-10
 ---
 # ADR-003: Hook points over raw injections
+
+> ⚠️ **Superseded by [[ADR-018 Port to the mod API]]** (accepted 2026-11-16), effective when the port to `mod_api` lands. It still governs the current code in the old format until then.
 
 ## Context
 - The catalog's **hook points** (`native-hooks.json`) are only ever added to, and their contracts are frozen. A mod that only uses them compiles on every Horizon version ≥ `hooks`.

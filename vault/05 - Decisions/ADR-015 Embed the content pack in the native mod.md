@@ -1,11 +1,13 @@
 ---
 tags: [adr, publication]
-status: proposed
+status: rejected
 date: 2026-11-11
 ---
 # ADR-015: Embed the content pack in the native mod
 
-> 🟡 **On hold** (Bastien, 2026-11-11): first wait for Friday's Nightly (native content support, [[ADR-014 Publish one hmod with content and code]]). This is the fallback if it does not come. Nothing is coded.
+> ❌ **Dropped** (2026-11-16): not needed, [[ADR-018 Port to the mod API]] moves us to a format that carries content and code in one `.hmod`.
+>
+> 🟡 Earlier, **on hold** (Bastien, 2026-11-11): first wait for Friday's Nightly (native content support, [[ADR-014 Publish one hmod with content and code]]). This is the fallback if it does not come. Nothing is coded.
 
 ## Context
 - [[ADR-014 Publish one hmod with content and code]] chose one `.hmod` with code and content, but today's launchers and our pinned Horizon (`fdc87ae`) take a native mod's **code only**: published that way, players get no textures (no node frames, no line chevrons, a plain Quest Book). 1.0.0 was waiting for a Nightly that reads native content, with none in sight.
