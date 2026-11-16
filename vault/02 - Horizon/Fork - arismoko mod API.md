@@ -27,3 +27,4 @@ Back: [[Horizon - Overview]] · [[Horizon hooks and API]]
 
 ## Our position
 - Stay on upstream for 1.0.0 ([[ADR-014 Publish one hmod with content and code]]). Revisit if upstream merges the fork's API → [[Open questions]].
+- **2026-11-16: upstream merged it** (horizon-rust/horizon#17145). The API is now upstream's; porting is proposed in [[ADR-018 Port to the mod API]], with the hook-by-hook map there.

@@ -1,11 +1,14 @@
 ---
 tags: [horizon, reference, manifest]
 source: playhorizon.dev/docs/make-a-mod, /docs/mod-manifest, horizon/docs/native-mods.md, api/mod-files.md, horizon-mods/native/smp
-verified_on: 2026-11-10
+verified_on: 2026-11-16
 ---
 # Native mods: structure and manifest
 
 Back: [[Horizon - Overview]]
+
+> [!warning] Horizon `main` changed the native mod format on 2026-11-16
+> PR horizon-rust/horizon#17145 ("The mod API: #16941 merged with main", merged 2026-11-16 01:32 UTC, merge `85b5bcca7c`) brought the fork's mod API upstream ([[Fork - arismoko mod API]]). Everything below this box describes the **old** format, which our mod still uses and which the released launcher (0.2.69, built before the merge) and the Nightly `9f42064` still take. Once a launcher and a Nightly built from the new `main` ship, the old layout is **refused**. See § "The new format" at the end.
 
 ## Typical layout (model from the `horizon-mods` registry)
 ```
@@ -94,3 +97,34 @@ bindings = [ { name = "commands", ty = "&mut Vec<crate::game::native_server::Nat
 - Build error codes: `E_TARGET_NOT_FOUND`, `E_MODULE`, `E_HOOK_CATALOG`, `E_MODULE_CONFLICT`, `E_HOOK_UNKNOWN`, `E_HOOK_VERSION`. A rejected mod is **skipped** on a client build, but **fails** a server export.
 - Client settings are stored in `horizon-mods/.horizon-mod-data/<id>/<key>`.
 - Installation: `<instance>/horizon-native-mods/`; on/off state in `horizon-mods.txt` (`mod.<id>:true`).
+
+## The new format (Horizon `main` after PR #17145, read 2026-11-16 at `90e97a1`)
+Source: the modding book in Horizon `docs/modding/src/` (`how-to/native-mods/01` to `04`, `reference/manifest.md`, `start/first-mod.md`, `start/writing-hooks.md`, `concepts/native-route.md`). `docs/native-mods.md` is now only a pointer to the book.
+
+**One flat package, the same for the project folder and the `.hmod`:**
+```text
+horizon_quests/
+  horizon-mod.toml   # the ONLY manifest: id, name, version, api = "0.2", ... plus [native]
+  icon.png           # optional, square PNG <= 512 x 512, <= 256 KiB
+  assets/horizon_quests/
+  data/horizon_quests/
+  Cargo.toml         # one crate, depends on horizon-mod-api (lib `mod_api`), never on the game
+  Cargo.lock         # registry dependency pins (horizon-launcher native-lock)
+  src/lib.rs         # #[mod_api::horizon_mod] impl Hooks for Mod { ... }
+```
+```toml
+[native]
+game = "26.3"
+horizon = "<40 hex Horizon commit>"
+mixins = "<40 hex horizon-mixins commit>"
+```
+- **Refused**: `horizon-native.json`, a hand-written `horizon-mixin.toml`, a `mixins/<id>/` level, input `native/` or `rust/` folders. No mod-id folder level in the archive. Unknown manifest fields refuse it.
+- **Hooks** are methods of `mod_api::Hooks` (declared in `crates/horizon-mod-vocab/src/hooks/`, 729 files), with a typed host: `&mut dyn ServerHost` / `ClientHost`. `#[mod_api::horizon_mod]` on the one `impl Hooks` at the crate root subscribes the mod to the methods it writes. Per-object behaviour goes in **Parts**.
+- **No more `native_*` hook points or `native-hooks.json` catalogue** for mods; `NATIVE_HOOKS_API` and `compatibility.json` "hooks" no longer mean anything.
+- **The game is never rebuilt.** The launcher compiles the mod's crate against a **prebuilt SDK** of the pinned build (downloaded, signed), then links. A mod that uses only the mod API can build on later builds when every API item it uses is unchanged (`uses.json`, `cargo horizon-mod fits`).
+- **Dependencies**: any crates.io crate with an exact version and checksum in the mod's `Cargo.lock` (no more "only crates in Horizon's lock"); no git / path-outside / `[patch]`. A mod build script is refused (`E_NATIVE_BUILD_SCRIPT`), and so are Cargo features (`E_NATIVE_FEATURES`). Beware: a registry copy of `serde` is not the SDK's (E0277 across the boundary).
+- **Data**: no `native_data!`. Files go in the normal `data/<id>/` and `assets/<id>/` trees, read with server reload listeners (`Hooks::add_server_reload_listeners`) or `host.resource(PackType::ServerData, &id)`. Code-only tables must be generated Rust source in `src/` (no build script).
+- **Content and code in one `.hmod`, natively**: the launcher compiles `src/`, the game loads `assets/` and `data/`. This is what [[ADR-014 Publish one hmod with content and code]] wanted; horizon#15933 (content dropped) does not apply to this format.
+- **The native route** still exists for game internals: `[[native.mixin]]`, `[[native.loop]]`, `[[native.bridge]]`, `[[native.module]]` under `[native]` (horizon-mixins rows, written by the launcher in its staging area). A mod using it is tied to one exact build, gets the game's real types (`Game`...) and is not sandboxed. `[[native.state]]` is refused (use attachments). Lighter: top-level `[[inject]]` listeners (`head` / `return` / `replace`) with `mod_api` values.
+- **Tools**: `cargo horizon-mod new <path> --template native` (pins the current Nightly, fetches the SDK into `.horizon/sdk/`, never committed), `check`, `build` (writes `target/horizon-mod/<id>.hmod` with `uses.json`), `fits`, `update` (moves the pin, lists what breaks), `hooks <text>` (searches hooks, with their NeoForge / Fabric / Paper names). Build: `horizon-launcher native-build <path> --instance NAME --trust-native-code` (Bastien only).
+- **Limits**: 511 source files / 64 MiB, content 65,536 files, 16 MiB each; a registry file 64 MiB.
