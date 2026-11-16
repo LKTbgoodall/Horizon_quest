@@ -12,11 +12,7 @@ pub const SETTINGS: &str = r#"{
   "detection_delay": 20,
   "groups": [
     { "id": "main", "title": "Main story" },
-    { "id": "explore", "title": "Exploration" },
-    { "id": "life", "title": "Life and farming" },
-    { "id": "combat", "title": "Combat" },
-    { "id": "craft", "title": "Crafting and building" },
-    { "id": "challenge", "title": "Challenges" }
+    { "id": "side", "title": "Side paths" }
   ]
 }
 "#;
@@ -237,17 +233,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "dependencies": ["furnace"],
       "tasks": [ { "id": "cooked_beef", "type": "craft", "item": "minecraft:cooked_beef", "count": 4 } ],
       "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 4 } ]
-    }
-  ]
-}
-"##),
-    ("02_further_afield.json", r##"{
-  "id": "further_afield",
-  "title": "Further afield",
-  "subtitle": "Things to do once you have a base",
-  "icon": "minecraft:compass",
-  "group": "explore",
-  "quests": [
+    },
     {
       "id": "baker",
       "title": "Daily bread",
@@ -256,9 +242,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Three wheat in a row make a loaf. Bake three loaves at a crafting table.",
         "This quest can be done again: a few minutes after you claim its reward, it starts over. The reward is drawn at random each time."
       ],
-      "x": 0, "y": 0,
+      "x": 6, "y": 6,
       "shape": "circle",
-      "dependencies": ["getting_started/crafting_table"],
+      "dependencies": ["crafting_table"],
       "repeatable": true,
       "repeat_cooldown": 300,
       "tasks": [ { "id": "bread", "type": "craft", "item": "minecraft:bread", "count": 3 } ],
@@ -271,9 +257,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Craft a stone sword, then put it to use on two skeletons.",
         "The tasks of this quest go in order: the skeletons only count once the sword is made."
       ],
-      "x": 2, "y": -1,
+      "x": 8, "y": 5,
       "shape": "hexagon",
-      "dependencies": ["getting_started/stone"],
+      "dependencies": ["stone"],
       "sequential_tasks": true,
       "tasks": [
         { "id": "sword", "type": "craft", "item": "minecraft:stone_sword" },
@@ -287,9 +273,9 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Earn the advancement \"Stone Age\" by mining stone with your new pickaxe. If you already have it, this completes by itself."
       ],
-      "x": 2, "y": 1,
+      "x": 8, "y": 7,
       "shape": "diamond",
-      "dependencies": ["getting_started/wooden_pickaxe"],
+      "dependencies": ["wooden_pickaxe"],
       "tasks": [ { "id": "advancement", "type": "advancement", "advancement": "minecraft:story/mine_stone" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 25 } ]
     },
@@ -300,7 +286,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Reach experience level 5. Mining, smelting and fighting all give experience.",
         "The reward is yours to choose: pick one in the list below once the quest is completed."
       ],
-      "x": 4, "y": 0,
+      "x": 10, "y": 6,
       "shape": "hexagon",
       "dependencies": ["armed", "stone_age"],
       "dependency_mode": "one_completed",
@@ -314,7 +300,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Every world has a point where X and Z are both zero. Go and stand there (F3 shows where you are)."
       ],
-      "x": 6, "y": -1,
+      "x": 12, "y": 5,
       "shape": "square",
       "optional": true,
       "dependencies": ["seasoned"],
@@ -329,7 +315,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Build a portal of obsidian, light it, and step through to the Nether."
       ],
       "icon": "minecraft:obsidian",
-      "x": 6, "y": 1,
+      "x": 12, "y": 7,
       "shape": "circle",
       "optional": true,
       "dependencies": ["seasoned"],
@@ -346,8 +332,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Five planks in a U make a boat. Water is the fastest road in the early game."
       ],
       "icon": "minecraft:oak_boat",
-      "x": 0, "y": 2,
-      "dependencies": ["getting_started/crafting_table"],
+      "x": 6, "y": 8,
+      "dependencies": ["crafting_table"],
       "tasks": [ { "id": "boats", "type": "item", "item": "#minecraft:boats" } ],
       "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
     },
@@ -358,7 +344,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Wrap a compass in paper to make a map, then hold it and use it to draw the land around you."
       ],
       "icon": "minecraft:map",
-      "x": 8, "y": -1,
+      "x": 14, "y": 5,
       "dependencies": ["origin"],
       "tasks": [ { "id": "filled_map", "type": "item", "item": "minecraft:filled_map" } ],
       "rewards": [ { "id": "paper", "type": "item", "item": "minecraft:paper", "count": 16 } ]
@@ -369,10 +355,281 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Gold and redstone make a clock. Underground, it is the only way to know whether night has fallen."
       ],
-      "x": 8, "y": 1,
+      "x": 14, "y": 7,
       "dependencies": ["seasoned"],
       "tasks": [ { "id": "clock", "type": "item", "item": "minecraft:clock" } ],
       "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
+    },
+    {
+      "id": "cherry",
+      "title": "Cherry grove",
+      "description": [
+        "Pink trees on the hills, petals on the ground. Cherry wood makes the prettiest planks."
+      ],
+      "icon": "minecraft:cherry_sapling",
+      "x": 16, "y": -6.5,
+      "shape": "circle",
+      "dependencies": ["settled"],
+      "tasks": [
+        { "id": "cherry_log", "type": "item", "item": "minecraft:cherry_log", "count": 16 },
+        { "id": "pink_petals", "type": "item", "item": "minecraft:pink_petals", "count": 16 }
+      ],
+      "rewards": [ { "id": "cherry_sapling", "type": "item", "item": "minecraft:cherry_sapling", "count": 2 } ]
+    },
+    {
+      "id": "mangrove",
+      "title": "Mangrove swamp",
+      "description": [
+        "Roots in the water, mud underfoot. Pour water on dirt to make mud too."
+      ],
+      "icon": "minecraft:mangrove_propagule",
+      "x": 18, "y": -8,
+      "dependencies": ["cherry"],
+      "tasks": [
+        { "id": "mangrove_log", "type": "item", "item": "minecraft:mangrove_log", "count": 16 },
+        { "id": "mud", "type": "item", "item": "minecraft:mud", "count": 16 }
+      ],
+      "rewards": [ { "id": "mangrove_propagule", "type": "item", "item": "minecraft:mangrove_propagule", "count": 2 } ]
+    },
+    {
+      "id": "mud_bricks",
+      "title": "Mud bricks",
+      "description": [
+        "Mud and wheat make packed mud; four packed mud make mud bricks. A warm brown for any build."
+      ],
+      "x": 20, "y": -8,
+      "dependencies": ["mangrove"],
+      "tasks": [ { "id": "mud_bricks", "type": "item", "item": "minecraft:mud_bricks", "count": 32 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "bamboo_builder",
+      "title": "Bamboo builder",
+      "description": [
+        "Bamboo blocks make planks of their own, and a raft instead of a boat."
+      ],
+      "icon": "minecraft:bamboo_raft",
+      "x": 22, "y": -8,
+      "dependencies": ["mud_bricks"],
+      "tasks": [
+        { "id": "bamboo_block", "type": "item", "item": "minecraft:bamboo_block", "count": 8 },
+        { "id": "bamboo_raft", "type": "item", "item": "minecraft:bamboo_raft" }
+      ],
+      "rewards": [ { "id": "scaffolding", "type": "item", "item": "minecraft:scaffolding", "count": 16 } ]
+    },
+    {
+      "id": "tadpole",
+      "title": "Bukkit bukkit",
+      "description": [
+        "Frogs lay frogspawn in swamp water. Catch a tadpole in a water bucket: where it grows up decides its colour."
+      ],
+      "x": 18, "y": -5,
+      "dependencies": ["cherry"],
+      "tasks": [ { "id": "tadpole_bucket", "type": "item", "item": "minecraft:tadpole_bucket" } ],
+      "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
+    },
+    {
+      "id": "froglights",
+      "title": "Froglights",
+      "description": [
+        "Frogs eat small magma cubes and leave a froglight. Each of the three frog colours makes its own."
+      ],
+      "icon": "minecraft:pearlescent_froglight",
+      "x": 20, "y": -5,
+      "dependencies": ["tadpole"],
+      "tasks": [
+        { "id": "ochre_froglight", "type": "item", "item": "minecraft:ochre_froglight" },
+        { "id": "verdant_froglight", "type": "item", "item": "minecraft:verdant_froglight" },
+        { "id": "pearlescent_froglight", "type": "item", "item": "minecraft:pearlescent_froglight" }
+      ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "pale_garden",
+      "title": "The pale garden",
+      "description": [
+        "A grey, silent forest. At night its creaking hearts wake up the creakings: do not take your eyes off them."
+      ],
+      "icon": "minecraft:pale_oak_sapling",
+      "x": 22, "y": -6.5,
+      "dependencies": ["cherry"],
+      "tasks": [
+        { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 16 },
+        { "id": "pale_moss_block", "type": "item", "item": "minecraft:pale_moss_block", "count": 8 }
+      ],
+      "rewards": [ { "id": "pale_oak_sapling", "type": "item", "item": "minecraft:pale_oak_sapling", "count": 2 } ]
+    },
+    {
+      "id": "eyeblossom",
+      "title": "Eyeblossoms",
+      "description": [
+        "A flower that opens at night and closes by day. Pick one of each."
+      ],
+      "icon": "minecraft:open_eyeblossom",
+      "x": 24, "y": -8,
+      "dependencies": ["pale_garden"],
+      "tasks": [
+        { "id": "open_eyeblossom", "type": "item", "item": "minecraft:open_eyeblossom" },
+        { "id": "closed_eyeblossom", "type": "item", "item": "minecraft:closed_eyeblossom" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 8 } ]
+    },
+    {
+      "id": "resin",
+      "title": "Resin",
+      "description": [
+        "When a creaking is hit, its heart oozes resin onto the logs around it. Collect the clumps."
+      ],
+      "x": 24, "y": -6.5,
+      "dependencies": ["pale_garden"],
+      "tasks": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 16 } ],
+      "rewards": [ { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 8 } ]
+    },
+    {
+      "id": "resin_bricks",
+      "title": "Resin bricks",
+      "description": [
+        "Smelt resin clumps into bricks: a warm orange stone with its own stairs, slabs and walls."
+      ],
+      "x": 26, "y": -6.5,
+      "dependencies": ["resin"],
+      "tasks": [ { "id": "resin_bricks", "type": "item", "item": "minecraft:resin_bricks", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "creaking_heart",
+      "title": "Heart transplant",
+      "description": [
+        "A silk touch tool lifts a creaking heart whole. Place it between two pale oak logs and it wakes at night."
+      ],
+      "x": 26, "y": -8,
+      "optional": true,
+      "dependencies": ["resin"],
+      "tasks": [ { "id": "creaking_heart", "type": "item", "item": "minecraft:creaking_heart" } ],
+      "rewards": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 8 } ]
+    },
+    {
+      "id": "spring",
+      "title": "Spring flowers",
+      "description": [
+        "Wildflowers in birch forests, leaf litter under the trees, fireflies over swamps and flowers on cactus tops."
+      ],
+      "icon": "minecraft:wildflowers",
+      "x": 22, "y": -5,
+      "dependencies": ["pale_garden"],
+      "tasks": [
+        { "id": "wildflowers", "type": "item", "item": "minecraft:wildflowers", "count": 8 },
+        { "id": "leaf_litter", "type": "item", "item": "minecraft:leaf_litter", "count": 8 },
+        { "id": "firefly_bush", "type": "item", "item": "minecraft:firefly_bush" },
+        { "id": "cactus_flower", "type": "item", "item": "minecraft:cactus_flower" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
+    },
+    {
+      "id": "dry_lands",
+      "title": "Dry grass",
+      "description": [
+        "Deserts and badlands have dry grass and bushes of their own. Shears bring them home."
+      ],
+      "icon": "minecraft:tall_dry_grass",
+      "x": 24, "y": -5,
+      "dependencies": ["spring"],
+      "tasks": [
+        { "id": "short_dry_grass", "type": "item", "item": "minecraft:short_dry_grass" },
+        { "id": "tall_dry_grass", "type": "item", "item": "minecraft:tall_dry_grass" },
+        { "id": "bush", "type": "item", "item": "minecraft:bush" }
+      ],
+      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 4 } ]
+    },
+    {
+      "id": "eggs",
+      "title": "Chickens of the world",
+      "description": [
+        "Chickens from cold places lay blue eggs, those from warm places brown eggs. Throw one: the chick looks like its parent."
+      ],
+      "icon": "minecraft:blue_egg",
+      "x": 26, "y": -5,
+      "dependencies": ["dry_lands"],
+      "tasks": [
+        { "id": "egg", "type": "item", "item": "minecraft:egg" },
+        { "id": "blue_egg", "type": "item", "item": "minecraft:blue_egg" },
+        { "id": "brown_egg", "type": "item", "item": "minecraft:brown_egg" }
+      ],
+      "rewards": [ { "id": "wheat_seeds", "type": "item", "item": "minecraft:wheat_seeds", "count": 16 } ]
+    },
+    {
+      "id": "dappled_forest",
+      "title": "Dappled forest",
+      "description": [
+        "Tall poplars in red, orange and yellow leaves. Look for the shelf mushrooms that grow on their trunks: they bounce."
+      ],
+      "icon": "minecraft:poplar_sapling",
+      "x": 28, "y": -8,
+      "dependencies": ["eyeblossom"],
+      "tasks": [
+        { "id": "poplar_log", "type": "item", "item": "minecraft:poplar_log", "count": 16 },
+        { "id": "shelf_mushroom", "type": "item", "item": "minecraft:shelf_mushroom" }
+      ],
+      "rewards": [ { "id": "poplar_sapling", "type": "item", "item": "minecraft:poplar_sapling", "count": 2 } ]
+    },
+    {
+      "id": "sulfur_caves",
+      "title": "Sulfur caves",
+      "description": [
+        "Yellow caves of sulfur, where springs of noxious gas burst out. Do not breathe too deep."
+      ],
+      "icon": "minecraft:sulfur",
+      "x": 28, "y": -6.5,
+      "dependencies": ["resin_bricks"],
+      "tasks": [ { "id": "sulfur", "type": "item", "item": "minecraft:sulfur", "count": 16 } ],
+      "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
+    },
+    {
+      "id": "sulfur_bricks",
+      "title": "Sulfur bricks",
+      "description": [
+        "Sulfur takes a polish and makes bricks, stairs and walls of a sharp yellow."
+      ],
+      "x": 30, "y": -8,
+      "dependencies": ["sulfur_caves"],
+      "tasks": [ { "id": "sulfur_bricks", "type": "item", "item": "minecraft:sulfur_bricks", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "sulfur_cube",
+      "title": "A sulfur cube",
+      "description": [
+        "Sulfur cubes bounce around the sulfur caves and swallow blocks. A small one can be carried home in a bucket."
+      ],
+      "icon": "minecraft:sulfur_cube_bucket",
+      "x": 30, "y": -6.5,
+      "dependencies": ["sulfur_caves"],
+      "tasks": [ { "id": "sulfur_cube_bucket", "type": "item", "item": "minecraft:sulfur_cube_bucket" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "golden_dandelion",
+      "title": "Forever young",
+      "description": [
+        "A golden dandelion stops a baby animal from growing up. Use it again and the baby starts growing."
+      ],
+      "icon": "minecraft:golden_dandelion",
+      "x": 28, "y": -5,
+      "dependencies": ["eggs"],
+      "tasks": [ { "id": "golden_dandelion", "type": "item", "item": "minecraft:golden_dandelion" } ],
+      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
+    },
+    {
+      "id": "cushion",
+      "title": "Take a seat",
+      "description": [
+        "Place a cushion and sit on it. Every colour of wool makes its own."
+      ],
+      "icon": "minecraft:red_cushion",
+      "x": 30, "y": -5,
+      "dependencies": ["golden_dandelion"],
+      "tasks": [ { "id": "cushions", "type": "item", "item": "#minecraft:cushions", "count": 2 } ],
+      "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 8 } ]
     }
   ]
 }
@@ -587,6 +844,499 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         { "id": "copper_lantern", "type": "item", "item": "minecraft:copper_lantern" }
       ],
       "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
+    },
+    {
+      "id": "going_under",
+      "title": "Going under",
+      "description": [
+        "Huge caves open under the hills. Bring torches, mark your way back, and mine what shines."
+      ],
+      "icon": "minecraft:raw_iron",
+      "x": 2, "y": 7,
+      "shape": "circle",
+      "dependencies": ["iron_pickaxe"],
+      "tasks": [
+        { "id": "raw_iron", "type": "item", "item": "minecraft:raw_iron", "count": 16 },
+        { "id": "raw_copper", "type": "item", "item": "minecraft:raw_copper", "count": 16 }
+      ],
+      "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
+    },
+    {
+      "id": "dripstone",
+      "title": "Dripstone caves",
+      "description": [
+        "Stalactites hang over stalagmites. Do not fall on one, and do not stand under one that shakes."
+      ],
+      "icon": "minecraft:pointed_dripstone",
+      "x": 4, "y": 5.5,
+      "dependencies": ["going_under"],
+      "tasks": [
+        { "id": "pointed_dripstone", "type": "item", "item": "minecraft:pointed_dripstone", "count": 8 },
+        { "id": "dripstone_block", "type": "item", "item": "minecraft:dripstone_block", "count": 16 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "lush",
+      "title": "Lush caves",
+      "description": [
+        "Under azalea trees lies a garden of moss, clay and glowing berry vines. Axolotls swim in its pools."
+      ],
+      "icon": "minecraft:moss_block",
+      "x": 4, "y": 8.5,
+      "dependencies": ["going_under"],
+      "tasks": [
+        { "id": "glow_berries", "type": "item", "item": "minecraft:glow_berries", "count": 8 },
+        { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 16 },
+        { "id": "azalea", "type": "item", "item": "minecraft:azalea" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
+    },
+    {
+      "id": "axolotl",
+      "title": "The cutest predator",
+      "description": [
+        "Scoop an axolotl into a water bucket. It fights drowned and guardians at your side underwater."
+      ],
+      "x": 6, "y": 8.5,
+      "dependencies": ["lush"],
+      "tasks": [ { "id": "axolotl_bucket", "type": "item", "item": "minecraft:axolotl_bucket" } ],
+      "rewards": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ]
+    },
+    {
+      "id": "glow_squid",
+      "title": "Glowing ink",
+      "description": [
+        "Glow squids swim in dark underground water. Their ink makes signs and item frames glow."
+      ],
+      "x": 8, "y": 8.5,
+      "dependencies": ["axolotl"],
+      "tasks": [
+        { "id": "glow_ink_sac", "type": "item", "item": "minecraft:glow_ink_sac", "count": 4 },
+        { "id": "glow_item_frame", "type": "item", "item": "minecraft:glow_item_frame" }
+      ],
+      "rewards": [ { "id": "item_frame", "type": "item", "item": "minecraft:item_frame", "count": 4 } ]
+    },
+    {
+      "id": "geode",
+      "title": "Amethyst geode",
+      "description": [
+        "Spheres of smooth basalt, calcite and amethyst hide in the rock. Mine the clusters for shards."
+      ],
+      "icon": "minecraft:amethyst_cluster",
+      "x": 6, "y": 5.5,
+      "dependencies": ["dripstone"],
+      "tasks": [ { "id": "amethyst_shard", "type": "item", "item": "minecraft:amethyst_shard", "count": 16 } ],
+      "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
+    },
+    {
+      "id": "spyglass",
+      "title": "Spyglass",
+      "description": [
+        "An amethyst shard on copper makes a spyglass. Tinted glass lets no light through."
+      ],
+      "x": 8, "y": 5.5,
+      "dependencies": ["geode"],
+      "tasks": [
+        { "id": "spyglass", "type": "item", "item": "minecraft:spyglass" },
+        { "id": "tinted_glass", "type": "item", "item": "minecraft:tinted_glass", "count": 2 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "road",
+      "title": "Pack for the road",
+      "description": [
+        "The world is huge and every biome has something of its own. Take a map, a bed and food, and go see it."
+      ],
+      "icon": "minecraft:map",
+      "x": 6, "y": -7,
+      "shape": "circle",
+      "dependencies": ["compass"],
+      "tasks": [
+        { "id": "map", "type": "item", "item": "minecraft:map" },
+        { "id": "beds", "type": "item", "item": "#minecraft:beds" },
+        { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 16 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "explorer_loot" } ]
+    },
+    {
+      "id": "village",
+      "title": "A village",
+      "description": [
+        "Villages grow on plains, deserts, savannas, taigas and snowy plains. A bell hangs in their middle.",
+        "Their armourer also sells bells, if you would rather not take theirs."
+      ],
+      "x": 8, "y": -7,
+      "dependencies": ["road"],
+      "tasks": [ { "id": "bell", "type": "item", "item": "minecraft:bell" } ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
+    },
+    {
+      "id": "desert",
+      "title": "Desert",
+      "description": [
+        "Cactus, dead bushes and sandstone. Under a desert pyramid's floor waits a treasure room, and a trap: mind the pressure plate."
+      ],
+      "icon": "minecraft:cactus",
+      "x": 8, "y": -8.5,
+      "dependencies": ["road"],
+      "tasks": [
+        { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 },
+        { "id": "check", "type": "checkmark", "title": "I explored a desert pyramid" }
+      ],
+      "rewards": [ { "id": "sandstone", "type": "item", "item": "minecraft:sandstone", "count": 32 } ]
+    },
+    {
+      "id": "jungle",
+      "title": "Jungle",
+      "description": [
+        "Tall trees, cocoa pods, bamboo and parrots. Jungle temples hide behind vines, with tripwires and arrows."
+      ],
+      "icon": "minecraft:jungle_sapling",
+      "x": 10, "y": -8.5,
+      "dependencies": ["desert"],
+      "tasks": [
+        { "id": "cocoa_beans", "type": "item", "item": "minecraft:cocoa_beans", "count": 8 },
+        { "id": "bamboo", "type": "item", "item": "minecraft:bamboo", "count": 16 },
+        { "id": "check", "type": "checkmark", "title": "I explored a jungle temple" }
+      ],
+      "rewards": [ { "id": "melon_seeds", "type": "item", "item": "minecraft:melon_seeds", "count": 4 } ]
+    },
+    {
+      "id": "swamp",
+      "title": "Swamp",
+      "description": [
+        "Murky water, lily pads and slimes that come out under the moon. A witch lives in a hut on stilts."
+      ],
+      "icon": "minecraft:lily_pad",
+      "x": 12, "y": -8.5,
+      "dependencies": ["jungle"],
+      "tasks": [
+        { "id": "lily_pad", "type": "item", "item": "minecraft:lily_pad", "count": 4 },
+        { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 },
+        { "id": "check", "type": "checkmark", "title": "I found a witch hut" }
+      ],
+      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
+    },
+    {
+      "id": "dark_forest",
+      "title": "Dark forest",
+      "description": [
+        "A forest so thick that monsters spawn under its leaves at noon. Dark oak grows here, and huge mushrooms."
+      ],
+      "icon": "minecraft:dark_oak_sapling",
+      "x": 14, "y": -8.5,
+      "dependencies": ["swamp"],
+      "tasks": [
+        { "id": "dark_oak_log", "type": "item", "item": "minecraft:dark_oak_log", "count": 16 },
+        { "id": "red_mushroom", "type": "item", "item": "minecraft:red_mushroom", "count": 4 }
+      ],
+      "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
+    },
+    {
+      "id": "mansion",
+      "title": "The woodland mansion",
+      "description": [
+        "Deep in a dark forest stands a mansion full of illagers. A cartographer may sell you a map to it."
+      ],
+      "icon": "minecraft:dark_oak_planks",
+      "x": 16, "y": -8.5,
+      "shape": "hexagon",
+      "dependencies": ["dark_forest"],
+      "tasks": [
+        { "id": "check", "type": "checkmark", "title": "I found a woodland mansion" },
+        { "id": "vindicator", "type": "kill", "entity": "minecraft:vindicator", "count": 3 }
+      ],
+      "rewards": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ]
+    },
+    {
+      "id": "badlands",
+      "title": "Badlands",
+      "description": [
+        "Stripes of coloured terracotta, red sand and gold close to the surface. Its mineshafts are built in plain sight."
+      ],
+      "icon": "minecraft:red_sand",
+      "x": 8, "y": -5.5,
+      "dependencies": ["road"],
+      "tasks": [
+        { "id": "red_sand", "type": "item", "item": "minecraft:red_sand", "count": 32 },
+        { "id": "terracotta", "type": "item", "item": "#minecraft:terracotta", "count": 16 }
+      ],
+      "rewards": [ { "id": "gold_ingot", "type": "item", "item": "minecraft:gold_ingot", "count": 4 } ]
+    },
+    {
+      "id": "snowy",
+      "title": "Snow and ice",
+      "description": [
+        "Powder snow lets you sink and freeze; leather boots let you walk on it. Igloos sometimes hide a basement."
+      ],
+      "icon": "minecraft:snow_block",
+      "x": 10, "y": -5.5,
+      "dependencies": ["badlands"],
+      "tasks": [
+        { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 },
+        { "id": "powder_snow_bucket", "type": "item", "item": "minecraft:powder_snow_bucket" },
+        { "id": "check", "type": "checkmark", "title": "I found an igloo" }
+      ],
+      "rewards": [ { "id": "leather_boots", "type": "item", "item": "minecraft:leather_boots" } ]
+    },
+    {
+      "id": "savanna",
+      "title": "Savanna",
+      "description": [
+        "Flat dry grass, acacia trees, horses and llamas. Armadillos roam here too."
+      ],
+      "icon": "minecraft:acacia_sapling",
+      "x": 12, "y": -5.5,
+      "dependencies": ["snowy"],
+      "tasks": [ { "id": "acacia_log", "type": "item", "item": "minecraft:acacia_log", "count": 16 } ],
+      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
+    },
+    {
+      "id": "taiga",
+      "title": "Taiga",
+      "description": [
+        "Spruce forests full of foxes, wolves and sweet berry bushes. The bushes sting: walk around them."
+      ],
+      "icon": "minecraft:spruce_sapling",
+      "x": 14, "y": -5.5,
+      "dependencies": ["savanna"],
+      "tasks": [
+        { "id": "spruce_log", "type": "item", "item": "minecraft:spruce_log", "count": 16 },
+        { "id": "sweet_berries", "type": "item", "item": "minecraft:sweet_berries", "count": 16 }
+      ],
+      "rewards": [ { "id": "campfire", "type": "item", "item": "minecraft:campfire" } ]
+    },
+    {
+      "id": "mushroom_fields",
+      "title": "Mushroom island",
+      "description": [
+        "Far out at sea lie islands of mycelium and giant mushrooms, where no monster spawns and mooshrooms graze."
+      ],
+      "icon": "minecraft:red_mushroom_block",
+      "x": 16, "y": -5.5,
+      "optional": true,
+      "dependencies": ["taiga"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I set foot on a mushroom island" } ],
+      "rewards": [ { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" } ]
+    },
+    {
+      "id": "peaks",
+      "title": "Peaks",
+      "description": [
+        "Goats live on snowy peaks; a goat that rams a tree drops its horn. Emerald ore only shows up in mountains."
+      ],
+      "icon": "minecraft:goat_horn",
+      "x": 18, "y": -5.5,
+      "dependencies": ["taiga"],
+      "tasks": [
+        { "id": "goat_horn", "type": "item", "item": "minecraft:goat_horn" },
+        { "id": "emerald", "type": "item", "item": "minecraft:emerald" }
+      ],
+      "rewards": [ { "id": "spyglass", "type": "item", "item": "minecraft:spyglass" } ]
+    },
+    {
+      "id": "top_of_world",
+      "title": "Top of the world",
+      "description": [
+        "Climb or build all the way to the build limit, at Y 320. Look down."
+      ],
+      "icon": "minecraft:ladder",
+      "x": 20, "y": -5.5,
+      "dependencies": ["peaks"],
+      "tasks": [ { "id": "location", "type": "location", "title": "Reach Y 320", "from": [-30000000, 320, -30000000], "to": [30000000, 4000, 30000000], "dimension": "minecraft:overworld" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "mineshaft",
+      "title": "Abandoned mineshaft",
+      "description": [
+        "Old tunnels of planks and rails run through the caves. Cave spiders guard their webs, and the chests are worth it."
+      ],
+      "icon": "minecraft:rail",
+      "x": 8, "y": -10,
+      "dependencies": ["road"],
+      "tasks": [
+        { "id": "cave_spider", "type": "kill", "entity": "minecraft:cave_spider", "count": 3 },
+        { "id": "rail", "type": "item", "item": "minecraft:rail", "count": 16 }
+      ],
+      "rewards": [ { "id": "minecart", "type": "item", "item": "minecraft:minecart" } ]
+    },
+    {
+      "id": "ruined_portal",
+      "title": "A ruined portal",
+      "description": [
+        "Broken portals lie all over the world, with a chest of gold beside them. Some can be repaired."
+      ],
+      "icon": "minecraft:crying_obsidian",
+      "x": 10, "y": -10,
+      "dependencies": ["mineshaft"],
+      "tasks": [
+        { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian" },
+        { "id": "gold_nugget", "type": "item", "item": "minecraft:gold_nugget", "count": 9 }
+      ],
+      "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
+    },
+    {
+      "id": "abandoned_camp",
+      "title": "An abandoned camp",
+      "description": [
+        "Some forests hide a camp left behind by someone long gone. Find one and see what was left."
+      ],
+      "icon": "minecraft:campfire",
+      "x": 12, "y": -10,
+      "dependencies": ["ruined_portal"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I found an abandoned camp" } ],
+      "rewards": [ { "id": "random", "type": "random", "table": "explorer_loot" } ]
+    },
+    {
+      "id": "traveller",
+      "title": "Seasoned traveller",
+      "description": [
+        "You have seen deserts, jungles, swamps, peaks and ruins. The world is a little smaller now."
+      ],
+      "icon": "minecraft:compass",
+      "x": 22, "y": -7,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["mansion", "top_of_world", "abandoned_camp", "village"],
+      "tasks": [],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "brush",
+      "title": "A brush",
+      "description": [
+        "A feather, a copper ingot and a stick. Brush suspicious sand and gravel to uncover what is buried in it."
+      ],
+      "x": 4, "y": 12.5,
+      "shape": "circle",
+      "dependencies": ["copper_tools"],
+      "tasks": [ { "id": "brush", "type": "craft", "item": "minecraft:brush" } ],
+      "rewards": [ { "id": "feather", "type": "item", "item": "minecraft:feather", "count": 4 } ]
+    },
+    {
+      "id": "first_sherd",
+      "title": "A first find",
+      "description": [
+        "Desert wells, desert pyramids, ocean ruins and trail ruins hide suspicious blocks. Pottery sherds are the prize."
+      ],
+      "icon": "minecraft:archer_pottery_sherd",
+      "x": 6, "y": 11,
+      "dependencies": ["brush"],
+      "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "decorated_pot",
+      "title": "Careful restoration",
+      "description": [
+        "Four sherds, or bricks, make a decorated pot. Each sherd paints one of its sides."
+      ],
+      "icon": "minecraft:decorated_pot",
+      "x": 8, "y": 11,
+      "dependencies": ["first_sherd"],
+      "tasks": [
+        { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 4 },
+        { "id": "decorated_pot", "type": "item", "item": "minecraft:decorated_pot" }
+      ],
+      "rewards": [ { "id": "brick", "type": "item", "item": "minecraft:brick", "count": 16 } ]
+    },
+    {
+      "id": "trail_ruins",
+      "title": "Trail ruins",
+      "description": [
+        "Old ruins, half buried under the forests and taigas. Most of them is under the ground: dig and brush."
+      ],
+      "icon": "minecraft:mud_bricks",
+      "x": 6, "y": 14,
+      "dependencies": ["brush"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I dug up trail ruins" } ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
+    },
+    {
+      "id": "relic",
+      "title": "A relic",
+      "description": [
+        "Some trail ruins keep a music disc in their suspicious gravel."
+      ],
+      "x": 8, "y": 14,
+      "optional": true,
+      "dependencies": ["trail_ruins"],
+      "tasks": [ { "id": "music_disc_relic", "type": "item", "item": "minecraft:music_disc_relic" } ],
+      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
+    },
+    {
+      "id": "sniffer_egg",
+      "title": "Smells interesting",
+      "description": [
+        "Warm ocean ruins hide sniffer eggs in their suspicious sand. Place one on moss: it hatches faster."
+      ],
+      "x": 8, "y": 12.5,
+      "dependencies": ["first_sherd", "trail_ruins"],
+      "tasks": [ { "id": "sniffer_egg", "type": "item", "item": "minecraft:sniffer_egg" } ],
+      "rewards": [ { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 8 } ]
+    },
+    {
+      "id": "ancient_seeds",
+      "title": "Ancient seeds",
+      "description": [
+        "A grown sniffer digs up seeds from a time long gone. Feed it torchflower seeds to breed it."
+      ],
+      "icon": "minecraft:torchflower_seeds",
+      "x": 10, "y": 12.5,
+      "dependencies": ["sniffer_egg"],
+      "tasks": [
+        { "id": "torchflower_seeds", "type": "item", "item": "minecraft:torchflower_seeds" },
+        { "id": "pitcher_pod", "type": "item", "item": "minecraft:pitcher_pod" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
+    },
+    {
+      "id": "old_flowers",
+      "title": "Planting the past",
+      "description": [
+        "Grow the ancient seeds into torchflowers and pitcher plants."
+      ],
+      "icon": "minecraft:torchflower",
+      "x": 12, "y": 12.5,
+      "dependencies": ["ancient_seeds"],
+      "tasks": [
+        { "id": "torchflower", "type": "item", "item": "minecraft:torchflower", "count": 4 },
+        { "id": "pitcher_plant", "type": "item", "item": "minecraft:pitcher_plant", "count": 2 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "farmer_loot" } ]
+    },
+    {
+      "id": "new_look",
+      "title": "A new look",
+      "description": [
+        "Armour trim templates turn up in structures all over the world. At a smithing table, with an ingot or a gem, they decorate armour."
+      ],
+      "icon": "minecraft:coast_armor_trim_smithing_template",
+      "x": 10, "y": 11,
+      "dependencies": ["decorated_pot"],
+      "tasks": [ { "id": "trim_with_any_armor_pattern", "type": "advancement", "advancement": "minecraft:adventure/trim_with_any_armor_pattern", "title": "Trim a piece of armour" } ],
+      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 8 } ]
+    },
+    {
+      "id": "templates",
+      "title": "Template hunter",
+      "description": [
+        "Pillager outposts, desert pyramids, shipwrecks and jungle temples each keep a trim of their own."
+      ],
+      "icon": "minecraft:sentry_armor_trim_smithing_template",
+      "x": 12, "y": 11,
+      "dependencies": ["new_look"],
+      "tasks": [
+        { "id": "sentry_armor_trim_smithing_template", "type": "item", "item": "minecraft:sentry_armor_trim_smithing_template" },
+        { "id": "dune_armor_trim_smithing_template", "type": "item", "item": "minecraft:dune_armor_trim_smithing_template" },
+        { "id": "coast_armor_trim_smithing_template", "type": "item", "item": "minecraft:coast_armor_trim_smithing_template" },
+        { "id": "wild_armor_trim_smithing_template", "type": "item", "item": "minecraft:wild_armor_trim_smithing_template" }
+      ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
     }
   ]
 }
@@ -789,6 +1539,341 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "dependencies": ["bookshelves"],
       "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 30 } ],
       "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
+    },
+    {
+      "id": "deep_dark",
+      "title": "The deep dark",
+      "description": [
+        "Far below, sculk spreads over everything. Sensors hear your steps; shriekers call the Warden.",
+        "Move crouching, and throw wool on the sensors to keep them quiet."
+      ],
+      "icon": "minecraft:sculk_catalyst",
+      "x": 8, "y": 7,
+      "dependencies": ["diamond_armor"],
+      "tasks": [ { "id": "kill_mob_near_sculk_catalyst", "type": "advancement", "advancement": "minecraft:adventure/kill_mob_near_sculk_catalyst", "title": "Kill a mob next to a sculk catalyst" } ],
+      "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 16 } ]
+    },
+    {
+      "id": "silk_sensor",
+      "title": "Silent listener",
+      "description": [
+        "Sculk only drops itself to a silk touch tool. A sensor feels vibrations; calibrated, it listens to one kind only."
+      ],
+      "x": 10, "y": 8.5,
+      "optional": true,
+      "dependencies": ["deep_dark"],
+      "tasks": [
+        { "id": "sculk_sensor", "type": "item", "item": "minecraft:sculk_sensor" },
+        { "id": "calibrated_sculk_sensor", "type": "item", "item": "minecraft:calibrated_sculk_sensor" }
+      ],
+      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
+    },
+    {
+      "id": "ancient_city",
+      "title": "Ancient city",
+      "description": [
+        "A ruined city of deepslate in the deep dark, with chests full of rare loot. Echo shards are only found here."
+      ],
+      "icon": "minecraft:echo_shard",
+      "x": 10, "y": 5.5,
+      "dependencies": ["deep_dark"],
+      "tasks": [ { "id": "echo_shard", "type": "item", "item": "minecraft:echo_shard", "count": 2 } ],
+      "rewards": [ { "id": "candle", "type": "item", "item": "minecraft:candle", "count": 8 } ]
+    },
+    {
+      "id": "recovery_compass",
+      "title": "Find your way back",
+      "description": [
+        "Eight echo shards around a compass. It points to where you last died."
+      ],
+      "x": 12, "y": 5.5,
+      "dependencies": ["ancient_city"],
+      "tasks": [ { "id": "recovery_compass", "type": "item", "item": "minecraft:recovery_compass" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 80 } ]
+    },
+    {
+      "id": "disc_5",
+      "title": "Fragments of a song",
+      "description": [
+        "Nine disc fragments from the city's chests make a strange, unsettling music disc."
+      ],
+      "x": 12, "y": 8.5,
+      "optional": true,
+      "dependencies": ["ancient_city"],
+      "tasks": [ { "id": "music_disc_5", "type": "item", "item": "minecraft:music_disc_5" } ],
+      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
+    },
+    {
+      "id": "warden",
+      "title": "The Warden",
+      "description": [
+        "The Warden is blind, but it smells and hears. It hits harder than anything else in the game.",
+        "Most players run. Beat it, with your best gear and potions."
+      ],
+      "icon": "minecraft:sculk_shrieker",
+      "x": 14, "y": 7,
+      "shape": "hexagon",
+      "size": 1.5,
+      "dependencies": ["ancient_city"],
+      "tasks": [ { "id": "warden", "type": "kill", "entity": "minecraft:warden" } ],
+      "rewards": [
+        { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 4 },
+        { "id": "levels", "type": "xp_levels", "levels": 10 }
+      ]
+    },
+    {
+      "id": "lapis",
+      "title": "Lapis supply",
+      "description": [
+        "Every enchantment costs lapis. Keep a good stock next to the table."
+      ],
+      "x": 10, "y": -7,
+      "shape": "circle",
+      "dependencies": ["enchanting_table"],
+      "tasks": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 32 } ],
+      "rewards": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 4 } ]
+    },
+    {
+      "id": "anvil",
+      "title": "Anvil",
+      "description": [
+        "Combine enchanted books with tools, repair them, and rename things. Mind the cost: it grows each time."
+      ],
+      "x": 12, "y": -8.5,
+      "dependencies": ["lapis"],
+      "tasks": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ],
+      "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 8 } ]
+    },
+    {
+      "id": "books",
+      "title": "Spell books",
+      "description": [
+        "Enchant plain books at the table, buy them from librarians, or fish them up."
+      ],
+      "icon": "minecraft:enchanted_book",
+      "x": 14, "y": -8.5,
+      "dependencies": ["anvil"],
+      "tasks": [ { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book", "count": 3 } ],
+      "rewards": [ { "id": "book", "type": "item", "item": "minecraft:book", "count": 6 } ]
+    },
+    {
+      "id": "grindstone",
+      "title": "Clean slate",
+      "description": [
+        "A grindstone strips enchantments from an item and gives back some experience."
+      ],
+      "x": 16, "y": -8.5,
+      "dependencies": ["books"],
+      "tasks": [ { "id": "grindstone", "type": "item", "item": "minecraft:grindstone" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 50 } ]
+    },
+    {
+      "id": "bottles",
+      "title": "Bottled experience",
+      "description": [
+        "Clerics sell bottles of experience. Throw them at your feet."
+      ],
+      "x": 12, "y": -5.5,
+      "dependencies": ["lapis"],
+      "tasks": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ],
+      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
+    },
+    {
+      "id": "trial_key",
+      "title": "Trial chambers",
+      "description": [
+        "Copper and tuff halls are buried deep underground. Their spawners release waves of mobs.",
+        "Beat a wave and the spawner drops loot, sometimes a trial key."
+      ],
+      "x": 6, "y": 12.5,
+      "shape": "circle",
+      "dependencies": ["diamond_sword"],
+      "tasks": [ { "id": "trial_key", "type": "item", "item": "minecraft:trial_key" } ],
+      "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 } ]
+    },
+    {
+      "id": "breeze",
+      "title": "The breeze",
+      "description": [
+        "A mob made of wind that jumps around and shoots gusts. Its arrows bounce off; get close."
+      ],
+      "x": 8, "y": 11,
+      "dependencies": ["trial_key"],
+      "tasks": [
+        { "id": "breeze", "type": "kill", "entity": "minecraft:breeze", "count": 3 },
+        { "id": "breeze_rod", "type": "item", "item": "minecraft:breeze_rod", "count": 4 }
+      ],
+      "rewards": [ { "id": "shield", "type": "item", "item": "minecraft:shield" } ]
+    },
+    {
+      "id": "wind_charge",
+      "title": "Gusts",
+      "description": [
+        "A breeze rod makes four wind charges. Throw one at your feet to fly up, or at a mob to push it away."
+      ],
+      "icon": "minecraft:wind_charge",
+      "x": 10, "y": 11,
+      "dependencies": ["breeze"],
+      "tasks": [ { "id": "wind_charge", "type": "craft", "item": "minecraft:wind_charge", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "rocket_jump",
+      "title": "Who needs rockets?",
+      "description": [
+        "Jump, throw a wind charge straight down, and go up and up."
+      ],
+      "icon": "minecraft:feather",
+      "x": 12, "y": 11,
+      "optional": true,
+      "dependencies": ["wind_charge"],
+      "tasks": [ { "id": "who_needs_rockets", "type": "advancement", "advancement": "minecraft:adventure/who_needs_rockets", "title": "Fly 8 blocks up with a wind charge" } ],
+      "rewards": [ { "id": "wind_charge", "type": "item", "item": "minecraft:wind_charge", "count": 16 } ]
+    },
+    {
+      "id": "bogged",
+      "title": "Bogged",
+      "description": [
+        "Mossy skeletons whose arrows poison you. They live in swamps and in trial chambers."
+      ],
+      "icon": "minecraft:bow",
+      "x": 8, "y": 14,
+      "dependencies": ["trial_key"],
+      "tasks": [ { "id": "bogged", "type": "kill", "entity": "minecraft:bogged", "count": 5 } ],
+      "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
+    },
+    {
+      "id": "vault",
+      "title": "Under lock and key",
+      "description": [
+        "The chambers' vaults open with a trial key, once for each player."
+      ],
+      "icon": "minecraft:vault",
+      "x": 10, "y": 14,
+      "dependencies": ["bogged"],
+      "tasks": [ { "id": "under_lock_and_key", "type": "advancement", "advancement": "minecraft:adventure/under_lock_and_key", "title": "Open a vault" } ],
+      "rewards": [ { "id": "trial_key", "type": "item", "item": "minecraft:trial_key" } ]
+    },
+    {
+      "id": "vault_prizes",
+      "title": "Vault prizes",
+      "description": [
+        "Vaults give food, tools, enchanted books, and some rare things you will not find elsewhere."
+      ],
+      "icon": "minecraft:guster_banner_pattern",
+      "x": 12, "y": 14,
+      "optional": true,
+      "dependencies": ["vault"],
+      "tasks": [
+        { "id": "bolt_armor_trim_smithing_template", "type": "item", "item": "minecraft:bolt_armor_trim_smithing_template" },
+        { "id": "guster_banner_pattern", "type": "item", "item": "minecraft:guster_banner_pattern" }
+      ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
+    },
+    {
+      "id": "crafter",
+      "title": "Crafters",
+      "description": [
+        "The chambers are lit by copper bulbs. Make your own: they toggle on and off with each redstone pulse."
+      ],
+      "icon": "minecraft:copper_bulb",
+      "x": 8, "y": 12.5,
+      "dependencies": ["trial_key"],
+      "tasks": [ { "id": "copper_bulb", "type": "item", "item": "minecraft:copper_bulb", "count": 4 } ],
+      "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
+    },
+    {
+      "id": "ominous",
+      "title": "Ominous",
+      "description": [
+        "Raid captains drop ominous bottles. Drink one and enter a trial chamber: its trials become ominous."
+      ],
+      "icon": "minecraft:ominous_bottle",
+      "x": 10, "y": 12.5,
+      "dependencies": ["vault"],
+      "tasks": [ { "id": "ominous_bottle", "type": "item", "item": "minecraft:ominous_bottle" } ],
+      "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
+    },
+    {
+      "id": "ominous_key",
+      "title": "Ominous key",
+      "description": [
+        "Ominous spawners send harder waves and drop ominous keys, for the ominous vaults."
+      ],
+      "icon": "minecraft:ominous_trial_key",
+      "x": 12, "y": 12.5,
+      "dependencies": ["ominous"],
+      "tasks": [ { "id": "ominous_trial_key", "type": "item", "item": "minecraft:ominous_trial_key" } ],
+      "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
+    },
+    {
+      "id": "heavy_core",
+      "title": "Heavy core",
+      "description": [
+        "The rarest thing an ominous vault gives. Very dense, very heavy, very valuable."
+      ],
+      "x": 14, "y": 12.5,
+      "dependencies": ["ominous_key"],
+      "tasks": [ { "id": "heavy_core", "type": "item", "item": "minecraft:heavy_core" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
+    },
+    {
+      "id": "ominous_prizes",
+      "title": "Ominous prizes",
+      "description": [
+        "Ominous vaults also give the flow trim and banner pattern, found nowhere else."
+      ],
+      "icon": "minecraft:flow_banner_pattern",
+      "x": 14, "y": 14,
+      "optional": true,
+      "dependencies": ["ominous_key"],
+      "tasks": [
+        { "id": "flow_armor_trim_smithing_template", "type": "item", "item": "minecraft:flow_armor_trim_smithing_template" },
+        { "id": "flow_banner_pattern", "type": "item", "item": "minecraft:flow_banner_pattern" }
+      ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 3 } ]
+    },
+    {
+      "id": "mace",
+      "title": "The mace",
+      "description": [
+        "A heavy core on a breeze rod makes a mace. The further you fall before you hit, the harder it hits.",
+        "Wind charges and a mace go well together."
+      ],
+      "x": 14, "y": 11,
+      "shape": "hexagon",
+      "size": 1.25,
+      "dependencies": ["heavy_core", "breeze"],
+      "tasks": [ { "id": "mace", "type": "item", "item": "minecraft:mace" } ],
+      "rewards": [ { "id": "wind_charge", "type": "item", "item": "minecraft:wind_charge", "count": 32 } ]
+    },
+    {
+      "id": "smash",
+      "title": "Over-overkill",
+      "description": [
+        "Climb high, fall far, and bring the mace down on something. Fifty hearts of damage in a single hit."
+      ],
+      "icon": "minecraft:mace",
+      "x": 16, "y": 11,
+      "optional": true,
+      "dependencies": ["mace"],
+      "tasks": [ { "id": "overoverkill", "type": "advancement", "advancement": "minecraft:adventure/overoverkill", "title": "Deal 50 hearts in one mace hit" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 10 } ]
+    },
+    {
+      "id": "trials_done",
+      "title": "Trial by fire",
+      "description": [
+        "You beat the chambers and their ominous trials, and you have the mace to show for it."
+      ],
+      "icon": "minecraft:trial_spawner",
+      "x": 16, "y": 12.5,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["mace", "heavy_core", "crafter", "bogged"],
+      "tasks": [],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
     }
   ]
 }
@@ -993,6 +2078,264 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         { "id": "soul_torch", "type": "item", "item": "minecraft:soul_torch", "count": 8 }
       ],
       "rewards": [ { "id": "bone_block", "type": "item", "item": "minecraft:bone_block", "count": 4 } ]
+    },
+    {
+      "id": "forests",
+      "title": "Strange forests",
+      "description": [
+        "The Nether's forests grow giant fungi instead of trees: red crimson and blue warped. Their wood does not burn."
+      ],
+      "icon": "minecraft:warped_fungus",
+      "x": 2, "y": 6.5,
+      "shape": "circle",
+      "dependencies": ["portal"],
+      "tasks": [
+        { "id": "crimson_stem", "type": "item", "item": "minecraft:crimson_stem", "count": 16 },
+        { "id": "warped_stem", "type": "item", "item": "minecraft:warped_stem", "count": 16 }
+      ],
+      "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
+    },
+    {
+      "id": "shroomlight",
+      "title": "Lights in the trees",
+      "description": [
+        "Shroomlights glow among the huge fungi's caps, and vines hang under them."
+      ],
+      "x": 4, "y": 5,
+      "dependencies": ["forests"],
+      "tasks": [
+        { "id": "shroomlight", "type": "item", "item": "minecraft:shroomlight", "count": 4 },
+        { "id": "weeping_vines", "type": "item", "item": "minecraft:weeping_vines", "count": 4 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "hoglins",
+      "title": "Hoglin hunt",
+      "description": [
+        "Hoglins charge anything in crimson forests. Warped fungus scares them away."
+      ],
+      "icon": "minecraft:cooked_porkchop",
+      "x": 4, "y": 8,
+      "dependencies": ["forests"],
+      "tasks": [ { "id": "hoglin", "type": "kill", "entity": "minecraft:hoglin", "count": 3 } ],
+      "rewards": [ { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 } ]
+    },
+    {
+      "id": "strider",
+      "title": "Walking on lava",
+      "description": [
+        "Striders cross the lava seas. Saddle one and steer it with warped fungus on a stick."
+      ],
+      "icon": "minecraft:warped_fungus_on_a_stick",
+      "x": 6, "y": 8,
+      "dependencies": ["hoglins"],
+      "tasks": [
+        { "id": "warped_fungus_on_a_stick", "type": "item", "item": "minecraft:warped_fungus_on_a_stick" },
+        { "id": "check", "type": "checkmark", "title": "I rode a strider over lava" }
+      ],
+      "rewards": [ { "id": "saddle", "type": "item", "item": "minecraft:saddle" } ]
+    },
+    {
+      "id": "bastion",
+      "title": "Bastion",
+      "description": [
+        "Huge blackstone fortresses held by piglins. Wear gold, do not open their chests in front of them, and do not mine their gold."
+      ],
+      "icon": "minecraft:gilded_blackstone",
+      "x": 6, "y": 5,
+      "dependencies": ["shroomlight"],
+      "tasks": [ { "id": "gilded_blackstone", "type": "item", "item": "minecraft:gilded_blackstone" } ],
+      "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
+    },
+    {
+      "id": "brute",
+      "title": "War pigs",
+      "description": [
+        "Piglin brutes guard the bastions' treasure. Gold does not calm them."
+      ],
+      "icon": "minecraft:golden_axe",
+      "x": 8, "y": 5,
+      "dependencies": ["bastion"],
+      "tasks": [ { "id": "piglin_brute", "type": "kill", "entity": "minecraft:piglin_brute" } ],
+      "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
+    },
+    {
+      "id": "upgrade_template",
+      "title": "Upgrade plans",
+      "description": [
+        "Bastion chests always have a chance of a netherite upgrade template. Duplicate it with diamonds and netherrack."
+      ],
+      "icon": "minecraft:netherite_upgrade_smithing_template",
+      "x": 10, "y": 5,
+      "dependencies": ["brute"],
+      "tasks": [ { "id": "netherite_upgrade_smithing_template", "type": "item", "item": "minecraft:netherite_upgrade_smithing_template" } ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
+    },
+    {
+      "id": "respawn_anchor",
+      "title": "Not quite nine lives",
+      "description": [
+        "Crying obsidian and glowstone make a respawn anchor: a bed that works in the Nether. Never use it in the Overworld."
+      ],
+      "icon": "minecraft:respawn_anchor",
+      "x": 8, "y": 6.5,
+      "dependencies": ["forests"],
+      "tasks": [
+        { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian", "count": 6 },
+        { "id": "respawn_anchor", "type": "item", "item": "minecraft:respawn_anchor" }
+      ],
+      "rewards": [ { "id": "glowstone", "type": "item", "item": "minecraft:glowstone", "count": 4 } ]
+    },
+    {
+      "id": "lodestone",
+      "title": "Country lode",
+      "description": [
+        "A netherite ingot in chiseled stone. Use a compass on a lodestone and it will point to it, in any dimension."
+      ],
+      "x": 10, "y": 6.5,
+      "dependencies": ["respawn_anchor", "beyond/netherite"],
+      "tasks": [ { "id": "lodestone", "type": "item", "item": "minecraft:lodestone" } ],
+      "rewards": [ { "id": "compass", "type": "item", "item": "minecraft:compass" } ]
+    },
+    {
+      "id": "basalt",
+      "title": "Basalt deltas",
+      "description": [
+        "Grey pillars, ash and magma cubes. Blackstone works like cobblestone for tools and furnaces."
+      ],
+      "icon": "minecraft:basalt",
+      "x": 8, "y": 8,
+      "dependencies": ["strider"],
+      "tasks": [
+        { "id": "basalt", "type": "item", "item": "minecraft:basalt", "count": 16 },
+        { "id": "blackstone", "type": "item", "item": "minecraft:blackstone", "count": 32 }
+      ],
+      "rewards": [ { "id": "magma_cream", "type": "item", "item": "minecraft:magma_cream", "count": 2 } ]
+    },
+    {
+      "id": "blue_flames",
+      "title": "Blue flames",
+      "description": [
+        "Soul fire burns blue and keeps piglins and hoglins at a distance."
+      ],
+      "icon": "minecraft:soul_lantern",
+      "x": 10, "y": 8,
+      "dependencies": ["basalt", "soul_sand"],
+      "tasks": [
+        { "id": "soul_campfire", "type": "item", "item": "minecraft:soul_campfire" },
+        { "id": "soul_lantern", "type": "item", "item": "minecraft:soul_lantern" }
+      ],
+      "rewards": [ { "id": "soul_torch", "type": "item", "item": "minecraft:soul_torch", "count": 16 } ]
+    },
+    {
+      "id": "pigstep",
+      "title": "Pigstep",
+      "description": [
+        "Bastions sometimes keep a music disc in their chests. Piglins dance to it."
+      ],
+      "x": 12, "y": 5,
+      "optional": true,
+      "dependencies": ["upgrade_template"],
+      "tasks": [ { "id": "music_disc_pigstep", "type": "item", "item": "minecraft:music_disc_pigstep" } ],
+      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
+    },
+    {
+      "id": "zoglin",
+      "title": "Out of place",
+      "description": [
+        "A hoglin taken to the Overworld turns into a zoglin, which attacks everything."
+      ],
+      "icon": "minecraft:rotten_flesh",
+      "x": 12, "y": 8,
+      "optional": true,
+      "dependencies": ["hoglins"],
+      "tasks": [ { "id": "zoglin", "type": "kill", "entity": "minecraft:zoglin" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 60 } ]
+    },
+    {
+      "id": "blaze_powder",
+      "title": "Fuel for the stand",
+      "description": [
+        "Every brewing stand burns blaze powder. Keep some aside."
+      ],
+      "icon": "minecraft:blaze_powder",
+      "x": 10, "y": -5.5,
+      "dependencies": ["brewing_stand"],
+      "tasks": [ { "id": "blaze_powder", "type": "item", "item": "minecraft:blaze_powder", "count": 8 } ],
+      "rewards": [ { "id": "glass_bottle", "type": "item", "item": "minecraft:glass_bottle", "count": 8 } ]
+    },
+    {
+      "id": "ingredients",
+      "title": "The ingredient shelf",
+      "description": [
+        "A spider eye with sugar and a mushroom, a golden melon, a rabbit's foot, magma cream: each brews something else."
+      ],
+      "icon": "minecraft:fermented_spider_eye",
+      "x": 12, "y": -5.5,
+      "dependencies": ["blaze_powder"],
+      "tasks": [
+        { "id": "fermented_spider_eye", "type": "item", "item": "minecraft:fermented_spider_eye", "count": 2 },
+        { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice" },
+        { "id": "rabbit_foot", "type": "item", "item": "minecraft:rabbit_foot" },
+        { "id": "magma_cream", "type": "item", "item": "minecraft:magma_cream" }
+      ],
+      "rewards": [ { "id": "nether_wart", "type": "item", "item": "minecraft:nether_wart", "count": 8 } ]
+    },
+    {
+      "id": "splash",
+      "title": "Splash!",
+      "description": [
+        "Gunpowder turns a potion into one you throw. It hits everything around where it breaks."
+      ],
+      "icon": "minecraft:splash_potion",
+      "x": 14, "y": -5.5,
+      "dependencies": ["ingredients"],
+      "tasks": [ { "id": "splash_potion", "type": "item", "item": "minecraft:splash_potion", "count": 3 } ],
+      "rewards": [ { "id": "gunpowder", "type": "item", "item": "minecraft:gunpowder", "count": 8 } ]
+    },
+    {
+      "id": "lingering",
+      "title": "Lingering clouds",
+      "description": [
+        "Dragon's breath turns a splash potion into a lingering cloud. Dip arrows in it for tipped arrows."
+      ],
+      "icon": "minecraft:lingering_potion",
+      "x": 16, "y": -5.5,
+      "dependencies": ["splash", "the_end/dragon_breath"],
+      "tasks": [ { "id": "lingering_potion", "type": "item", "item": "minecraft:lingering_potion" } ],
+      "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
+    },
+    {
+      "id": "cocktail",
+      "title": "A furious cocktail",
+      "description": [
+        "Every potion effect on you at the same time. It takes planning."
+      ],
+      "icon": "minecraft:potion",
+      "x": 18, "y": -5.5,
+      "optional": true,
+      "dependencies": ["lingering"],
+      "tasks": [ { "id": "all_potions", "type": "advancement", "advancement": "minecraft:nether/all_potions", "title": "Have every potion effect at once" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "arcanist",
+      "title": "Arcanist",
+      "description": [
+        "Enchanting, brewing and the anvil hold no more secrets for you."
+      ],
+      "icon": "minecraft:enchanting_table",
+      "x": 18, "y": -8.5,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["diamonds/grindstone", "diamonds/bottles", "lingering"],
+      "tasks": [],
+      "rewards": [
+        { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book" },
+        { "id": "levels", "type": "xp_levels", "levels": 5 }
+      ]
     }
   ]
 }
@@ -1376,16 +2719,200 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "dependencies": ["beacon"],
       "tasks": [ { "id": "create_full_beacon", "type": "advancement", "advancement": "minecraft:nether/create_full_beacon", "title": "Power a full beacon" } ],
       "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "good_catch",
+      "title": "A good catch",
+      "description": [
+        "Fish from your boat. Pufferfish are poisonous to eat, but useful for water breathing potions."
+      ],
+      "icon": "minecraft:salmon",
+      "x": 0, "y": 7,
+      "shape": "circle",
+      "dependencies": ["getting_started/boat"],
+      "tasks": [
+        { "id": "salmon", "type": "item", "item": "minecraft:salmon", "count": 4 },
+        { "id": "pufferfish", "type": "item", "item": "minecraft:pufferfish" }
+      ],
+      "rewards": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ]
+    },
+    {
+      "id": "seaweed",
+      "title": "Kelp and pickles",
+      "description": [
+        "Kelp forests grow in most oceans; dry it in a furnace for a quick snack. Sea pickles glow on warm reefs."
+      ],
+      "icon": "minecraft:kelp",
+      "x": 2, "y": 8.5,
+      "dependencies": ["good_catch"],
+      "tasks": [
+        { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
+        { "id": "sea_pickle", "type": "item", "item": "minecraft:sea_pickle", "count": 4 }
+      ],
+      "rewards": [ { "id": "dried_kelp_block", "type": "item", "item": "minecraft:dried_kelp_block", "count": 4 } ]
+    },
+    {
+      "id": "fish_bucket",
+      "title": "Fish in a bucket",
+      "description": [
+        "Warm oceans are full of coloured fish. Catch one alive in a water bucket."
+      ],
+      "x": 2, "y": 5.5,
+      "dependencies": ["good_catch"],
+      "tasks": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ],
+      "rewards": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ]
+    },
+    {
+      "id": "turtles",
+      "title": "Turtle power",
+      "description": [
+        "Baby turtles drop a scute when they grow up. Five make a helmet that lets you breathe a little longer."
+      ],
+      "icon": "minecraft:turtle_helmet",
+      "x": 4, "y": 8.5,
+      "dependencies": ["seaweed"],
+      "tasks": [
+        { "id": "turtle_scute", "type": "item", "item": "minecraft:turtle_scute", "count": 5 },
+        { "id": "turtle_helmet", "type": "item", "item": "minecraft:turtle_helmet" }
+      ],
+      "rewards": [ { "id": "seagrass", "type": "item", "item": "minecraft:seagrass", "count": 16 } ]
+    },
+    {
+      "id": "drowned",
+      "title": "Things below",
+      "description": [
+        "Zombies that sank. Some carry tridents, others nautilus shells."
+      ],
+      "icon": "minecraft:rotten_flesh",
+      "x": 4, "y": 7,
+      "dependencies": ["good_catch"],
+      "tasks": [ { "id": "drowned", "type": "kill", "entity": "minecraft:drowned", "count": 5 } ],
+      "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
+    },
+    {
+      "id": "trident",
+      "title": "The trident",
+      "description": [
+        "Only a drowned drops a trident. Throw it, and enchant it with loyalty so it comes back."
+      ],
+      "x": 6, "y": 7,
+      "dependencies": ["drowned"],
+      "tasks": [ { "id": "trident", "type": "item", "item": "minecraft:trident" } ],
+      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
+    },
+    {
+      "id": "shipwreck",
+      "title": "Shipwreck",
+      "description": [
+        "Wrecks lie on the sea floor and on beaches. One of their chests may hold a treasure map."
+      ],
+      "icon": "minecraft:oak_boat",
+      "x": 4, "y": 5.5,
+      "dependencies": ["fish_bucket"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I looted a shipwreck" } ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 3 } ]
+    },
+    {
+      "id": "treasure",
+      "title": "X marks the spot",
+      "description": [
+        "Follow a treasure map to the X and dig. Buried treasure always holds a heart of the sea."
+      ],
+      "x": 6, "y": 5.5,
+      "dependencies": ["shipwreck"],
+      "tasks": [ { "id": "heart_of_the_sea", "type": "item", "item": "minecraft:heart_of_the_sea" } ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
+    },
+    {
+      "id": "conduit",
+      "title": "Conduit power",
+      "description": [
+        "A heart of the sea in eight nautilus shells. In a prismarine frame, a conduit lets you breathe and see underwater."
+      ],
+      "x": 8, "y": 5.5,
+      "dependencies": ["treasure"],
+      "tasks": [
+        { "id": "nautilus_shell", "type": "item", "item": "minecraft:nautilus_shell", "count": 8 },
+        { "id": "conduit", "type": "item", "item": "minecraft:conduit" }
+      ],
+      "rewards": [ { "id": "prismarine", "type": "item", "item": "minecraft:prismarine", "count": 32 } ]
+    },
+    {
+      "id": "nautilus",
+      "title": "Nautilus riders",
+      "description": [
+        "Nautiluses swim in the oceans; some drowned ride undead ones. Defeat a zombie nautilus.",
+        "A living nautilus can be tamed and saddled to ride underwater."
+      ],
+      "icon": "minecraft:nautilus_shell",
+      "x": 6, "y": 8.5,
+      "optional": true,
+      "dependencies": ["turtles"],
+      "tasks": [
+        { "id": "zombie_nautilus", "type": "kill", "entity": "minecraft:zombie_nautilus" },
+        { "id": "check", "type": "checkmark", "title": "I rode a tamed nautilus" }
+      ],
+      "rewards": [ { "id": "pufferfish", "type": "item", "item": "minecraft:pufferfish", "count": 3 } ]
+    },
+    {
+      "id": "monument",
+      "title": "Ocean monument",
+      "description": [
+        "A temple of prismarine guarded by guardians and their lasers. Bring milk: the elders slow your mining."
+      ],
+      "icon": "minecraft:prismarine_bricks",
+      "x": 8, "y": 7,
+      "dependencies": ["trident"],
+      "tasks": [
+        { "id": "guardian", "type": "kill", "entity": "minecraft:guardian", "count": 5 },
+        { "id": "prismarine_shard", "type": "item", "item": "minecraft:prismarine_shard", "count": 16 }
+      ],
+      "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
+    },
+    {
+      "id": "elder_guardian",
+      "title": "Elder guardian",
+      "description": [
+        "Three elder guardians live in each monument. Beat one and take the sponges from its treasure room."
+      ],
+      "icon": "minecraft:prismarine_crystals",
+      "x": 10, "y": 7,
+      "shape": "hexagon",
+      "size": 1.25,
+      "dependencies": ["monument"],
+      "tasks": [
+        { "id": "elder_guardian", "type": "kill", "entity": "minecraft:elder_guardian" },
+        { "id": "wet_sponge", "type": "item", "item": "minecraft:wet_sponge", "count": 4 }
+      ],
+      "rewards": [
+        { "id": "sponge", "type": "item", "item": "minecraft:sponge", "count": 4 },
+        { "id": "levels", "type": "xp_levels", "levels": 5 }
+      ]
+    },
+    {
+      "id": "sea_master",
+      "title": "Master of the sea",
+      "description": [
+        "Monuments, shipwrecks and buried treasure: the sea has no more secrets for you."
+      ],
+      "icon": "minecraft:heart_of_the_sea",
+      "x": 12, "y": 6.25,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["elder_guardian", "conduit"],
+      "tasks": [],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
     }
   ]
 }
 "#),
-    ("08_farming.json", r#"{
+    ("08_farming.json", r##"{
   "id": "farming",
-  "title": "Farm and food",
-  "subtitle": "Grow your food",
+  "title": "Farming and animals",
+  "subtitle": "Crops, cooking and companions",
   "icon": "minecraft:wheat",
-  "group": "life",
+  "group": "side",
   "quests": [
     {
       "id": "seeds",
@@ -1584,16 +3111,346 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "dependencies": ["golden_carrots", "beyond/netherite"],
       "tasks": [ { "id": "netherite_hoe", "type": "item", "item": "minecraft:netherite_hoe" } ],
       "rewards": [ { "id": "hay_block", "type": "item", "item": "minecraft:hay_block", "count": 16 } ]
+    },
+    {
+      "id": "lead",
+      "title": "On a leash",
+      "description": [
+        "String and a slime ball make leads. Tie animals to fences, or walk them home."
+      ],
+      "x": 4, "y": 5.5,
+      "shape": "circle",
+      "dependencies": ["breed"],
+      "tasks": [ { "id": "lead", "type": "craft", "item": "minecraft:lead", "count": 2 } ],
+      "rewards": [ { "id": "wheat", "type": "item", "item": "minecraft:wheat", "count": 16 } ]
+    },
+    {
+      "id": "name_tag",
+      "title": "What's in a name",
+      "description": [
+        "Name tags come from chests, fishing and librarians. Rename one at an anvil, then use it on an animal you love."
+      ],
+      "x": 4, "y": 7,
+      "dependencies": ["lead"],
+      "tasks": [ { "id": "name_tag", "type": "item", "item": "minecraft:name_tag" } ],
+      "rewards": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ]
+    },
+    {
+      "id": "horse",
+      "title": "Saddle up",
+      "description": [
+        "Mount a horse again and again until it stops throwing you off, then saddle it."
+      ],
+      "icon": "minecraft:saddle",
+      "x": 6, "y": 4,
+      "dependencies": ["lead"],
+      "tasks": [
+        { "id": "saddle", "type": "item", "item": "minecraft:saddle" },
+        { "id": "check", "type": "checkmark", "title": "I tamed and rode a horse" }
+      ],
+      "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
+    },
+    {
+      "id": "horse_armor",
+      "title": "Armoured steed",
+      "description": [
+        "Horse armour is found in chests. A horse wearing it takes far less damage."
+      ],
+      "x": 8, "y": 4,
+      "optional": true,
+      "dependencies": ["horse"],
+      "tasks": [ { "id": "iron_horse_armor", "type": "item", "item": "minecraft:iron_horse_armor" } ],
+      "rewards": [ { "id": "hay_block", "type": "item", "item": "minecraft:hay_block", "count": 8 } ]
+    },
+    {
+      "id": "camel",
+      "title": "Ship of the desert",
+      "description": [
+        "Camels wander deserts and savannas. Two can ride one, and they dash over gaps."
+      ],
+      "icon": "minecraft:cactus",
+      "x": 10, "y": 4,
+      "dependencies": ["horse"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I rode a camel" } ],
+      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 } ]
+    },
+    {
+      "id": "armadillo",
+      "title": "Isn't it scute?",
+      "description": [
+        "Brush an armadillo, or wait for it to shed: it drops scutes. They roll up when anything comes close."
+      ],
+      "icon": "minecraft:armadillo_scute",
+      "x": 6, "y": 7,
+      "dependencies": ["lead"],
+      "tasks": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 6 } ],
+      "rewards": [ { "id": "brush", "type": "item", "item": "minecraft:brush" } ]
+    },
+    {
+      "id": "wolf",
+      "title": "A loyal wolf",
+      "description": [
+        "Give bones to a wolf until hearts appear. It follows you, fights for you, and sits when told."
+      ],
+      "icon": "minecraft:bone",
+      "x": 6, "y": 5.5,
+      "dependencies": ["lead"],
+      "tasks": [
+        { "id": "bone", "type": "item", "item": "minecraft:bone", "count": 8 },
+        { "id": "check", "type": "checkmark", "title": "I tamed a wolf" }
+      ],
+      "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 } ]
+    },
+    {
+      "id": "wolf_armor",
+      "title": "Armour for a friend",
+      "description": [
+        "Armadillo scutes make wolf armour. It soaks up the damage and can be repaired with more scutes."
+      ],
+      "x": 8, "y": 7,
+      "dependencies": ["armadillo", "wolf"],
+      "tasks": [ { "id": "wolf_armor", "type": "craft", "item": "minecraft:wolf_armor" } ],
+      "rewards": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 4 } ]
+    },
+    {
+      "id": "whole_pack",
+      "title": "The whole pack",
+      "description": [
+        "Wolves look different in every forest and taiga. Tame one of each."
+      ],
+      "icon": "minecraft:wolf_armor",
+      "x": 10, "y": 7,
+      "optional": true,
+      "dependencies": ["wolf_armor"],
+      "tasks": [ { "id": "whole_pack", "type": "advancement", "advancement": "minecraft:husbandry/whole_pack", "title": "Tame one of each kind of wolf" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "cat",
+      "title": "A cat of your own",
+      "description": [
+        "Stray cats live in villages. Feed them raw fish and they keep phantoms and creepers away."
+      ],
+      "icon": "minecraft:cod",
+      "x": 8, "y": 5.5,
+      "dependencies": ["wolf"],
+      "tasks": [
+        { "id": "cod", "type": "item", "item": "minecraft:cod", "count": 4 },
+        { "id": "check", "type": "checkmark", "title": "I tamed a cat" }
+      ],
+      "rewards": [ { "id": "string", "type": "item", "item": "minecraft:string", "count": 8 } ]
+    },
+    {
+      "id": "allay",
+      "title": "You've got a friend",
+      "description": [
+        "Allays are kept in pillager outposts and woodland mansions. Free one and give it an item: it collects more of it for you."
+      ],
+      "icon": "minecraft:amethyst_shard",
+      "x": 10, "y": 5.5,
+      "dependencies": ["cat"],
+      "tasks": [ { "id": "allay_deliver_item_to_player", "type": "advancement", "advancement": "minecraft:husbandry/allay_deliver_item_to_player", "title": "An allay brings you an item" } ],
+      "rewards": [ { "id": "note_block", "type": "item", "item": "minecraft:note_block" } ]
+    },
+    {
+      "id": "dried_ghast",
+      "title": "A dried ghast",
+      "description": [
+        "Soul sand valleys hide dried ghasts. Put one in water and wait: something small wakes up."
+      ],
+      "icon": "minecraft:dried_ghast",
+      "x": 12, "y": 4,
+      "dependencies": ["camel", "the_nether/portal"],
+      "tasks": [ { "id": "dried_ghast", "type": "item", "item": "minecraft:dried_ghast" } ],
+      "rewards": [ { "id": "water_bucket", "type": "item", "item": "minecraft:water_bucket" } ]
+    },
+    {
+      "id": "happy_ghast",
+      "title": "Sky ride",
+      "description": [
+        "A grown happy ghast carries up to four players with a harness. Snowballs are its favourite treat."
+      ],
+      "icon": "minecraft:white_harness",
+      "x": 14, "y": 4,
+      "dependencies": ["dried_ghast"],
+      "tasks": [
+        { "id": "harnesses", "type": "item", "item": "#minecraft:harnesses" },
+        { "id": "check", "type": "checkmark", "title": "I flew on a happy ghast" }
+      ],
+      "rewards": [ { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 } ]
+    },
+    {
+      "id": "snow_golem",
+      "title": "Frosty",
+      "description": [
+        "Two snow blocks with a carved pumpkin on top. It throws snowballs at monsters and leaves snow behind."
+      ],
+      "icon": "minecraft:carved_pumpkin",
+      "x": 12, "y": 7,
+      "dependencies": ["cat"],
+      "tasks": [
+        { "id": "carved_pumpkin", "type": "item", "item": "minecraft:carved_pumpkin" },
+        { "id": "check", "type": "checkmark", "title": "I built a snow golem" }
+      ],
+      "rewards": [ { "id": "snow_block", "type": "item", "item": "minecraft:snow_block", "count": 16 } ]
+    },
+    {
+      "id": "animal_lover",
+      "title": "Animal lover",
+      "description": [
+        "Horses, wolves, cats, allays and a ghast to fly. You never travel alone now."
+      ],
+      "icon": "minecraft:lead",
+      "x": 14, "y": 6.25,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["happy_ghast", "allay", "wolf_armor", "snow_golem"],
+      "tasks": [],
+      "rewards": [
+        { "id": "random", "type": "random", "table": "farmer_loot" },
+        { "id": "levels", "type": "xp_levels", "levels": 5 }
+      ]
+    },
+    {
+      "id": "smoker",
+      "title": "A smoker",
+      "description": [
+        "A furnace among four logs. It cooks food twice as fast."
+      ],
+      "x": 4, "y": -7,
+      "shape": "circle",
+      "dependencies": ["wheat"],
+      "tasks": [ { "id": "smoker", "type": "item", "item": "minecraft:smoker" } ],
+      "rewards": [ { "id": "charcoal", "type": "item", "item": "minecraft:charcoal", "count": 16 } ]
+    },
+    {
+      "id": "butcher",
+      "title": "Butcher",
+      "description": [
+        "Cows, pigs, chickens. Keep a stock of cooked meat."
+      ],
+      "icon": "minecraft:cooked_porkchop",
+      "x": 6, "y": -8.5,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 },
+        { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 },
+        { "id": "cooked_chicken", "type": "item", "item": "minecraft:cooked_chicken", "count": 8 }
+      ],
+      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 4 } ]
+    },
+    {
+      "id": "fish_supper",
+      "title": "Fish supper",
+      "description": [
+        "Cooked fish from rivers and oceans."
+      ],
+      "icon": "minecraft:cooked_salmon",
+      "x": 6, "y": -5.5,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "cooked_cod", "type": "item", "item": "minecraft:cooked_cod", "count": 8 },
+        { "id": "cooked_salmon", "type": "item", "item": "minecraft:cooked_salmon", "count": 8 }
+      ],
+      "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
+    },
+    {
+      "id": "snacks",
+      "title": "Snacks",
+      "description": [
+        "Small foods you can eat fast: dried kelp and baked potatoes."
+      ],
+      "icon": "minecraft:baked_potato",
+      "x": 8, "y": -7,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
+        { "id": "baked_potato", "type": "item", "item": "minecraft:baked_potato", "count": 16 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
+    },
+    {
+      "id": "soups",
+      "title": "Soup kitchen",
+      "description": [
+        "Stews come in bowls. A suspicious stew, made with a flower, gives a short effect: guess which one."
+      ],
+      "icon": "minecraft:rabbit_stew",
+      "x": 8, "y": -8.5,
+      "dependencies": ["butcher"],
+      "tasks": [
+        { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" },
+        { "id": "rabbit_stew", "type": "item", "item": "minecraft:rabbit_stew" },
+        { "id": "beetroot_soup", "type": "item", "item": "minecraft:beetroot_soup" },
+        { "id": "suspicious_stew", "type": "item", "item": "minecraft:suspicious_stew" }
+      ],
+      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 8 } ]
+    },
+    {
+      "id": "sweets",
+      "title": "Sweet tooth",
+      "description": [
+        "Wheat and cocoa make cookies; pumpkin, sugar and an egg make a pie."
+      ],
+      "icon": "minecraft:cookie",
+      "x": 8, "y": -5.5,
+      "dependencies": ["fish_supper"],
+      "tasks": [
+        { "id": "cookie", "type": "item", "item": "minecraft:cookie", "count": 16 },
+        { "id": "pumpkin_pie", "type": "item", "item": "minecraft:pumpkin_pie", "count": 4 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "baker_loot" } ]
+    },
+    {
+      "id": "golden_food",
+      "title": "Golden food",
+      "description": [
+        "Gold nuggets around a melon slice or a carrot. Golden carrots are the best everyday food."
+      ],
+      "icon": "minecraft:glistering_melon_slice",
+      "x": 10, "y": -7,
+      "dependencies": ["snacks"],
+      "tasks": [
+        { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice", "count": 2 },
+        { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 }
+      ],
+      "rewards": [ { "id": "gold_nugget", "type": "item", "item": "minecraft:gold_nugget", "count": 16 } ]
+    },
+    {
+      "id": "notch_apple",
+      "title": "An enchanted apple",
+      "description": [
+        "It cannot be crafted. Only chests in ruins, temples and bastions hold one."
+      ],
+      "x": 12, "y": -8.5,
+      "optional": true,
+      "dependencies": ["golden_food"],
+      "tasks": [ { "id": "enchanted_golden_apple", "type": "item", "item": "minecraft:enchanted_golden_apple" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
+    },
+    {
+      "id": "balanced_diet",
+      "title": "A balanced diet",
+      "description": [
+        "Every food, even the strange ones: chorus fruit, poisonous potatoes, rotten flesh, spider eyes."
+      ],
+      "icon": "minecraft:golden_apple",
+      "x": 12, "y": -5.5,
+      "optional": true,
+      "dependencies": ["golden_food", "soups", "sweets"],
+      "tasks": [ { "id": "balanced_diet", "type": "advancement", "advancement": "minecraft:husbandry/balanced_diet", "title": "Eat everything that can be eaten" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
     }
   ]
 }
-"#),
-    ("09_monsters.json", r#"{
+"##),
+    ("09_monsters.json", r##"{
   "id": "monsters",
-  "title": "Monster hunter",
-  "subtitle": "Know your enemies",
+  "title": "Monsters and villages",
+  "subtitle": "Enemies, raids and weapons",
   "icon": "minecraft:iron_sword",
-  "group": "combat",
+  "group": "side",
   "quests": [
     {
       "id": "zombies",
@@ -1807,1846 +3664,16 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "dependencies": ["silverfish"],
       "tasks": [ { "id": "endermite", "type": "kill", "entity": "minecraft:endermite" } ],
       "rewards": [ { "id": "ender_pearl", "type": "item", "item": "minecraft:ender_pearl", "count": 2 } ]
-    }
-  ]
-}
-"#),
-    ("10_wide_world.json", r##"{
-  "id": "wide_world",
-  "title": "Wide world",
-  "subtitle": "Biomes and the places they hide",
-  "icon": "minecraft:filled_map",
-  "group": "explore",
-  "quests": [
-    {
-      "id": "road",
-      "title": "Pack for the road",
-      "description": [
-        "The world is huge and every biome has something of its own. Take a map, a bed and food, and go see it."
-      ],
-      "icon": "minecraft:map",
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["getting_started/settled"],
-      "tasks": [
-        { "id": "map", "type": "item", "item": "minecraft:map" },
-        { "id": "beds", "type": "item", "item": "#minecraft:beds" },
-        { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 16 }
-      ],
-      "rewards": [ { "id": "random", "type": "random", "table": "explorer_loot" } ]
     },
-    {
-      "id": "village",
-      "title": "A village",
-      "description": [
-        "Villages grow on plains, deserts, savannas, taigas and snowy plains. A bell hangs in their middle.",
-        "Their armourer also sells bells, if you would rather not take theirs."
-      ],
-      "x": 2, "y": 0,
-      "dependencies": ["road"],
-      "tasks": [ { "id": "bell", "type": "item", "item": "minecraft:bell" } ],
-      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
-    },
-    {
-      "id": "desert",
-      "title": "Desert",
-      "description": [
-        "Cactus, dead bushes and sandstone. Under a desert pyramid's floor waits a treasure room, and a trap: mind the pressure plate."
-      ],
-      "icon": "minecraft:cactus",
-      "x": 2, "y": -1.5,
-      "dependencies": ["road"],
-      "tasks": [
-        { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 },
-        { "id": "check", "type": "checkmark", "title": "I explored a desert pyramid" }
-      ],
-      "rewards": [ { "id": "sandstone", "type": "item", "item": "minecraft:sandstone", "count": 32 } ]
-    },
-    {
-      "id": "jungle",
-      "title": "Jungle",
-      "description": [
-        "Tall trees, cocoa pods, bamboo and parrots. Jungle temples hide behind vines, with tripwires and arrows."
-      ],
-      "icon": "minecraft:jungle_sapling",
-      "x": 4, "y": -1.5,
-      "dependencies": ["desert"],
-      "tasks": [
-        { "id": "cocoa_beans", "type": "item", "item": "minecraft:cocoa_beans", "count": 8 },
-        { "id": "bamboo", "type": "item", "item": "minecraft:bamboo", "count": 16 },
-        { "id": "check", "type": "checkmark", "title": "I explored a jungle temple" }
-      ],
-      "rewards": [ { "id": "melon_seeds", "type": "item", "item": "minecraft:melon_seeds", "count": 4 } ]
-    },
-    {
-      "id": "swamp",
-      "title": "Swamp",
-      "description": [
-        "Murky water, lily pads and slimes that come out under the moon. A witch lives in a hut on stilts."
-      ],
-      "icon": "minecraft:lily_pad",
-      "x": 6, "y": -1.5,
-      "dependencies": ["jungle"],
-      "tasks": [
-        { "id": "lily_pad", "type": "item", "item": "minecraft:lily_pad", "count": 4 },
-        { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 },
-        { "id": "check", "type": "checkmark", "title": "I found a witch hut" }
-      ],
-      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
-    },
-    {
-      "id": "dark_forest",
-      "title": "Dark forest",
-      "description": [
-        "A forest so thick that monsters spawn under its leaves at noon. Dark oak grows here, and huge mushrooms."
-      ],
-      "icon": "minecraft:dark_oak_sapling",
-      "x": 8, "y": -1.5,
-      "dependencies": ["swamp"],
-      "tasks": [
-        { "id": "dark_oak_log", "type": "item", "item": "minecraft:dark_oak_log", "count": 16 },
-        { "id": "red_mushroom", "type": "item", "item": "minecraft:red_mushroom", "count": 4 }
-      ],
-      "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
-    },
-    {
-      "id": "mansion",
-      "title": "The woodland mansion",
-      "description": [
-        "Deep in a dark forest stands a mansion full of illagers. A cartographer may sell you a map to it."
-      ],
-      "icon": "minecraft:dark_oak_planks",
-      "x": 10, "y": -1.5,
-      "shape": "hexagon",
-      "dependencies": ["dark_forest"],
-      "tasks": [
-        { "id": "check", "type": "checkmark", "title": "I found a woodland mansion" },
-        { "id": "vindicator", "type": "kill", "entity": "minecraft:vindicator", "count": 3 }
-      ],
-      "rewards": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ]
-    },
-    {
-      "id": "badlands",
-      "title": "Badlands",
-      "description": [
-        "Stripes of coloured terracotta, red sand and gold close to the surface. Its mineshafts are built in plain sight."
-      ],
-      "icon": "minecraft:red_sand",
-      "x": 2, "y": 1.5,
-      "dependencies": ["road"],
-      "tasks": [
-        { "id": "red_sand", "type": "item", "item": "minecraft:red_sand", "count": 32 },
-        { "id": "terracotta", "type": "item", "item": "#minecraft:terracotta", "count": 16 }
-      ],
-      "rewards": [ { "id": "gold_ingot", "type": "item", "item": "minecraft:gold_ingot", "count": 4 } ]
-    },
-    {
-      "id": "snowy",
-      "title": "Snow and ice",
-      "description": [
-        "Powder snow lets you sink and freeze; leather boots let you walk on it. Igloos sometimes hide a basement."
-      ],
-      "icon": "minecraft:snow_block",
-      "x": 4, "y": 1.5,
-      "dependencies": ["badlands"],
-      "tasks": [
-        { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 },
-        { "id": "powder_snow_bucket", "type": "item", "item": "minecraft:powder_snow_bucket" },
-        { "id": "check", "type": "checkmark", "title": "I found an igloo" }
-      ],
-      "rewards": [ { "id": "leather_boots", "type": "item", "item": "minecraft:leather_boots" } ]
-    },
-    {
-      "id": "savanna",
-      "title": "Savanna",
-      "description": [
-        "Flat dry grass, acacia trees, horses and llamas. Armadillos roam here too."
-      ],
-      "icon": "minecraft:acacia_sapling",
-      "x": 6, "y": 1.5,
-      "dependencies": ["snowy"],
-      "tasks": [ { "id": "acacia_log", "type": "item", "item": "minecraft:acacia_log", "count": 16 } ],
-      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
-    },
-    {
-      "id": "taiga",
-      "title": "Taiga",
-      "description": [
-        "Spruce forests full of foxes, wolves and sweet berry bushes. The bushes sting: walk around them."
-      ],
-      "icon": "minecraft:spruce_sapling",
-      "x": 8, "y": 1.5,
-      "dependencies": ["savanna"],
-      "tasks": [
-        { "id": "spruce_log", "type": "item", "item": "minecraft:spruce_log", "count": 16 },
-        { "id": "sweet_berries", "type": "item", "item": "minecraft:sweet_berries", "count": 16 }
-      ],
-      "rewards": [ { "id": "campfire", "type": "item", "item": "minecraft:campfire" } ]
-    },
-    {
-      "id": "mushroom_fields",
-      "title": "Mushroom island",
-      "description": [
-        "Far out at sea lie islands of mycelium and giant mushrooms, where no monster spawns and mooshrooms graze."
-      ],
-      "icon": "minecraft:red_mushroom_block",
-      "x": 10, "y": 1.5,
-      "optional": true,
-      "dependencies": ["taiga"],
-      "tasks": [ { "id": "check", "type": "checkmark", "title": "I set foot on a mushroom island" } ],
-      "rewards": [ { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" } ]
-    },
-    {
-      "id": "peaks",
-      "title": "Peaks",
-      "description": [
-        "Goats live on snowy peaks; a goat that rams a tree drops its horn. Emerald ore only shows up in mountains."
-      ],
-      "icon": "minecraft:goat_horn",
-      "x": 12, "y": 1.5,
-      "dependencies": ["taiga"],
-      "tasks": [
-        { "id": "goat_horn", "type": "item", "item": "minecraft:goat_horn" },
-        { "id": "emerald", "type": "item", "item": "minecraft:emerald" }
-      ],
-      "rewards": [ { "id": "spyglass", "type": "item", "item": "minecraft:spyglass" } ]
-    },
-    {
-      "id": "top_of_world",
-      "title": "Top of the world",
-      "description": [
-        "Climb or build all the way to the build limit, at Y 320. Look down."
-      ],
-      "icon": "minecraft:ladder",
-      "x": 14, "y": 1.5,
-      "dependencies": ["peaks"],
-      "tasks": [ { "id": "location", "type": "location", "title": "Reach Y 320", "from": [-30000000, 320, -30000000], "to": [30000000, 4000, 30000000], "dimension": "minecraft:overworld" } ],
-      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
-    },
-    {
-      "id": "mineshaft",
-      "title": "Abandoned mineshaft",
-      "description": [
-        "Old tunnels of planks and rails run through the caves. Cave spiders guard their webs, and the chests are worth it."
-      ],
-      "icon": "minecraft:rail",
-      "x": 2, "y": -3,
-      "dependencies": ["road"],
-      "tasks": [
-        { "id": "cave_spider", "type": "kill", "entity": "minecraft:cave_spider", "count": 3 },
-        { "id": "rail", "type": "item", "item": "minecraft:rail", "count": 16 }
-      ],
-      "rewards": [ { "id": "minecart", "type": "item", "item": "minecraft:minecart" } ]
-    },
-    {
-      "id": "ruined_portal",
-      "title": "A ruined portal",
-      "description": [
-        "Broken portals lie all over the world, with a chest of gold beside them. Some can be repaired."
-      ],
-      "icon": "minecraft:crying_obsidian",
-      "x": 4, "y": -3,
-      "dependencies": ["mineshaft"],
-      "tasks": [
-        { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian" },
-        { "id": "gold_nugget", "type": "item", "item": "minecraft:gold_nugget", "count": 9 }
-      ],
-      "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
-    },
-    {
-      "id": "abandoned_camp",
-      "title": "An abandoned camp",
-      "description": [
-        "Some forests hide a camp left behind by someone long gone. Find one and see what was left."
-      ],
-      "icon": "minecraft:campfire",
-      "x": 6, "y": -3,
-      "dependencies": ["ruined_portal"],
-      "tasks": [ { "id": "check", "type": "checkmark", "title": "I found an abandoned camp" } ],
-      "rewards": [ { "id": "random", "type": "random", "table": "explorer_loot" } ]
-    },
-    {
-      "id": "traveller",
-      "title": "Seasoned traveller",
-      "description": [
-        "You have seen deserts, jungles, swamps, peaks and ruins. The world is a little smaller now."
-      ],
-      "icon": "minecraft:compass",
-      "x": 16, "y": 0,
-      "shape": "hexagon",
-      "size": 1.5,
-      "visibility": "until_deps_complete",
-      "dependencies": ["mansion", "top_of_world", "abandoned_camp", "village"],
-      "tasks": [],
-      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
-    }
-  ]
-}
-"##),
-    ("11_caves.json", r#"{
-  "id": "caves",
-  "title": "Caves and cliffs",
-  "subtitle": "Down to the deep dark",
-  "icon": "minecraft:pointed_dripstone",
-  "group": "explore",
-  "quests": [
-    {
-      "id": "going_under",
-      "title": "Going under",
-      "description": [
-        "Huge caves open under the hills. Bring torches, mark your way back, and mine what shines."
-      ],
-      "icon": "minecraft:raw_iron",
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["iron_age/iron_pickaxe"],
-      "tasks": [
-        { "id": "raw_iron", "type": "item", "item": "minecraft:raw_iron", "count": 16 },
-        { "id": "raw_copper", "type": "item", "item": "minecraft:raw_copper", "count": 16 }
-      ],
-      "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
-    },
-    {
-      "id": "dripstone",
-      "title": "Dripstone caves",
-      "description": [
-        "Stalactites hang over stalagmites. Do not fall on one, and do not stand under one that shakes."
-      ],
-      "icon": "minecraft:pointed_dripstone",
-      "x": 2, "y": -1.5,
-      "dependencies": ["going_under"],
-      "tasks": [
-        { "id": "pointed_dripstone", "type": "item", "item": "minecraft:pointed_dripstone", "count": 8 },
-        { "id": "dripstone_block", "type": "item", "item": "minecraft:dripstone_block", "count": 16 }
-      ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
-    },
-    {
-      "id": "lush",
-      "title": "Lush caves",
-      "description": [
-        "Under azalea trees lies a garden of moss, clay and glowing berry vines. Axolotls swim in its pools."
-      ],
-      "icon": "minecraft:moss_block",
-      "x": 2, "y": 1.5,
-      "dependencies": ["going_under"],
-      "tasks": [
-        { "id": "glow_berries", "type": "item", "item": "minecraft:glow_berries", "count": 8 },
-        { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 16 },
-        { "id": "azalea", "type": "item", "item": "minecraft:azalea" }
-      ],
-      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
-    },
-    {
-      "id": "axolotl",
-      "title": "The cutest predator",
-      "description": [
-        "Scoop an axolotl into a water bucket. It fights drowned and guardians at your side underwater."
-      ],
-      "x": 4, "y": 1.5,
-      "dependencies": ["lush"],
-      "tasks": [ { "id": "axolotl_bucket", "type": "item", "item": "minecraft:axolotl_bucket" } ],
-      "rewards": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ]
-    },
-    {
-      "id": "glow_squid",
-      "title": "Glowing ink",
-      "description": [
-        "Glow squids swim in dark underground water. Their ink makes signs and item frames glow."
-      ],
-      "x": 6, "y": 1.5,
-      "dependencies": ["axolotl"],
-      "tasks": [
-        { "id": "glow_ink_sac", "type": "item", "item": "minecraft:glow_ink_sac", "count": 4 },
-        { "id": "glow_item_frame", "type": "item", "item": "minecraft:glow_item_frame" }
-      ],
-      "rewards": [ { "id": "item_frame", "type": "item", "item": "minecraft:item_frame", "count": 4 } ]
-    },
-    {
-      "id": "geode",
-      "title": "Amethyst geode",
-      "description": [
-        "Spheres of smooth basalt, calcite and amethyst hide in the rock. Mine the clusters for shards."
-      ],
-      "icon": "minecraft:amethyst_cluster",
-      "x": 4, "y": -1.5,
-      "dependencies": ["dripstone"],
-      "tasks": [ { "id": "amethyst_shard", "type": "item", "item": "minecraft:amethyst_shard", "count": 16 } ],
-      "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
-    },
-    {
-      "id": "spyglass",
-      "title": "Spyglass",
-      "description": [
-        "An amethyst shard on copper makes a spyglass. Tinted glass lets no light through."
-      ],
-      "x": 6, "y": -1.5,
-      "dependencies": ["geode"],
-      "tasks": [
-        { "id": "spyglass", "type": "item", "item": "minecraft:spyglass" },
-        { "id": "tinted_glass", "type": "item", "item": "minecraft:tinted_glass", "count": 2 }
-      ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
-    },
-    {
-      "id": "deep_dark",
-      "title": "The deep dark",
-      "description": [
-        "Far below, sculk spreads over everything. Sensors hear your steps; shriekers call the Warden.",
-        "Move crouching, and throw wool on the sensors to keep them quiet."
-      ],
-      "icon": "minecraft:sculk_catalyst",
-      "x": 8, "y": 0,
-      "dependencies": ["spyglass", "glow_squid"],
-      "tasks": [ { "id": "kill_mob_near_sculk_catalyst", "type": "advancement", "advancement": "minecraft:adventure/kill_mob_near_sculk_catalyst", "title": "Kill a mob next to a sculk catalyst" } ],
-      "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 16 } ]
-    },
-    {
-      "id": "silk_sensor",
-      "title": "Silent listener",
-      "description": [
-        "Sculk only drops itself to a silk touch tool. A sensor feels vibrations; calibrated, it listens to one kind only."
-      ],
-      "x": 10, "y": 1.5,
-      "optional": true,
-      "dependencies": ["deep_dark"],
-      "tasks": [
-        { "id": "sculk_sensor", "type": "item", "item": "minecraft:sculk_sensor" },
-        { "id": "calibrated_sculk_sensor", "type": "item", "item": "minecraft:calibrated_sculk_sensor" }
-      ],
-      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
-    },
-    {
-      "id": "ancient_city",
-      "title": "Ancient city",
-      "description": [
-        "A ruined city of deepslate in the deep dark, with chests full of rare loot. Echo shards are only found here."
-      ],
-      "icon": "minecraft:echo_shard",
-      "x": 10, "y": -1.5,
-      "dependencies": ["deep_dark"],
-      "tasks": [ { "id": "echo_shard", "type": "item", "item": "minecraft:echo_shard", "count": 2 } ],
-      "rewards": [ { "id": "candle", "type": "item", "item": "minecraft:candle", "count": 8 } ]
-    },
-    {
-      "id": "recovery_compass",
-      "title": "Find your way back",
-      "description": [
-        "Eight echo shards around a compass. It points to where you last died."
-      ],
-      "x": 12, "y": -1.5,
-      "dependencies": ["ancient_city"],
-      "tasks": [ { "id": "recovery_compass", "type": "item", "item": "minecraft:recovery_compass" } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 80 } ]
-    },
-    {
-      "id": "disc_5",
-      "title": "Fragments of a song",
-      "description": [
-        "Nine disc fragments from the city's chests make a strange, unsettling music disc."
-      ],
-      "x": 12, "y": 1.5,
-      "optional": true,
-      "dependencies": ["ancient_city"],
-      "tasks": [ { "id": "music_disc_5", "type": "item", "item": "minecraft:music_disc_5" } ],
-      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
-    },
-    {
-      "id": "warden",
-      "title": "The Warden",
-      "description": [
-        "The Warden is blind, but it smells and hears. It hits harder than anything else in the game.",
-        "Most players run. Beat it, with your best gear and potions."
-      ],
-      "icon": "minecraft:sculk_shrieker",
-      "x": 14, "y": 0,
-      "shape": "hexagon",
-      "size": 1.5,
-      "dependencies": ["ancient_city"],
-      "tasks": [ { "id": "warden", "type": "kill", "entity": "minecraft:warden" } ],
-      "rewards": [
-        { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 4 },
-        { "id": "levels", "type": "xp_levels", "levels": 10 }
-      ]
-    }
-  ]
-}
-"#),
-    ("12_oceans.json", r#"{
-  "id": "oceans",
-  "title": "The deep blue",
-  "subtitle": "Oceans, monuments and treasure",
-  "icon": "minecraft:trident",
-  "group": "explore",
-  "quests": [
-    {
-      "id": "good_catch",
-      "title": "A good catch",
-      "description": [
-        "Fish from your boat. Pufferfish are poisonous to eat, but useful for water breathing potions."
-      ],
-      "icon": "minecraft:salmon",
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["further_afield/boat"],
-      "tasks": [
-        { "id": "salmon", "type": "item", "item": "minecraft:salmon", "count": 4 },
-        { "id": "pufferfish", "type": "item", "item": "minecraft:pufferfish" }
-      ],
-      "rewards": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ]
-    },
-    {
-      "id": "seaweed",
-      "title": "Kelp and pickles",
-      "description": [
-        "Kelp forests grow in most oceans; dry it in a furnace for a quick snack. Sea pickles glow on warm reefs."
-      ],
-      "icon": "minecraft:kelp",
-      "x": 2, "y": 1.5,
-      "dependencies": ["good_catch"],
-      "tasks": [
-        { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
-        { "id": "sea_pickle", "type": "item", "item": "minecraft:sea_pickle", "count": 4 }
-      ],
-      "rewards": [ { "id": "dried_kelp_block", "type": "item", "item": "minecraft:dried_kelp_block", "count": 4 } ]
-    },
-    {
-      "id": "fish_bucket",
-      "title": "Fish in a bucket",
-      "description": [
-        "Warm oceans are full of coloured fish. Catch one alive in a water bucket."
-      ],
-      "x": 2, "y": -1.5,
-      "dependencies": ["good_catch"],
-      "tasks": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ],
-      "rewards": [ { "id": "bucket", "type": "item", "item": "minecraft:bucket" } ]
-    },
-    {
-      "id": "turtles",
-      "title": "Turtle power",
-      "description": [
-        "Baby turtles drop a scute when they grow up. Five make a helmet that lets you breathe a little longer."
-      ],
-      "icon": "minecraft:turtle_helmet",
-      "x": 4, "y": 1.5,
-      "dependencies": ["seaweed"],
-      "tasks": [
-        { "id": "turtle_scute", "type": "item", "item": "minecraft:turtle_scute", "count": 5 },
-        { "id": "turtle_helmet", "type": "item", "item": "minecraft:turtle_helmet" }
-      ],
-      "rewards": [ { "id": "seagrass", "type": "item", "item": "minecraft:seagrass", "count": 16 } ]
-    },
-    {
-      "id": "drowned",
-      "title": "Things below",
-      "description": [
-        "Zombies that sank. Some carry tridents, others nautilus shells."
-      ],
-      "icon": "minecraft:rotten_flesh",
-      "x": 4, "y": 0,
-      "dependencies": ["good_catch"],
-      "tasks": [ { "id": "drowned", "type": "kill", "entity": "minecraft:drowned", "count": 5 } ],
-      "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
-    },
-    {
-      "id": "trident",
-      "title": "The trident",
-      "description": [
-        "Only a drowned drops a trident. Throw it, and enchant it with loyalty so it comes back."
-      ],
-      "x": 6, "y": 0,
-      "dependencies": ["drowned"],
-      "tasks": [ { "id": "trident", "type": "item", "item": "minecraft:trident" } ],
-      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
-    },
-    {
-      "id": "shipwreck",
-      "title": "Shipwreck",
-      "description": [
-        "Wrecks lie on the sea floor and on beaches. One of their chests may hold a treasure map."
-      ],
-      "icon": "minecraft:oak_boat",
-      "x": 4, "y": -1.5,
-      "dependencies": ["fish_bucket"],
-      "tasks": [ { "id": "check", "type": "checkmark", "title": "I looted a shipwreck" } ],
-      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 3 } ]
-    },
-    {
-      "id": "treasure",
-      "title": "X marks the spot",
-      "description": [
-        "Follow a treasure map to the X and dig. Buried treasure always holds a heart of the sea."
-      ],
-      "x": 6, "y": -1.5,
-      "dependencies": ["shipwreck"],
-      "tasks": [ { "id": "heart_of_the_sea", "type": "item", "item": "minecraft:heart_of_the_sea" } ],
-      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
-    },
-    {
-      "id": "conduit",
-      "title": "Conduit power",
-      "description": [
-        "A heart of the sea in eight nautilus shells. In a prismarine frame, a conduit lets you breathe and see underwater."
-      ],
-      "x": 8, "y": -1.5,
-      "dependencies": ["treasure"],
-      "tasks": [
-        { "id": "nautilus_shell", "type": "item", "item": "minecraft:nautilus_shell", "count": 8 },
-        { "id": "conduit", "type": "item", "item": "minecraft:conduit" }
-      ],
-      "rewards": [ { "id": "prismarine", "type": "item", "item": "minecraft:prismarine", "count": 32 } ]
-    },
-    {
-      "id": "nautilus",
-      "title": "Nautilus riders",
-      "description": [
-        "Nautiluses swim in the oceans; some drowned ride undead ones. Defeat a zombie nautilus.",
-        "A living nautilus can be tamed and saddled to ride underwater."
-      ],
-      "icon": "minecraft:nautilus_shell",
-      "x": 6, "y": 1.5,
-      "optional": true,
-      "dependencies": ["turtles"],
-      "tasks": [
-        { "id": "zombie_nautilus", "type": "kill", "entity": "minecraft:zombie_nautilus" },
-        { "id": "check", "type": "checkmark", "title": "I rode a tamed nautilus" }
-      ],
-      "rewards": [ { "id": "pufferfish", "type": "item", "item": "minecraft:pufferfish", "count": 3 } ]
-    },
-    {
-      "id": "monument",
-      "title": "Ocean monument",
-      "description": [
-        "A temple of prismarine guarded by guardians and their lasers. Bring milk: the elders slow your mining."
-      ],
-      "icon": "minecraft:prismarine_bricks",
-      "x": 8, "y": 0,
-      "dependencies": ["trident"],
-      "tasks": [
-        { "id": "guardian", "type": "kill", "entity": "minecraft:guardian", "count": 5 },
-        { "id": "prismarine_shard", "type": "item", "item": "minecraft:prismarine_shard", "count": 16 }
-      ],
-      "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
-    },
-    {
-      "id": "elder_guardian",
-      "title": "Elder guardian",
-      "description": [
-        "Three elder guardians live in each monument. Beat one and take the sponges from its treasure room."
-      ],
-      "icon": "minecraft:prismarine_crystals",
-      "x": 10, "y": 0,
-      "shape": "hexagon",
-      "size": 1.25,
-      "dependencies": ["monument"],
-      "tasks": [
-        { "id": "elder_guardian", "type": "kill", "entity": "minecraft:elder_guardian" },
-        { "id": "wet_sponge", "type": "item", "item": "minecraft:wet_sponge", "count": 4 }
-      ],
-      "rewards": [
-        { "id": "sponge", "type": "item", "item": "minecraft:sponge", "count": 4 },
-        { "id": "levels", "type": "xp_levels", "levels": 5 }
-      ]
-    },
-    {
-      "id": "sea_master",
-      "title": "Master of the sea",
-      "description": [
-        "Monuments, shipwrecks and buried treasure: the sea has no more secrets for you."
-      ],
-      "icon": "minecraft:heart_of_the_sea",
-      "x": 12, "y": -0.75,
-      "shape": "hexagon",
-      "size": 1.5,
-      "visibility": "until_deps_complete",
-      "dependencies": ["elder_guardian", "conduit"],
-      "tasks": [],
-      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
-    }
-  ]
-}
-"#),
-    ("13_new_horizons.json", r##"{
-  "id": "new_horizons",
-  "title": "New horizons",
-  "subtitle": "The newest corners of the world",
-  "icon": "minecraft:cherry_sapling",
-  "group": "explore",
-  "quests": [
-    {
-      "id": "cherry",
-      "title": "Cherry grove",
-      "description": [
-        "Pink trees on the hills, petals on the ground. Cherry wood makes the prettiest planks."
-      ],
-      "icon": "minecraft:cherry_sapling",
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["getting_started/settled"],
-      "tasks": [
-        { "id": "cherry_log", "type": "item", "item": "minecraft:cherry_log", "count": 16 },
-        { "id": "pink_petals", "type": "item", "item": "minecraft:pink_petals", "count": 16 }
-      ],
-      "rewards": [ { "id": "cherry_sapling", "type": "item", "item": "minecraft:cherry_sapling", "count": 2 } ]
-    },
-    {
-      "id": "mangrove",
-      "title": "Mangrove swamp",
-      "description": [
-        "Roots in the water, mud underfoot. Pour water on dirt to make mud too."
-      ],
-      "icon": "minecraft:mangrove_propagule",
-      "x": 2, "y": -1.5,
-      "dependencies": ["cherry"],
-      "tasks": [
-        { "id": "mangrove_log", "type": "item", "item": "minecraft:mangrove_log", "count": 16 },
-        { "id": "mud", "type": "item", "item": "minecraft:mud", "count": 16 }
-      ],
-      "rewards": [ { "id": "mangrove_propagule", "type": "item", "item": "minecraft:mangrove_propagule", "count": 2 } ]
-    },
-    {
-      "id": "mud_bricks",
-      "title": "Mud bricks",
-      "description": [
-        "Mud and wheat make packed mud; four packed mud make mud bricks. A warm brown for any build."
-      ],
-      "x": 4, "y": -1.5,
-      "dependencies": ["mangrove"],
-      "tasks": [ { "id": "mud_bricks", "type": "item", "item": "minecraft:mud_bricks", "count": 32 } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
-    },
-    {
-      "id": "bamboo_builder",
-      "title": "Bamboo builder",
-      "description": [
-        "Bamboo blocks make planks of their own, and a raft instead of a boat."
-      ],
-      "icon": "minecraft:bamboo_raft",
-      "x": 6, "y": -1.5,
-      "dependencies": ["mud_bricks"],
-      "tasks": [
-        { "id": "bamboo_block", "type": "item", "item": "minecraft:bamboo_block", "count": 8 },
-        { "id": "bamboo_raft", "type": "item", "item": "minecraft:bamboo_raft" }
-      ],
-      "rewards": [ { "id": "scaffolding", "type": "item", "item": "minecraft:scaffolding", "count": 16 } ]
-    },
-    {
-      "id": "tadpole",
-      "title": "Bukkit bukkit",
-      "description": [
-        "Frogs lay frogspawn in swamp water. Catch a tadpole in a water bucket: where it grows up decides its colour."
-      ],
-      "x": 2, "y": 1.5,
-      "dependencies": ["cherry"],
-      "tasks": [ { "id": "tadpole_bucket", "type": "item", "item": "minecraft:tadpole_bucket" } ],
-      "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
-    },
-    {
-      "id": "froglights",
-      "title": "Froglights",
-      "description": [
-        "Frogs eat small magma cubes and leave a froglight. Each of the three frog colours makes its own."
-      ],
-      "icon": "minecraft:pearlescent_froglight",
-      "x": 4, "y": 1.5,
-      "dependencies": ["tadpole"],
-      "tasks": [
-        { "id": "ochre_froglight", "type": "item", "item": "minecraft:ochre_froglight" },
-        { "id": "verdant_froglight", "type": "item", "item": "minecraft:verdant_froglight" },
-        { "id": "pearlescent_froglight", "type": "item", "item": "minecraft:pearlescent_froglight" }
-      ],
-      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
-    },
-    {
-      "id": "pale_garden",
-      "title": "The pale garden",
-      "description": [
-        "A grey, silent forest. At night its creaking hearts wake up the creakings: do not take your eyes off them."
-      ],
-      "icon": "minecraft:pale_oak_sapling",
-      "x": 6, "y": 0,
-      "dependencies": ["cherry"],
-      "tasks": [
-        { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 16 },
-        { "id": "pale_moss_block", "type": "item", "item": "minecraft:pale_moss_block", "count": 8 }
-      ],
-      "rewards": [ { "id": "pale_oak_sapling", "type": "item", "item": "minecraft:pale_oak_sapling", "count": 2 } ]
-    },
-    {
-      "id": "eyeblossom",
-      "title": "Eyeblossoms",
-      "description": [
-        "A flower that opens at night and closes by day. Pick one of each."
-      ],
-      "icon": "minecraft:open_eyeblossom",
-      "x": 8, "y": -1.5,
-      "dependencies": ["pale_garden"],
-      "tasks": [
-        { "id": "open_eyeblossom", "type": "item", "item": "minecraft:open_eyeblossom" },
-        { "id": "closed_eyeblossom", "type": "item", "item": "minecraft:closed_eyeblossom" }
-      ],
-      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 8 } ]
-    },
-    {
-      "id": "resin",
-      "title": "Resin",
-      "description": [
-        "When a creaking is hit, its heart oozes resin onto the logs around it. Collect the clumps."
-      ],
-      "x": 8, "y": 0,
-      "dependencies": ["pale_garden"],
-      "tasks": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 16 } ],
-      "rewards": [ { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 8 } ]
-    },
-    {
-      "id": "resin_bricks",
-      "title": "Resin bricks",
-      "description": [
-        "Smelt resin clumps into bricks: a warm orange stone with its own stairs, slabs and walls."
-      ],
-      "x": 10, "y": 0,
-      "dependencies": ["resin"],
-      "tasks": [ { "id": "resin_bricks", "type": "item", "item": "minecraft:resin_bricks", "count": 16 } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
-    },
-    {
-      "id": "creaking_heart",
-      "title": "Heart transplant",
-      "description": [
-        "A silk touch tool lifts a creaking heart whole. Place it between two pale oak logs and it wakes at night."
-      ],
-      "x": 10, "y": -1.5,
-      "optional": true,
-      "dependencies": ["resin"],
-      "tasks": [ { "id": "creaking_heart", "type": "item", "item": "minecraft:creaking_heart" } ],
-      "rewards": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 8 } ]
-    },
-    {
-      "id": "spring",
-      "title": "Spring flowers",
-      "description": [
-        "Wildflowers in birch forests, leaf litter under the trees, fireflies over swamps and flowers on cactus tops."
-      ],
-      "icon": "minecraft:wildflowers",
-      "x": 6, "y": 1.5,
-      "dependencies": ["pale_garden"],
-      "tasks": [
-        { "id": "wildflowers", "type": "item", "item": "minecraft:wildflowers", "count": 8 },
-        { "id": "leaf_litter", "type": "item", "item": "minecraft:leaf_litter", "count": 8 },
-        { "id": "firefly_bush", "type": "item", "item": "minecraft:firefly_bush" },
-        { "id": "cactus_flower", "type": "item", "item": "minecraft:cactus_flower" }
-      ],
-      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
-    },
-    {
-      "id": "dry_lands",
-      "title": "Dry grass",
-      "description": [
-        "Deserts and badlands have dry grass and bushes of their own. Shears bring them home."
-      ],
-      "icon": "minecraft:tall_dry_grass",
-      "x": 8, "y": 1.5,
-      "dependencies": ["spring"],
-      "tasks": [
-        { "id": "short_dry_grass", "type": "item", "item": "minecraft:short_dry_grass" },
-        { "id": "tall_dry_grass", "type": "item", "item": "minecraft:tall_dry_grass" },
-        { "id": "bush", "type": "item", "item": "minecraft:bush" }
-      ],
-      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 4 } ]
-    },
-    {
-      "id": "eggs",
-      "title": "Chickens of the world",
-      "description": [
-        "Chickens from cold places lay blue eggs, those from warm places brown eggs. Throw one: the chick looks like its parent."
-      ],
-      "icon": "minecraft:blue_egg",
-      "x": 10, "y": 1.5,
-      "dependencies": ["dry_lands"],
-      "tasks": [
-        { "id": "egg", "type": "item", "item": "minecraft:egg" },
-        { "id": "blue_egg", "type": "item", "item": "minecraft:blue_egg" },
-        { "id": "brown_egg", "type": "item", "item": "minecraft:brown_egg" }
-      ],
-      "rewards": [ { "id": "wheat_seeds", "type": "item", "item": "minecraft:wheat_seeds", "count": 16 } ]
-    },
-    {
-      "id": "dappled_forest",
-      "title": "Dappled forest",
-      "description": [
-        "Tall poplars in red, orange and yellow leaves. Look for the shelf mushrooms that grow on their trunks: they bounce."
-      ],
-      "icon": "minecraft:poplar_sapling",
-      "x": 12, "y": -1.5,
-      "dependencies": ["eyeblossom"],
-      "tasks": [
-        { "id": "poplar_log", "type": "item", "item": "minecraft:poplar_log", "count": 16 },
-        { "id": "shelf_mushroom", "type": "item", "item": "minecraft:shelf_mushroom" }
-      ],
-      "rewards": [ { "id": "poplar_sapling", "type": "item", "item": "minecraft:poplar_sapling", "count": 2 } ]
-    },
-    {
-      "id": "sulfur_caves",
-      "title": "Sulfur caves",
-      "description": [
-        "Yellow caves of sulfur, where springs of noxious gas burst out. Do not breathe too deep."
-      ],
-      "icon": "minecraft:sulfur",
-      "x": 12, "y": 0,
-      "dependencies": ["resin_bricks"],
-      "tasks": [ { "id": "sulfur", "type": "item", "item": "minecraft:sulfur", "count": 16 } ],
-      "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
-    },
-    {
-      "id": "sulfur_bricks",
-      "title": "Sulfur bricks",
-      "description": [
-        "Sulfur takes a polish and makes bricks, stairs and walls of a sharp yellow."
-      ],
-      "x": 14, "y": -1.5,
-      "dependencies": ["sulfur_caves"],
-      "tasks": [ { "id": "sulfur_bricks", "type": "item", "item": "minecraft:sulfur_bricks", "count": 16 } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
-    },
-    {
-      "id": "sulfur_cube",
-      "title": "A sulfur cube",
-      "description": [
-        "Sulfur cubes bounce around the sulfur caves and swallow blocks. A small one can be carried home in a bucket."
-      ],
-      "icon": "minecraft:sulfur_cube_bucket",
-      "x": 14, "y": 0,
-      "dependencies": ["sulfur_caves"],
-      "tasks": [ { "id": "sulfur_cube_bucket", "type": "item", "item": "minecraft:sulfur_cube_bucket" } ],
-      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
-    },
-    {
-      "id": "golden_dandelion",
-      "title": "Forever young",
-      "description": [
-        "A golden dandelion stops a baby animal from growing up. Use it again and the baby starts growing."
-      ],
-      "icon": "minecraft:golden_dandelion",
-      "x": 12, "y": 1.5,
-      "dependencies": ["eggs"],
-      "tasks": [ { "id": "golden_dandelion", "type": "item", "item": "minecraft:golden_dandelion" } ],
-      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
-    },
-    {
-      "id": "cushion",
-      "title": "Take a seat",
-      "description": [
-        "Place a cushion and sit on it. Every colour of wool makes its own."
-      ],
-      "icon": "minecraft:red_cushion",
-      "x": 14, "y": 1.5,
-      "dependencies": ["golden_dandelion"],
-      "tasks": [ { "id": "cushions", "type": "item", "item": "#minecraft:cushions", "count": 2 } ],
-      "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 8 } ]
-    }
-  ]
-}
-"##),
-    ("14_trial_chambers.json", r#"{
-  "id": "trial_chambers",
-  "title": "Trial chambers",
-  "subtitle": "Copper halls and their trials",
-  "icon": "minecraft:trial_key",
-  "group": "explore",
-  "quests": [
-    {
-      "id": "trial_key",
-      "title": "Trial chambers",
-      "description": [
-        "Copper and tuff halls are buried deep underground. Their spawners release waves of mobs.",
-        "Beat a wave and the spawner drops loot, sometimes a trial key."
-      ],
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["iron_age/iron_armor"],
-      "tasks": [ { "id": "trial_key", "type": "item", "item": "minecraft:trial_key" } ],
-      "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 } ]
-    },
-    {
-      "id": "breeze",
-      "title": "The breeze",
-      "description": [
-        "A mob made of wind that jumps around and shoots gusts. Its arrows bounce off; get close."
-      ],
-      "x": 2, "y": -1.5,
-      "dependencies": ["trial_key"],
-      "tasks": [
-        { "id": "breeze", "type": "kill", "entity": "minecraft:breeze", "count": 3 },
-        { "id": "breeze_rod", "type": "item", "item": "minecraft:breeze_rod", "count": 4 }
-      ],
-      "rewards": [ { "id": "shield", "type": "item", "item": "minecraft:shield" } ]
-    },
-    {
-      "id": "wind_charge",
-      "title": "Gusts",
-      "description": [
-        "A breeze rod makes four wind charges. Throw one at your feet to fly up, or at a mob to push it away."
-      ],
-      "icon": "minecraft:wind_charge",
-      "x": 4, "y": -1.5,
-      "dependencies": ["breeze"],
-      "tasks": [ { "id": "wind_charge", "type": "craft", "item": "minecraft:wind_charge", "count": 16 } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
-    },
-    {
-      "id": "rocket_jump",
-      "title": "Who needs rockets?",
-      "description": [
-        "Jump, throw a wind charge straight down, and go up and up."
-      ],
-      "icon": "minecraft:feather",
-      "x": 6, "y": -1.5,
-      "optional": true,
-      "dependencies": ["wind_charge"],
-      "tasks": [ { "id": "who_needs_rockets", "type": "advancement", "advancement": "minecraft:adventure/who_needs_rockets", "title": "Fly 8 blocks up with a wind charge" } ],
-      "rewards": [ { "id": "wind_charge", "type": "item", "item": "minecraft:wind_charge", "count": 16 } ]
-    },
-    {
-      "id": "bogged",
-      "title": "Bogged",
-      "description": [
-        "Mossy skeletons whose arrows poison you. They live in swamps and in trial chambers."
-      ],
-      "icon": "minecraft:bow",
-      "x": 2, "y": 1.5,
-      "dependencies": ["trial_key"],
-      "tasks": [ { "id": "bogged", "type": "kill", "entity": "minecraft:bogged", "count": 5 } ],
-      "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
-    },
-    {
-      "id": "vault",
-      "title": "Under lock and key",
-      "description": [
-        "The chambers' vaults open with a trial key, once for each player."
-      ],
-      "icon": "minecraft:vault",
-      "x": 4, "y": 1.5,
-      "dependencies": ["bogged"],
-      "tasks": [ { "id": "under_lock_and_key", "type": "advancement", "advancement": "minecraft:adventure/under_lock_and_key", "title": "Open a vault" } ],
-      "rewards": [ { "id": "trial_key", "type": "item", "item": "minecraft:trial_key" } ]
-    },
-    {
-      "id": "vault_prizes",
-      "title": "Vault prizes",
-      "description": [
-        "Vaults give food, tools, enchanted books, and some rare things you will not find elsewhere."
-      ],
-      "icon": "minecraft:guster_banner_pattern",
-      "x": 6, "y": 1.5,
-      "optional": true,
-      "dependencies": ["vault"],
-      "tasks": [
-        { "id": "bolt_armor_trim_smithing_template", "type": "item", "item": "minecraft:bolt_armor_trim_smithing_template" },
-        { "id": "guster_banner_pattern", "type": "item", "item": "minecraft:guster_banner_pattern" }
-      ],
-      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
-    },
-    {
-      "id": "crafter",
-      "title": "Crafters",
-      "description": [
-        "The chambers are lit by copper bulbs. Make your own: they toggle on and off with each redstone pulse."
-      ],
-      "icon": "minecraft:copper_bulb",
-      "x": 2, "y": 0,
-      "dependencies": ["trial_key"],
-      "tasks": [ { "id": "copper_bulb", "type": "item", "item": "minecraft:copper_bulb", "count": 4 } ],
-      "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
-    },
-    {
-      "id": "ominous",
-      "title": "Ominous",
-      "description": [
-        "Raid captains drop ominous bottles. Drink one and enter a trial chamber: its trials become ominous."
-      ],
-      "icon": "minecraft:ominous_bottle",
-      "x": 4, "y": 0,
-      "dependencies": ["vault"],
-      "tasks": [ { "id": "ominous_bottle", "type": "item", "item": "minecraft:ominous_bottle" } ],
-      "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
-    },
-    {
-      "id": "ominous_key",
-      "title": "Ominous key",
-      "description": [
-        "Ominous spawners send harder waves and drop ominous keys, for the ominous vaults."
-      ],
-      "icon": "minecraft:ominous_trial_key",
-      "x": 6, "y": 0,
-      "dependencies": ["ominous"],
-      "tasks": [ { "id": "ominous_trial_key", "type": "item", "item": "minecraft:ominous_trial_key" } ],
-      "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
-    },
-    {
-      "id": "heavy_core",
-      "title": "Heavy core",
-      "description": [
-        "The rarest thing an ominous vault gives. Very dense, very heavy, very valuable."
-      ],
-      "x": 8, "y": 0,
-      "dependencies": ["ominous_key"],
-      "tasks": [ { "id": "heavy_core", "type": "item", "item": "minecraft:heavy_core" } ],
-      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
-    },
-    {
-      "id": "ominous_prizes",
-      "title": "Ominous prizes",
-      "description": [
-        "Ominous vaults also give the flow trim and banner pattern, found nowhere else."
-      ],
-      "icon": "minecraft:flow_banner_pattern",
-      "x": 8, "y": 1.5,
-      "optional": true,
-      "dependencies": ["ominous_key"],
-      "tasks": [
-        { "id": "flow_armor_trim_smithing_template", "type": "item", "item": "minecraft:flow_armor_trim_smithing_template" },
-        { "id": "flow_banner_pattern", "type": "item", "item": "minecraft:flow_banner_pattern" }
-      ],
-      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 3 } ]
-    },
-    {
-      "id": "mace",
-      "title": "The mace",
-      "description": [
-        "A heavy core on a breeze rod makes a mace. The further you fall before you hit, the harder it hits.",
-        "Wind charges and a mace go well together."
-      ],
-      "x": 8, "y": -1.5,
-      "shape": "hexagon",
-      "size": 1.25,
-      "dependencies": ["heavy_core", "breeze"],
-      "tasks": [ { "id": "mace", "type": "item", "item": "minecraft:mace" } ],
-      "rewards": [ { "id": "wind_charge", "type": "item", "item": "minecraft:wind_charge", "count": 32 } ]
-    },
-    {
-      "id": "smash",
-      "title": "Over-overkill",
-      "description": [
-        "Climb high, fall far, and bring the mace down on something. Fifty hearts of damage in a single hit."
-      ],
-      "icon": "minecraft:mace",
-      "x": 10, "y": -1.5,
-      "optional": true,
-      "dependencies": ["mace"],
-      "tasks": [ { "id": "overoverkill", "type": "advancement", "advancement": "minecraft:adventure/overoverkill", "title": "Deal 50 hearts in one mace hit" } ],
-      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 10 } ]
-    },
-    {
-      "id": "trials_done",
-      "title": "Trial by fire",
-      "description": [
-        "You beat the chambers and their ominous trials, and you have the mace to show for it."
-      ],
-      "icon": "minecraft:trial_spawner",
-      "x": 10, "y": 0,
-      "shape": "hexagon",
-      "size": 1.5,
-      "visibility": "until_deps_complete",
-      "dependencies": ["mace", "heavy_core", "crafter", "bogged"],
-      "tasks": [],
-      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
-    }
-  ]
-}
-"#),
-    ("15_archaeology.json", r##"{
-  "id": "archaeology",
-  "title": "Archaeology",
-  "subtitle": "What the sand remembers",
-  "icon": "minecraft:brush",
-  "group": "explore",
-  "quests": [
-    {
-      "id": "brush",
-      "title": "A brush",
-      "description": [
-        "A feather, a copper ingot and a stick. Brush suspicious sand and gravel to uncover what is buried in it."
-      ],
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["getting_started/settled"],
-      "tasks": [ { "id": "brush", "type": "craft", "item": "minecraft:brush" } ],
-      "rewards": [ { "id": "feather", "type": "item", "item": "minecraft:feather", "count": 4 } ]
-    },
-    {
-      "id": "first_sherd",
-      "title": "A first find",
-      "description": [
-        "Desert wells, desert pyramids, ocean ruins and trail ruins hide suspicious blocks. Pottery sherds are the prize."
-      ],
-      "icon": "minecraft:archer_pottery_sherd",
-      "x": 2, "y": -1.5,
-      "dependencies": ["brush"],
-      "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds" } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
-    },
-    {
-      "id": "decorated_pot",
-      "title": "Careful restoration",
-      "description": [
-        "Four sherds, or bricks, make a decorated pot. Each sherd paints one of its sides."
-      ],
-      "icon": "minecraft:decorated_pot",
-      "x": 4, "y": -1.5,
-      "dependencies": ["first_sherd"],
-      "tasks": [
-        { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 4 },
-        { "id": "decorated_pot", "type": "item", "item": "minecraft:decorated_pot" }
-      ],
-      "rewards": [ { "id": "brick", "type": "item", "item": "minecraft:brick", "count": 16 } ]
-    },
-    {
-      "id": "trail_ruins",
-      "title": "Trail ruins",
-      "description": [
-        "Old ruins, half buried under the forests and taigas. Most of them is under the ground: dig and brush."
-      ],
-      "icon": "minecraft:mud_bricks",
-      "x": 2, "y": 1.5,
-      "dependencies": ["brush"],
-      "tasks": [ { "id": "check", "type": "checkmark", "title": "I dug up trail ruins" } ],
-      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
-    },
-    {
-      "id": "relic",
-      "title": "A relic",
-      "description": [
-        "Some trail ruins keep a music disc in their suspicious gravel."
-      ],
-      "x": 4, "y": 1.5,
-      "optional": true,
-      "dependencies": ["trail_ruins"],
-      "tasks": [ { "id": "music_disc_relic", "type": "item", "item": "minecraft:music_disc_relic" } ],
-      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
-    },
-    {
-      "id": "sniffer_egg",
-      "title": "Smells interesting",
-      "description": [
-        "Warm ocean ruins hide sniffer eggs in their suspicious sand. Place one on moss: it hatches faster."
-      ],
-      "x": 4, "y": 0,
-      "dependencies": ["first_sherd", "trail_ruins"],
-      "tasks": [ { "id": "sniffer_egg", "type": "item", "item": "minecraft:sniffer_egg" } ],
-      "rewards": [ { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 8 } ]
-    },
-    {
-      "id": "ancient_seeds",
-      "title": "Ancient seeds",
-      "description": [
-        "A grown sniffer digs up seeds from a time long gone. Feed it torchflower seeds to breed it."
-      ],
-      "icon": "minecraft:torchflower_seeds",
-      "x": 6, "y": 0,
-      "dependencies": ["sniffer_egg"],
-      "tasks": [
-        { "id": "torchflower_seeds", "type": "item", "item": "minecraft:torchflower_seeds" },
-        { "id": "pitcher_pod", "type": "item", "item": "minecraft:pitcher_pod" }
-      ],
-      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
-    },
-    {
-      "id": "old_flowers",
-      "title": "Planting the past",
-      "description": [
-        "Grow the ancient seeds into torchflowers and pitcher plants."
-      ],
-      "icon": "minecraft:torchflower",
-      "x": 8, "y": 0,
-      "dependencies": ["ancient_seeds"],
-      "tasks": [
-        { "id": "torchflower", "type": "item", "item": "minecraft:torchflower", "count": 4 },
-        { "id": "pitcher_plant", "type": "item", "item": "minecraft:pitcher_plant", "count": 2 }
-      ],
-      "rewards": [ { "id": "random", "type": "random", "table": "farmer_loot" } ]
-    },
-    {
-      "id": "new_look",
-      "title": "A new look",
-      "description": [
-        "Armour trim templates turn up in structures all over the world. At a smithing table, with an ingot or a gem, they decorate armour."
-      ],
-      "icon": "minecraft:coast_armor_trim_smithing_template",
-      "x": 6, "y": -1.5,
-      "dependencies": ["decorated_pot"],
-      "tasks": [ { "id": "trim_with_any_armor_pattern", "type": "advancement", "advancement": "minecraft:adventure/trim_with_any_armor_pattern", "title": "Trim a piece of armour" } ],
-      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 8 } ]
-    },
-    {
-      "id": "templates",
-      "title": "Template hunter",
-      "description": [
-        "Pillager outposts, desert pyramids, shipwrecks and jungle temples each keep a trim of their own."
-      ],
-      "icon": "minecraft:sentry_armor_trim_smithing_template",
-      "x": 8, "y": -1.5,
-      "dependencies": ["new_look"],
-      "tasks": [
-        { "id": "sentry_armor_trim_smithing_template", "type": "item", "item": "minecraft:sentry_armor_trim_smithing_template" },
-        { "id": "dune_armor_trim_smithing_template", "type": "item", "item": "minecraft:dune_armor_trim_smithing_template" },
-        { "id": "coast_armor_trim_smithing_template", "type": "item", "item": "minecraft:coast_armor_trim_smithing_template" },
-        { "id": "wild_armor_trim_smithing_template", "type": "item", "item": "minecraft:wild_armor_trim_smithing_template" }
-      ],
-      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
-    }
-  ]
-}
-"##),
-    ("16_nether_frontier.json", r#"{
-  "id": "nether_frontier",
-  "title": "Nether frontier",
-  "subtitle": "Forests, bastions and lava seas",
-  "icon": "minecraft:crimson_fungus",
-  "group": "explore",
-  "quests": [
-    {
-      "id": "forests",
-      "title": "Strange forests",
-      "description": [
-        "The Nether's forests grow giant fungi instead of trees: red crimson and blue warped. Their wood does not burn."
-      ],
-      "icon": "minecraft:warped_fungus",
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["the_nether/portal"],
-      "tasks": [
-        { "id": "crimson_stem", "type": "item", "item": "minecraft:crimson_stem", "count": 16 },
-        { "id": "warped_stem", "type": "item", "item": "minecraft:warped_stem", "count": 16 }
-      ],
-      "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
-    },
-    {
-      "id": "shroomlight",
-      "title": "Lights in the trees",
-      "description": [
-        "Shroomlights glow among the huge fungi's caps, and vines hang under them."
-      ],
-      "x": 2, "y": -1.5,
-      "dependencies": ["forests"],
-      "tasks": [
-        { "id": "shroomlight", "type": "item", "item": "minecraft:shroomlight", "count": 4 },
-        { "id": "weeping_vines", "type": "item", "item": "minecraft:weeping_vines", "count": 4 }
-      ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
-    },
-    {
-      "id": "hoglins",
-      "title": "Hoglin hunt",
-      "description": [
-        "Hoglins charge anything in crimson forests. Warped fungus scares them away."
-      ],
-      "icon": "minecraft:cooked_porkchop",
-      "x": 2, "y": 1.5,
-      "dependencies": ["forests"],
-      "tasks": [ { "id": "hoglin", "type": "kill", "entity": "minecraft:hoglin", "count": 3 } ],
-      "rewards": [ { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 } ]
-    },
-    {
-      "id": "strider",
-      "title": "Walking on lava",
-      "description": [
-        "Striders cross the lava seas. Saddle one and steer it with warped fungus on a stick."
-      ],
-      "icon": "minecraft:warped_fungus_on_a_stick",
-      "x": 4, "y": 1.5,
-      "dependencies": ["hoglins"],
-      "tasks": [
-        { "id": "warped_fungus_on_a_stick", "type": "item", "item": "minecraft:warped_fungus_on_a_stick" },
-        { "id": "check", "type": "checkmark", "title": "I rode a strider over lava" }
-      ],
-      "rewards": [ { "id": "saddle", "type": "item", "item": "minecraft:saddle" } ]
-    },
-    {
-      "id": "bastion",
-      "title": "Bastion",
-      "description": [
-        "Huge blackstone fortresses held by piglins. Wear gold, do not open their chests in front of them, and do not mine their gold."
-      ],
-      "icon": "minecraft:gilded_blackstone",
-      "x": 4, "y": -1.5,
-      "dependencies": ["shroomlight"],
-      "tasks": [ { "id": "gilded_blackstone", "type": "item", "item": "minecraft:gilded_blackstone" } ],
-      "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
-    },
-    {
-      "id": "brute",
-      "title": "War pigs",
-      "description": [
-        "Piglin brutes guard the bastions' treasure. Gold does not calm them."
-      ],
-      "icon": "minecraft:golden_axe",
-      "x": 6, "y": -1.5,
-      "dependencies": ["bastion"],
-      "tasks": [ { "id": "piglin_brute", "type": "kill", "entity": "minecraft:piglin_brute" } ],
-      "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" } ]
-    },
-    {
-      "id": "upgrade_template",
-      "title": "Upgrade plans",
-      "description": [
-        "Bastion chests always have a chance of a netherite upgrade template. Duplicate it with diamonds and netherrack."
-      ],
-      "icon": "minecraft:netherite_upgrade_smithing_template",
-      "x": 8, "y": -1.5,
-      "dependencies": ["brute"],
-      "tasks": [ { "id": "netherite_upgrade_smithing_template", "type": "item", "item": "minecraft:netherite_upgrade_smithing_template" } ],
-      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
-    },
-    {
-      "id": "respawn_anchor",
-      "title": "Not quite nine lives",
-      "description": [
-        "Crying obsidian and glowstone make a respawn anchor: a bed that works in the Nether. Never use it in the Overworld."
-      ],
-      "icon": "minecraft:respawn_anchor",
-      "x": 6, "y": 0,
-      "dependencies": ["forests"],
-      "tasks": [
-        { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian", "count": 6 },
-        { "id": "respawn_anchor", "type": "item", "item": "minecraft:respawn_anchor" }
-      ],
-      "rewards": [ { "id": "glowstone", "type": "item", "item": "minecraft:glowstone", "count": 4 } ]
-    },
-    {
-      "id": "lodestone",
-      "title": "Country lode",
-      "description": [
-        "A netherite ingot in chiseled stone. Use a compass on a lodestone and it will point to it, in any dimension."
-      ],
-      "x": 8, "y": 0,
-      "dependencies": ["respawn_anchor", "beyond/netherite"],
-      "tasks": [ { "id": "lodestone", "type": "item", "item": "minecraft:lodestone" } ],
-      "rewards": [ { "id": "compass", "type": "item", "item": "minecraft:compass" } ]
-    },
-    {
-      "id": "basalt",
-      "title": "Basalt deltas",
-      "description": [
-        "Grey pillars, ash and magma cubes. Blackstone works like cobblestone for tools and furnaces."
-      ],
-      "icon": "minecraft:basalt",
-      "x": 6, "y": 1.5,
-      "dependencies": ["strider"],
-      "tasks": [
-        { "id": "basalt", "type": "item", "item": "minecraft:basalt", "count": 16 },
-        { "id": "blackstone", "type": "item", "item": "minecraft:blackstone", "count": 32 }
-      ],
-      "rewards": [ { "id": "magma_cream", "type": "item", "item": "minecraft:magma_cream", "count": 2 } ]
-    },
-    {
-      "id": "blue_flames",
-      "title": "Blue flames",
-      "description": [
-        "Soul fire burns blue and keeps piglins and hoglins at a distance."
-      ],
-      "icon": "minecraft:soul_lantern",
-      "x": 8, "y": 1.5,
-      "dependencies": ["basalt", "the_nether/soul_sand"],
-      "tasks": [
-        { "id": "soul_campfire", "type": "item", "item": "minecraft:soul_campfire" },
-        { "id": "soul_lantern", "type": "item", "item": "minecraft:soul_lantern" }
-      ],
-      "rewards": [ { "id": "soul_torch", "type": "item", "item": "minecraft:soul_torch", "count": 16 } ]
-    },
-    {
-      "id": "pigstep",
-      "title": "Pigstep",
-      "description": [
-        "Bastions sometimes keep a music disc in their chests. Piglins dance to it."
-      ],
-      "x": 10, "y": -1.5,
-      "optional": true,
-      "dependencies": ["upgrade_template"],
-      "tasks": [ { "id": "music_disc_pigstep", "type": "item", "item": "minecraft:music_disc_pigstep" } ],
-      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
-    },
-    {
-      "id": "zoglin",
-      "title": "Out of place",
-      "description": [
-        "A hoglin taken to the Overworld turns into a zoglin, which attacks everything."
-      ],
-      "icon": "minecraft:rotten_flesh",
-      "x": 10, "y": 1.5,
-      "optional": true,
-      "dependencies": ["hoglins"],
-      "tasks": [ { "id": "zoglin", "type": "kill", "entity": "minecraft:zoglin" } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 60 } ]
-    }
-  ]
-}
-"#),
-    ("17_animals.json", r##"{
-  "id": "animals",
-  "title": "Animal friends",
-  "subtitle": "Tame them, ride them, keep them",
-  "icon": "minecraft:lead",
-  "group": "life",
-  "quests": [
-    {
-      "id": "lead",
-      "title": "On a leash",
-      "description": [
-        "String and a slime ball make leads. Tie animals to fences, or walk them home."
-      ],
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["farming/breed"],
-      "tasks": [ { "id": "lead", "type": "craft", "item": "minecraft:lead", "count": 2 } ],
-      "rewards": [ { "id": "wheat", "type": "item", "item": "minecraft:wheat", "count": 16 } ]
-    },
-    {
-      "id": "name_tag",
-      "title": "What's in a name",
-      "description": [
-        "Name tags come from chests, fishing and librarians. Rename one at an anvil, then use it on an animal you love."
-      ],
-      "x": 0, "y": 1.5,
-      "dependencies": ["lead"],
-      "tasks": [ { "id": "name_tag", "type": "item", "item": "minecraft:name_tag" } ],
-      "rewards": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ]
-    },
-    {
-      "id": "horse",
-      "title": "Saddle up",
-      "description": [
-        "Mount a horse again and again until it stops throwing you off, then saddle it."
-      ],
-      "icon": "minecraft:saddle",
-      "x": 2, "y": -1.5,
-      "dependencies": ["lead"],
-      "tasks": [
-        { "id": "saddle", "type": "item", "item": "minecraft:saddle" },
-        { "id": "check", "type": "checkmark", "title": "I tamed and rode a horse" }
-      ],
-      "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
-    },
-    {
-      "id": "horse_armor",
-      "title": "Armoured steed",
-      "description": [
-        "Horse armour is found in chests. A horse wearing it takes far less damage."
-      ],
-      "x": 4, "y": -1.5,
-      "optional": true,
-      "dependencies": ["horse"],
-      "tasks": [ { "id": "iron_horse_armor", "type": "item", "item": "minecraft:iron_horse_armor" } ],
-      "rewards": [ { "id": "hay_block", "type": "item", "item": "minecraft:hay_block", "count": 8 } ]
-    },
-    {
-      "id": "camel",
-      "title": "Ship of the desert",
-      "description": [
-        "Camels wander deserts and savannas. Two can ride one, and they dash over gaps."
-      ],
-      "icon": "minecraft:cactus",
-      "x": 6, "y": -1.5,
-      "dependencies": ["horse"],
-      "tasks": [ { "id": "check", "type": "checkmark", "title": "I rode a camel" } ],
-      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 } ]
-    },
-    {
-      "id": "armadillo",
-      "title": "Isn't it scute?",
-      "description": [
-        "Brush an armadillo, or wait for it to shed: it drops scutes. They roll up when anything comes close."
-      ],
-      "icon": "minecraft:armadillo_scute",
-      "x": 2, "y": 1.5,
-      "dependencies": ["lead"],
-      "tasks": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 6 } ],
-      "rewards": [ { "id": "brush", "type": "item", "item": "minecraft:brush" } ]
-    },
-    {
-      "id": "wolf",
-      "title": "A loyal wolf",
-      "description": [
-        "Give bones to a wolf until hearts appear. It follows you, fights for you, and sits when told."
-      ],
-      "icon": "minecraft:bone",
-      "x": 2, "y": 0,
-      "dependencies": ["lead"],
-      "tasks": [
-        { "id": "bone", "type": "item", "item": "minecraft:bone", "count": 8 },
-        { "id": "check", "type": "checkmark", "title": "I tamed a wolf" }
-      ],
-      "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 } ]
-    },
-    {
-      "id": "wolf_armor",
-      "title": "Armour for a friend",
-      "description": [
-        "Armadillo scutes make wolf armour. It soaks up the damage and can be repaired with more scutes."
-      ],
-      "x": 4, "y": 1.5,
-      "dependencies": ["armadillo", "wolf"],
-      "tasks": [ { "id": "wolf_armor", "type": "craft", "item": "minecraft:wolf_armor" } ],
-      "rewards": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 4 } ]
-    },
-    {
-      "id": "whole_pack",
-      "title": "The whole pack",
-      "description": [
-        "Wolves look different in every forest and taiga. Tame one of each."
-      ],
-      "icon": "minecraft:wolf_armor",
-      "x": 6, "y": 1.5,
-      "optional": true,
-      "dependencies": ["wolf_armor"],
-      "tasks": [ { "id": "whole_pack", "type": "advancement", "advancement": "minecraft:husbandry/whole_pack", "title": "Tame one of each kind of wolf" } ],
-      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
-    },
-    {
-      "id": "cat",
-      "title": "A cat of your own",
-      "description": [
-        "Stray cats live in villages. Feed them raw fish and they keep phantoms and creepers away."
-      ],
-      "icon": "minecraft:cod",
-      "x": 4, "y": 0,
-      "dependencies": ["wolf"],
-      "tasks": [
-        { "id": "cod", "type": "item", "item": "minecraft:cod", "count": 4 },
-        { "id": "check", "type": "checkmark", "title": "I tamed a cat" }
-      ],
-      "rewards": [ { "id": "string", "type": "item", "item": "minecraft:string", "count": 8 } ]
-    },
-    {
-      "id": "allay",
-      "title": "You've got a friend",
-      "description": [
-        "Allays are kept in pillager outposts and woodland mansions. Free one and give it an item: it collects more of it for you."
-      ],
-      "icon": "minecraft:amethyst_shard",
-      "x": 6, "y": 0,
-      "dependencies": ["cat"],
-      "tasks": [ { "id": "allay_deliver_item_to_player", "type": "advancement", "advancement": "minecraft:husbandry/allay_deliver_item_to_player", "title": "An allay brings you an item" } ],
-      "rewards": [ { "id": "note_block", "type": "item", "item": "minecraft:note_block" } ]
-    },
-    {
-      "id": "dried_ghast",
-      "title": "A dried ghast",
-      "description": [
-        "Soul sand valleys hide dried ghasts. Put one in water and wait: something small wakes up."
-      ],
-      "icon": "minecraft:dried_ghast",
-      "x": 8, "y": -1.5,
-      "dependencies": ["camel", "the_nether/portal"],
-      "tasks": [ { "id": "dried_ghast", "type": "item", "item": "minecraft:dried_ghast" } ],
-      "rewards": [ { "id": "water_bucket", "type": "item", "item": "minecraft:water_bucket" } ]
-    },
-    {
-      "id": "happy_ghast",
-      "title": "Sky ride",
-      "description": [
-        "A grown happy ghast carries up to four players with a harness. Snowballs are its favourite treat."
-      ],
-      "icon": "minecraft:white_harness",
-      "x": 10, "y": -1.5,
-      "dependencies": ["dried_ghast"],
-      "tasks": [
-        { "id": "harnesses", "type": "item", "item": "#minecraft:harnesses" },
-        { "id": "check", "type": "checkmark", "title": "I flew on a happy ghast" }
-      ],
-      "rewards": [ { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 } ]
-    },
-    {
-      "id": "snow_golem",
-      "title": "Frosty",
-      "description": [
-        "Two snow blocks with a carved pumpkin on top. It throws snowballs at monsters and leaves snow behind."
-      ],
-      "icon": "minecraft:carved_pumpkin",
-      "x": 8, "y": 1.5,
-      "dependencies": ["cat"],
-      "tasks": [
-        { "id": "carved_pumpkin", "type": "item", "item": "minecraft:carved_pumpkin" },
-        { "id": "check", "type": "checkmark", "title": "I built a snow golem" }
-      ],
-      "rewards": [ { "id": "snow_block", "type": "item", "item": "minecraft:snow_block", "count": 16 } ]
-    },
-    {
-      "id": "animal_lover",
-      "title": "Animal lover",
-      "description": [
-        "Horses, wolves, cats, allays and a ghast to fly. You never travel alone now."
-      ],
-      "icon": "minecraft:lead",
-      "x": 10, "y": 0.75,
-      "shape": "hexagon",
-      "size": 1.5,
-      "visibility": "until_deps_complete",
-      "dependencies": ["happy_ghast", "allay", "wolf_armor", "snow_golem"],
-      "tasks": [],
-      "rewards": [
-        { "id": "random", "type": "random", "table": "farmer_loot" },
-        { "id": "levels", "type": "xp_levels", "levels": 5 }
-      ]
-    }
-  ]
-}
-"##),
-    ("18_kitchen.json", r#"{
-  "id": "kitchen",
-  "title": "The kitchen",
-  "subtitle": "Everything you can eat",
-  "icon": "minecraft:pumpkin_pie",
-  "group": "life",
-  "quests": [
-    {
-      "id": "smoker",
-      "title": "A smoker",
-      "description": [
-        "A furnace among four logs. It cooks food twice as fast."
-      ],
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["farming/wheat"],
-      "tasks": [ { "id": "smoker", "type": "item", "item": "minecraft:smoker" } ],
-      "rewards": [ { "id": "charcoal", "type": "item", "item": "minecraft:charcoal", "count": 16 } ]
-    },
-    {
-      "id": "butcher",
-      "title": "Butcher",
-      "description": [
-        "Cows, pigs, chickens. Keep a stock of cooked meat."
-      ],
-      "icon": "minecraft:cooked_porkchop",
-      "x": 2, "y": -1.5,
-      "dependencies": ["smoker"],
-      "tasks": [
-        { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 },
-        { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 },
-        { "id": "cooked_chicken", "type": "item", "item": "minecraft:cooked_chicken", "count": 8 }
-      ],
-      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 4 } ]
-    },
-    {
-      "id": "fish_supper",
-      "title": "Fish supper",
-      "description": [
-        "Cooked fish from rivers and oceans."
-      ],
-      "icon": "minecraft:cooked_salmon",
-      "x": 2, "y": 1.5,
-      "dependencies": ["smoker"],
-      "tasks": [
-        { "id": "cooked_cod", "type": "item", "item": "minecraft:cooked_cod", "count": 8 },
-        { "id": "cooked_salmon", "type": "item", "item": "minecraft:cooked_salmon", "count": 8 }
-      ],
-      "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
-    },
-    {
-      "id": "snacks",
-      "title": "Snacks",
-      "description": [
-        "Small foods you can eat fast: dried kelp and baked potatoes."
-      ],
-      "icon": "minecraft:baked_potato",
-      "x": 4, "y": 0,
-      "dependencies": ["smoker"],
-      "tasks": [
-        { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
-        { "id": "baked_potato", "type": "item", "item": "minecraft:baked_potato", "count": 16 }
-      ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
-    },
-    {
-      "id": "soups",
-      "title": "Soup kitchen",
-      "description": [
-        "Stews come in bowls. A suspicious stew, made with a flower, gives a short effect: guess which one."
-      ],
-      "icon": "minecraft:rabbit_stew",
-      "x": 4, "y": -1.5,
-      "dependencies": ["butcher"],
-      "tasks": [
-        { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" },
-        { "id": "rabbit_stew", "type": "item", "item": "minecraft:rabbit_stew" },
-        { "id": "beetroot_soup", "type": "item", "item": "minecraft:beetroot_soup" },
-        { "id": "suspicious_stew", "type": "item", "item": "minecraft:suspicious_stew" }
-      ],
-      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 8 } ]
-    },
-    {
-      "id": "sweets",
-      "title": "Sweet tooth",
-      "description": [
-        "Wheat and cocoa make cookies; pumpkin, sugar and an egg make a pie."
-      ],
-      "icon": "minecraft:cookie",
-      "x": 4, "y": 1.5,
-      "dependencies": ["fish_supper"],
-      "tasks": [
-        { "id": "cookie", "type": "item", "item": "minecraft:cookie", "count": 16 },
-        { "id": "pumpkin_pie", "type": "item", "item": "minecraft:pumpkin_pie", "count": 4 }
-      ],
-      "rewards": [ { "id": "random", "type": "random", "table": "baker_loot" } ]
-    },
-    {
-      "id": "golden_food",
-      "title": "Golden food",
-      "description": [
-        "Gold nuggets around a melon slice or a carrot. Golden carrots are the best everyday food."
-      ],
-      "icon": "minecraft:glistering_melon_slice",
-      "x": 6, "y": 0,
-      "dependencies": ["snacks"],
-      "tasks": [
-        { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice", "count": 2 },
-        { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 }
-      ],
-      "rewards": [ { "id": "gold_nugget", "type": "item", "item": "minecraft:gold_nugget", "count": 16 } ]
-    },
-    {
-      "id": "notch_apple",
-      "title": "An enchanted apple",
-      "description": [
-        "It cannot be crafted. Only chests in ruins, temples and bastions hold one."
-      ],
-      "x": 8, "y": -1.5,
-      "optional": true,
-      "dependencies": ["golden_food"],
-      "tasks": [ { "id": "enchanted_golden_apple", "type": "item", "item": "minecraft:enchanted_golden_apple" } ],
-      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
-    },
-    {
-      "id": "balanced_diet",
-      "title": "A balanced diet",
-      "description": [
-        "Every food, even the strange ones: chorus fruit, poisonous potatoes, rotten flesh, spider eyes."
-      ],
-      "icon": "minecraft:golden_apple",
-      "x": 8, "y": 1.5,
-      "optional": true,
-      "dependencies": ["golden_food", "soups", "sweets"],
-      "tasks": [ { "id": "balanced_diet", "type": "advancement", "advancement": "minecraft:husbandry/balanced_diet", "title": "Eat everything that can be eaten" } ],
-      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
-    }
-  ]
-}
-"#),
-    ("19_villagers.json", r#"{
-  "id": "villagers",
-  "title": "Village life",
-  "subtitle": "Neighbours, trades and raids",
-  "icon": "minecraft:emerald",
-  "group": "life",
-  "quests": [
     {
       "id": "emeralds",
       "title": "First trades",
       "description": [
         "Villagers buy what they need for emeralds: wheat, paper, coal, sticks. Find one who buys what you have."
       ],
-      "x": 0, "y": 0,
+      "x": 0, "y": 7,
       "shape": "circle",
-      "dependencies": ["wide_world/village"],
+      "dependencies": ["iron_age/village"],
       "tasks": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 8 } ],
       "rewards": [ { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 8 } ]
     },
@@ -3657,7 +3684,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A villager without a job takes the first free workstation it finds: a lectern makes a librarian, a fletching table a fletcher."
       ],
       "icon": "minecraft:lectern",
-      "x": 2, "y": -1.5,
+      "x": 2, "y": 5.5,
       "dependencies": ["emeralds"],
       "tasks": [
         { "id": "lectern", "type": "item", "item": "minecraft:lectern" },
@@ -3673,7 +3700,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Librarians sell enchanted books. Reroll their trade by breaking and replacing the lectern before trading."
       ],
-      "x": 4, "y": -1.5,
+      "x": 4, "y": 5.5,
       "dependencies": ["job_sites"],
       "tasks": [ { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book" } ],
       "rewards": [ { "id": "book", "type": "item", "item": "minecraft:book", "count": 8 } ]
@@ -3684,7 +3711,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Eighteen emeralds. Trade often and villagers level up and sell better things."
       ],
-      "x": 2, "y": 1.5,
+      "x": 2, "y": 8.5,
       "dependencies": ["emeralds"],
       "tasks": [ { "id": "emerald_block", "type": "item", "item": "minecraft:emerald_block", "count": 2 } ],
       "rewards": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ]
@@ -3696,7 +3723,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Four iron blocks in a T and a carved pumpkin on top. It protects the village; villagers build them too."
       ],
       "icon": "minecraft:iron_block",
-      "x": 4, "y": 0,
+      "x": 4, "y": 7,
       "dependencies": ["emeralds"],
       "tasks": [
         { "id": "iron_block", "type": "item", "item": "minecraft:iron_block", "count": 4 },
@@ -3711,7 +3738,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Throw a splash potion of weakness at a zombie villager, then feed it a golden apple. It thanks you with cheap trades."
       ],
       "icon": "minecraft:golden_apple",
-      "x": 6, "y": 0,
+      "x": 6, "y": 7,
       "dependencies": ["iron_golem", "the_nether/potion"],
       "tasks": [
         { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple" },
@@ -3726,7 +3753,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Pillagers live in tall wooden towers. Their captain carries a banner and an ominous bottle."
       ],
       "icon": "minecraft:crossbow",
-      "x": 4, "y": 1.5,
+      "x": 4, "y": 8.5,
       "dependencies": ["wealthy"],
       "tasks": [ { "id": "pillager", "type": "kill", "entity": "minecraft:pillager", "count": 5 } ],
       "rewards": [ { "id": "random", "type": "random", "table": "hunter_loot" } ]
@@ -3739,7 +3766,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Ravagers, vindicators, evokers. Save the villagers and they will give you gifts."
       ],
       "icon": "minecraft:white_banner",
-      "x": 6, "y": 1.5,
+      "x": 6, "y": 8.5,
       "shape": "hexagon",
       "size": 1.25,
       "dependencies": ["outpost"],
@@ -3757,7 +3784,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Evokers summon fangs from the ground and vexes that fly through walls. Kill the evoker first."
       ],
       "icon": "minecraft:totem_of_undying",
-      "x": 8, "y": 1.5,
+      "x": 8, "y": 8.5,
       "dependencies": ["raid"],
       "tasks": [
         { "id": "evoker", "type": "kill", "entity": "minecraft:evoker" },
@@ -3772,7 +3799,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Now and then a trader comes by with two llamas, selling plants and things from far away."
       ],
       "icon": "minecraft:lead",
-      "x": 2, "y": 3,
+      "x": 2, "y": 10,
       "dependencies": ["wealthy"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I traded with a wandering trader" } ],
       "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 2 } ]
@@ -3784,29 +3811,19 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Take a villager up to the build limit, then trade with it. It will not be easy."
       ],
       "icon": "minecraft:emerald",
-      "x": 8, "y": -1.5,
+      "x": 8, "y": 5.5,
       "optional": true,
-      "dependencies": ["librarian", "wide_world/top_of_world"],
+      "dependencies": ["librarian", "iron_age/top_of_world"],
       "tasks": [ { "id": "trade_at_world_height", "type": "advancement", "advancement": "minecraft:adventure/trade_at_world_height", "title": "Trade at the build limit" } ],
       "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
-    }
-  ]
-}
-"#),
-    ("20_arsenal.json", r##"{
-  "id": "arsenal",
-  "title": "Arsenal",
-  "subtitle": "Weapons for every fight",
-  "icon": "minecraft:crossbow",
-  "group": "combat",
-  "quests": [
+    },
     {
       "id": "crossbow",
       "title": "Crossbow",
       "description": [
         "Slower to load than a bow, but it hits hard, and it can fire rockets."
       ],
-      "x": 0, "y": 0,
+      "x": 0, "y": -7,
       "shape": "circle",
       "dependencies": ["iron_age/iron_armor"],
       "tasks": [ { "id": "crossbow", "type": "item", "item": "minecraft:crossbow" } ],
@@ -3819,7 +3836,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Glowstone makes spectral arrows that show targets through walls. Lingering potions make tipped arrows."
       ],
       "icon": "minecraft:spectral_arrow",
-      "x": 2, "y": -1.5,
+      "x": 2, "y": -8.5,
       "dependencies": ["crossbow"],
       "tasks": [
         { "id": "spectral_arrow", "type": "item", "item": "minecraft:spectral_arrow", "count": 16 },
@@ -3834,7 +3851,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Spears reach further than swords. Charge with one held out and it lunges through what is in front."
       ],
       "icon": "minecraft:iron_spear",
-      "x": 2, "y": 1.5,
+      "x": 2, "y": -5.5,
       "dependencies": ["crossbow"],
       "tasks": [ { "id": "spears", "type": "item", "item": "#minecraft:spears" } ],
       "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 4 } ]
@@ -3846,7 +3863,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Line them up, charge, and skewer as many as you can at once."
       ],
       "icon": "minecraft:stone_spear",
-      "x": 4, "y": 1.5,
+      "x": 4, "y": -5.5,
       "optional": true,
       "dependencies": ["spear"],
       "tasks": [ { "id": "spear_many_mobs", "type": "advancement", "advancement": "minecraft:adventure/spear_many_mobs", "title": "Hit many mobs with one spear charge" } ],
@@ -3858,7 +3875,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
       "description": [
         "Upgrade a diamond spear at a smithing table."
       ],
-      "x": 6, "y": 1.5,
+      "x": 6, "y": -5.5,
       "dependencies": ["spear", "beyond/netherite"],
       "tasks": [ { "id": "netherite_spear", "type": "item", "item": "minecraft:netherite_spear" } ],
       "rewards": [ { "id": "netherite_scrap", "type": "item", "item": "minecraft:netherite_scrap" } ]
@@ -3870,7 +3887,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Evokers drop totems of undying. Hold one in either hand: the next time you would die, you don't."
       ],
       "icon": "minecraft:totem_of_undying",
-      "x": 4, "y": -1.5,
+      "x": 4, "y": -8.5,
       "dependencies": ["special_arrows"],
       "tasks": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ],
       "rewards": [ { "id": "golden_apple", "type": "item", "item": "minecraft:golden_apple", "count": 2 } ]
@@ -3882,7 +3899,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Take a skeleton down from fifty blocks away with an arrow."
       ],
       "icon": "minecraft:bow",
-      "x": 6, "y": -1.5,
+      "x": 6, "y": -8.5,
       "optional": true,
       "dependencies": ["totem"],
       "tasks": [ { "id": "sniper_duel", "type": "advancement", "advancement": "minecraft:adventure/sniper_duel", "title": "Shoot a skeleton from 50 blocks" } ],
@@ -3895,7 +3912,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A shield, a bow, a crossbow and a trident on the wall. Ready for anything."
       ],
       "icon": "minecraft:shield",
-      "x": 6, "y": 0,
+      "x": 6, "y": -7,
       "shape": "hexagon",
       "size": 1.25,
       "dependencies": ["totem", "spear"],
@@ -3910,210 +3927,12 @@ pub const CHAPTERS: &[(&str, &str)] = &[
   ]
 }
 "##),
-    ("21_redstone.json", r#"{
-  "id": "redstone",
-  "title": "Redstone",
-  "subtitle": "Circuits and machines",
-  "icon": "minecraft:redstone",
-  "group": "craft",
-  "quests": [
-    {
-      "id": "first_circuits",
-      "title": "First circuits",
-      "description": [
-        "Redstone dust carries power. A lever switches it, a redstone torch inverts it."
-      ],
-      "icon": "minecraft:lever",
-      "x": 0, "y": 0,
-      "shape": "circle",
-      "dependencies": ["iron_age/ores"],
-      "tasks": [
-        { "id": "redstone_torch", "type": "item", "item": "minecraft:redstone_torch", "count": 4 },
-        { "id": "lever", "type": "item", "item": "minecraft:lever" }
-      ],
-      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
-    },
-    {
-      "id": "signals",
-      "title": "Signals",
-      "description": [
-        "Repeaters delay and strengthen signals; comparators read how full a chest is."
-      ],
-      "icon": "minecraft:repeater",
-      "x": 2, "y": -1.5,
-      "dependencies": ["first_circuits"],
-      "tasks": [
-        { "id": "repeater", "type": "item", "item": "minecraft:repeater", "count": 4 },
-        { "id": "comparator", "type": "item", "item": "minecraft:comparator", "count": 2 }
-      ],
-      "rewards": [ { "id": "quartz", "type": "item", "item": "minecraft:quartz", "count": 8 } ]
-    },
-    {
-      "id": "pistons",
-      "title": "Push and pull",
-      "description": [
-        "Pistons push blocks; sticky pistons pull them back. Hidden doors start here."
-      ],
-      "icon": "minecraft:piston",
-      "x": 2, "y": 1.5,
-      "dependencies": ["first_circuits"],
-      "tasks": [
-        { "id": "piston", "type": "item", "item": "minecraft:piston", "count": 4 },
-        { "id": "sticky_piston", "type": "item", "item": "minecraft:sticky_piston", "count": 2 }
-      ],
-      "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
-    },
-    {
-      "id": "observer",
-      "title": "Watchful",
-      "description": [
-        "An observer sends a pulse when the block it faces changes. It is the heart of most farms."
-      ],
-      "x": 4, "y": 1.5,
-      "dependencies": ["pistons"],
-      "tasks": [ { "id": "observer", "type": "item", "item": "minecraft:observer", "count": 2 } ],
-      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
-    },
-    {
-      "id": "logistics",
-      "title": "Item logistics",
-      "description": [
-        "Hoppers move items between containers. Droppers spit them out; dispensers use them."
-      ],
-      "icon": "minecraft:hopper",
-      "x": 4, "y": -1.5,
-      "dependencies": ["signals"],
-      "tasks": [
-        { "id": "hopper", "type": "item", "item": "minecraft:hopper", "count": 4 },
-        { "id": "dropper", "type": "item", "item": "minecraft:dropper" },
-        { "id": "dispenser", "type": "item", "item": "minecraft:dispenser" }
-      ],
-      "rewards": [ { "id": "chest", "type": "item", "item": "minecraft:chest", "count": 4 } ]
-    },
-    {
-      "id": "crafter",
-      "title": "Automatic crafting",
-      "description": [
-        "A crafter crafts each time it is powered, following the slots you leave open."
-      ],
-      "x": 6, "y": -1.5,
-      "dependencies": ["logistics"],
-      "tasks": [ { "id": "crafter", "type": "item", "item": "minecraft:crafter" } ],
-      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
-    },
-    {
-      "id": "crafters_crafting",
-      "title": "Crafters crafting crafters",
-      "description": [
-        "Set a crafter up so that it crafts another crafter."
-      ],
-      "icon": "minecraft:crafter",
-      "x": 8, "y": -1.5,
-      "optional": true,
-      "dependencies": ["crafter"],
-      "tasks": [ { "id": "crafters_crafting_crafters", "type": "advancement", "advancement": "minecraft:adventure/crafters_crafting_crafters", "title": "Have a crafter craft a crafter" } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 80 } ]
-    },
-    {
-      "id": "rails",
-      "title": "Minecart line",
-      "description": [
-        "Powered rails need gold and a redstone signal to push carts along."
-      ],
-      "icon": "minecraft:powered_rail",
-      "x": 4, "y": 0,
-      "dependencies": ["first_circuits"],
-      "tasks": [
-        { "id": "rail", "type": "item", "item": "minecraft:rail", "count": 32 },
-        { "id": "powered_rail", "type": "item", "item": "minecraft:powered_rail", "count": 8 },
-        { "id": "minecart", "type": "item", "item": "minecraft:minecart" }
-      ],
-      "rewards": [ { "id": "gold_ingot", "type": "item", "item": "minecraft:gold_ingot", "count": 4 } ]
-    },
-    {
-      "id": "lamps",
-      "title": "Lights out",
-      "description": [
-        "A daylight detector senses the sun: wire it to lamps that turn on at night."
-      ],
-      "icon": "minecraft:redstone_lamp",
-      "x": 6, "y": 1.5,
-      "dependencies": ["observer"],
-      "tasks": [
-        { "id": "daylight_detector", "type": "item", "item": "minecraft:daylight_detector" },
-        { "id": "redstone_lamp", "type": "item", "item": "minecraft:redstone_lamp", "count": 4 }
-      ],
-      "rewards": [ { "id": "glowstone", "type": "item", "item": "minecraft:glowstone", "count": 4 } ]
-    },
-    {
-      "id": "tnt",
-      "title": "Handle with explosives",
-      "description": [
-        "Gunpowder and sand. Light it, and stand back."
-      ],
-      "icon": "minecraft:tnt",
-      "x": 6, "y": 0,
-      "dependencies": ["rails"],
-      "tasks": [ { "id": "tnt", "type": "item", "item": "minecraft:tnt", "count": 4 } ],
-      "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
-    },
-    {
-      "id": "target",
-      "title": "Bullseye",
-      "description": [
-        "A target block sends a stronger signal the closer to its centre you hit. Note blocks play a note on each pulse."
-      ],
-      "icon": "minecraft:target",
-      "x": 8, "y": 0,
-      "dependencies": ["tnt"],
-      "tasks": [
-        { "id": "target", "type": "item", "item": "minecraft:target" },
-        { "id": "note_block", "type": "item", "item": "minecraft:note_block", "count": 4 }
-      ],
-      "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
-    },
-    {
-      "id": "flying_machine",
-      "title": "Sticky blocks",
-      "description": [
-        "Slime and honey blocks drag their neighbours along with pistons, but not each other. Flying machines use both."
-      ],
-      "icon": "minecraft:slime_block",
-      "x": 8, "y": 1.5,
-      "dependencies": ["lamps"],
-      "tasks": [
-        { "id": "slime_block", "type": "item", "item": "minecraft:slime_block", "count": 2 },
-        { "id": "honey_block", "type": "item", "item": "minecraft:honey_block", "count": 2 }
-      ],
-      "rewards": [ { "id": "observer", "type": "item", "item": "minecraft:observer", "count": 2 } ]
-    },
-    {
-      "id": "engineer",
-      "title": "Engineer",
-      "description": [
-        "You know every part of the redstone toolbox. Now build something with it."
-      ],
-      "icon": "minecraft:comparator",
-      "x": 10, "y": 0,
-      "shape": "hexagon",
-      "size": 1.5,
-      "visibility": "until_deps_complete",
-      "dependencies": ["target", "flying_machine", "crafter"],
-      "tasks": [],
-      "rewards": [
-        { "id": "redstone_block", "type": "item", "item": "minecraft:redstone_block", "count": 8 },
-        { "id": "levels", "type": "xp_levels", "levels": 5 }
-      ]
-    }
-  ]
-}
-"#),
-    ("22_builder.json", r##"{
+    ("10_builder.json", r##"{
   "id": "builder",
-  "title": "Builder",
-  "subtitle": "Blocks for every build",
+  "title": "Building and collecting",
+  "subtitle": "Blocks, redstone and one of everything",
   "icon": "minecraft:bricks",
-  "group": "craft",
+  "group": "side",
   "quests": [
     {
       "id": "stonecutter",
@@ -4383,168 +4202,195 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         { "id": "choice", "type": "choice", "table": "builder_choice" },
         { "id": "levels", "type": "xp_levels", "levels": 5 }
       ]
-    }
-  ]
-}
-"##),
-    ("23_magic.json", r#"{
-  "id": "magic",
-  "title": "Enchanting and brewing",
-  "subtitle": "Books, potions and power",
-  "icon": "minecraft:enchanted_book",
-  "group": "craft",
-  "quests": [
+    },
     {
-      "id": "lapis",
-      "title": "Lapis supply",
+      "id": "first_circuits",
+      "title": "First circuits",
       "description": [
-        "Every enchantment costs lapis. Keep a good stock next to the table."
+        "Redstone dust carries power. A lever switches it, a redstone torch inverts it."
       ],
-      "x": 0, "y": 0,
+      "icon": "minecraft:lever",
+      "x": 0, "y": 5.5,
       "shape": "circle",
-      "dependencies": ["diamonds/enchanting_table"],
-      "tasks": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 32 } ],
-      "rewards": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 4 } ]
-    },
-    {
-      "id": "anvil",
-      "title": "Anvil",
-      "description": [
-        "Combine enchanted books with tools, repair them, and rename things. Mind the cost: it grows each time."
-      ],
-      "x": 2, "y": -1.5,
-      "dependencies": ["lapis"],
-      "tasks": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ],
-      "rewards": [ { "id": "iron_ingot", "type": "item", "item": "minecraft:iron_ingot", "count": 8 } ]
-    },
-    {
-      "id": "books",
-      "title": "Spell books",
-      "description": [
-        "Enchant plain books at the table, buy them from librarians, or fish them up."
-      ],
-      "icon": "minecraft:enchanted_book",
-      "x": 4, "y": -1.5,
-      "dependencies": ["anvil"],
-      "tasks": [ { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book", "count": 3 } ],
-      "rewards": [ { "id": "book", "type": "item", "item": "minecraft:book", "count": 6 } ]
-    },
-    {
-      "id": "grindstone",
-      "title": "Clean slate",
-      "description": [
-        "A grindstone strips enchantments from an item and gives back some experience."
-      ],
-      "x": 6, "y": -1.5,
-      "dependencies": ["books"],
-      "tasks": [ { "id": "grindstone", "type": "item", "item": "minecraft:grindstone" } ],
-      "rewards": [ { "id": "xp", "type": "xp", "points": 50 } ]
-    },
-    {
-      "id": "bottles",
-      "title": "Bottled experience",
-      "description": [
-        "Clerics sell bottles of experience. Throw them at your feet."
-      ],
-      "x": 2, "y": 1.5,
-      "dependencies": ["lapis"],
-      "tasks": [ { "id": "experience_bottle", "type": "item", "item": "minecraft:experience_bottle", "count": 8 } ],
-      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 16 } ]
-    },
-    {
-      "id": "blaze_powder",
-      "title": "Fuel for the stand",
-      "description": [
-        "Every brewing stand burns blaze powder. Keep some aside."
-      ],
-      "icon": "minecraft:blaze_powder",
-      "x": 0, "y": 3,
-      "dependencies": ["the_nether/brewing_stand"],
-      "tasks": [ { "id": "blaze_powder", "type": "item", "item": "minecraft:blaze_powder", "count": 8 } ],
-      "rewards": [ { "id": "glass_bottle", "type": "item", "item": "minecraft:glass_bottle", "count": 8 } ]
-    },
-    {
-      "id": "ingredients",
-      "title": "The ingredient shelf",
-      "description": [
-        "A spider eye with sugar and a mushroom, a golden melon, a rabbit's foot, magma cream: each brews something else."
-      ],
-      "icon": "minecraft:fermented_spider_eye",
-      "x": 2, "y": 3,
-      "dependencies": ["blaze_powder"],
+      "dependencies": ["iron_age/ores"],
       "tasks": [
-        { "id": "fermented_spider_eye", "type": "item", "item": "minecraft:fermented_spider_eye", "count": 2 },
-        { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice" },
-        { "id": "rabbit_foot", "type": "item", "item": "minecraft:rabbit_foot" },
-        { "id": "magma_cream", "type": "item", "item": "minecraft:magma_cream" }
+        { "id": "redstone_torch", "type": "item", "item": "minecraft:redstone_torch", "count": 4 },
+        { "id": "lever", "type": "item", "item": "minecraft:lever" }
       ],
-      "rewards": [ { "id": "nether_wart", "type": "item", "item": "minecraft:nether_wart", "count": 8 } ]
+      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
     },
     {
-      "id": "splash",
-      "title": "Splash!",
+      "id": "signals",
+      "title": "Signals",
       "description": [
-        "Gunpowder turns a potion into one you throw. It hits everything around where it breaks."
+        "Repeaters delay and strengthen signals; comparators read how full a chest is."
       ],
-      "icon": "minecraft:splash_potion",
-      "x": 4, "y": 3,
-      "dependencies": ["ingredients"],
-      "tasks": [ { "id": "splash_potion", "type": "item", "item": "minecraft:splash_potion", "count": 3 } ],
-      "rewards": [ { "id": "gunpowder", "type": "item", "item": "minecraft:gunpowder", "count": 8 } ]
+      "icon": "minecraft:repeater",
+      "x": 2, "y": 4,
+      "dependencies": ["first_circuits"],
+      "tasks": [
+        { "id": "repeater", "type": "item", "item": "minecraft:repeater", "count": 4 },
+        { "id": "comparator", "type": "item", "item": "minecraft:comparator", "count": 2 }
+      ],
+      "rewards": [ { "id": "quartz", "type": "item", "item": "minecraft:quartz", "count": 8 } ]
     },
     {
-      "id": "lingering",
-      "title": "Lingering clouds",
+      "id": "pistons",
+      "title": "Push and pull",
       "description": [
-        "Dragon's breath turns a splash potion into a lingering cloud. Dip arrows in it for tipped arrows."
+        "Pistons push blocks; sticky pistons pull them back. Hidden doors start here."
       ],
-      "icon": "minecraft:lingering_potion",
-      "x": 6, "y": 3,
-      "dependencies": ["splash", "the_end/dragon_breath"],
-      "tasks": [ { "id": "lingering_potion", "type": "item", "item": "minecraft:lingering_potion" } ],
+      "icon": "minecraft:piston",
+      "x": 2, "y": 7,
+      "dependencies": ["first_circuits"],
+      "tasks": [
+        { "id": "piston", "type": "item", "item": "minecraft:piston", "count": 4 },
+        { "id": "sticky_piston", "type": "item", "item": "minecraft:sticky_piston", "count": 2 }
+      ],
+      "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
+    },
+    {
+      "id": "observer",
+      "title": "Watchful",
+      "description": [
+        "An observer sends a pulse when the block it faces changes. It is the heart of most farms."
+      ],
+      "x": 4, "y": 7,
+      "dependencies": ["pistons"],
+      "tasks": [ { "id": "observer", "type": "item", "item": "minecraft:observer", "count": 2 } ],
+      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
+    },
+    {
+      "id": "logistics",
+      "title": "Item logistics",
+      "description": [
+        "Hoppers move items between containers. Droppers spit them out; dispensers use them."
+      ],
+      "icon": "minecraft:hopper",
+      "x": 4, "y": 4,
+      "dependencies": ["signals"],
+      "tasks": [
+        { "id": "hopper", "type": "item", "item": "minecraft:hopper", "count": 4 },
+        { "id": "dropper", "type": "item", "item": "minecraft:dropper" },
+        { "id": "dispenser", "type": "item", "item": "minecraft:dispenser" }
+      ],
+      "rewards": [ { "id": "chest", "type": "item", "item": "minecraft:chest", "count": 4 } ]
+    },
+    {
+      "id": "crafter",
+      "title": "Automatic crafting",
+      "description": [
+        "A crafter crafts each time it is powered, following the slots you leave open."
+      ],
+      "x": 6, "y": 4,
+      "dependencies": ["logistics"],
+      "tasks": [ { "id": "crafter", "type": "item", "item": "minecraft:crafter" } ],
+      "rewards": [ { "id": "redstone", "type": "item", "item": "minecraft:redstone", "count": 16 } ]
+    },
+    {
+      "id": "crafters_crafting",
+      "title": "Crafters crafting crafters",
+      "description": [
+        "Set a crafter up so that it crafts another crafter."
+      ],
+      "icon": "minecraft:crafter",
+      "x": 8, "y": 4,
+      "optional": true,
+      "dependencies": ["crafter"],
+      "tasks": [ { "id": "crafters_crafting_crafters", "type": "advancement", "advancement": "minecraft:adventure/crafters_crafting_crafters", "title": "Have a crafter craft a crafter" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 80 } ]
+    },
+    {
+      "id": "rails",
+      "title": "Minecart line",
+      "description": [
+        "Powered rails need gold and a redstone signal to push carts along."
+      ],
+      "icon": "minecraft:powered_rail",
+      "x": 4, "y": 5.5,
+      "dependencies": ["first_circuits"],
+      "tasks": [
+        { "id": "rail", "type": "item", "item": "minecraft:rail", "count": 32 },
+        { "id": "powered_rail", "type": "item", "item": "minecraft:powered_rail", "count": 8 },
+        { "id": "minecart", "type": "item", "item": "minecraft:minecart" }
+      ],
+      "rewards": [ { "id": "gold_ingot", "type": "item", "item": "minecraft:gold_ingot", "count": 4 } ]
+    },
+    {
+      "id": "lamps",
+      "title": "Lights out",
+      "description": [
+        "A daylight detector senses the sun: wire it to lamps that turn on at night."
+      ],
+      "icon": "minecraft:redstone_lamp",
+      "x": 6, "y": 7,
+      "dependencies": ["observer"],
+      "tasks": [
+        { "id": "daylight_detector", "type": "item", "item": "minecraft:daylight_detector" },
+        { "id": "redstone_lamp", "type": "item", "item": "minecraft:redstone_lamp", "count": 4 }
+      ],
+      "rewards": [ { "id": "glowstone", "type": "item", "item": "minecraft:glowstone", "count": 4 } ]
+    },
+    {
+      "id": "tnt",
+      "title": "Handle with explosives",
+      "description": [
+        "Gunpowder and sand. Light it, and stand back."
+      ],
+      "icon": "minecraft:tnt",
+      "x": 6, "y": 5.5,
+      "dependencies": ["rails"],
+      "tasks": [ { "id": "tnt", "type": "item", "item": "minecraft:tnt", "count": 4 } ],
+      "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
+    },
+    {
+      "id": "target",
+      "title": "Bullseye",
+      "description": [
+        "A target block sends a stronger signal the closer to its centre you hit. Note blocks play a note on each pulse."
+      ],
+      "icon": "minecraft:target",
+      "x": 8, "y": 5.5,
+      "dependencies": ["tnt"],
+      "tasks": [
+        { "id": "target", "type": "item", "item": "minecraft:target" },
+        { "id": "note_block", "type": "item", "item": "minecraft:note_block", "count": 4 }
+      ],
       "rewards": [ { "id": "arrow", "type": "item", "item": "minecraft:arrow", "count": 32 } ]
     },
     {
-      "id": "cocktail",
-      "title": "A furious cocktail",
+      "id": "flying_machine",
+      "title": "Sticky blocks",
       "description": [
-        "Every potion effect on you at the same time. It takes planning."
+        "Slime and honey blocks drag their neighbours along with pistons, but not each other. Flying machines use both."
       ],
-      "icon": "minecraft:potion",
-      "x": 8, "y": 3,
-      "optional": true,
-      "dependencies": ["lingering"],
-      "tasks": [ { "id": "all_potions", "type": "advancement", "advancement": "minecraft:nether/all_potions", "title": "Have every potion effect at once" } ],
-      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+      "icon": "minecraft:slime_block",
+      "x": 8, "y": 7,
+      "dependencies": ["lamps"],
+      "tasks": [
+        { "id": "slime_block", "type": "item", "item": "minecraft:slime_block", "count": 2 },
+        { "id": "honey_block", "type": "item", "item": "minecraft:honey_block", "count": 2 }
+      ],
+      "rewards": [ { "id": "observer", "type": "item", "item": "minecraft:observer", "count": 2 } ]
     },
     {
-      "id": "arcanist",
-      "title": "Arcanist",
+      "id": "engineer",
+      "title": "Engineer",
       "description": [
-        "Enchanting, brewing and the anvil hold no more secrets for you."
+        "You know every part of the redstone toolbox. Now build something with it."
       ],
-      "icon": "minecraft:enchanting_table",
-      "x": 8, "y": 0,
+      "icon": "minecraft:comparator",
+      "x": 10, "y": 5.5,
       "shape": "hexagon",
       "size": 1.5,
       "visibility": "until_deps_complete",
-      "dependencies": ["grindstone", "bottles", "lingering"],
+      "dependencies": ["target", "flying_machine", "crafter"],
       "tasks": [],
       "rewards": [
-        { "id": "enchanted_book", "type": "item", "item": "minecraft:enchanted_book" },
+        { "id": "redstone_block", "type": "item", "item": "minecraft:redstone_block", "count": 8 },
         { "id": "levels", "type": "xp_levels", "levels": 5 }
       ]
-    }
-  ]
-}
-"#),
-    ("24_collector.json", r##"{
-  "id": "collector",
-  "title": "Collector",
-  "subtitle": "One of everything",
-  "icon": "minecraft:chest",
-  "group": "challenge",
-  "quests": [
+    },
     {
       "id": "start",
       "title": "The collector",
@@ -4553,7 +4399,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Take your time. They are here for the long run."
       ],
       "icon": "minecraft:chest",
-      "x": 0, "y": 0,
+      "x": 0, "y": -7,
       "shape": "circle",
       "dependencies": ["getting_started/settled"],
       "tasks": [ { "id": "check", "type": "checkmark", "title": "I am ready to collect" } ],
@@ -4566,7 +4412,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "One log of every tree, from the Overworld and from the Nether."
       ],
       "icon": "minecraft:oak_log",
-      "x": 2, "y": -1.5,
+      "x": 2, "y": -8.5,
       "dependencies": ["start"],
       "tasks": [
         { "id": "oak_log", "type": "item", "item": "minecraft:oak_log" },
@@ -4591,7 +4437,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Every flower of the Overworld. Bone meal on grass helps, and so do the right biomes."
       ],
       "icon": "minecraft:poppy",
-      "x": 2, "y": 1.5,
+      "x": 2, "y": -5.5,
       "dependencies": ["start"],
       "tasks": [
         { "id": "dandelion", "type": "item", "item": "minecraft:dandelion" },
@@ -4620,7 +4466,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "All sixteen dyes."
       ],
       "icon": "minecraft:magenta_dye",
-      "x": 4, "y": 1.5,
+      "x": 4, "y": -5.5,
       "dependencies": ["florist"],
       "tasks": [
         { "id": "white_dye", "type": "item", "item": "minecraft:white_dye" },
@@ -4649,7 +4495,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "A block of every metal and gem. The netherite one hurts."
       ],
       "icon": "minecraft:gold_block",
-      "x": 4, "y": -1.5,
+      "x": 4, "y": -8.5,
       "dependencies": ["lumberjack"],
       "tasks": [
         { "id": "coal_block", "type": "item", "item": "minecraft:coal_block" },
@@ -4674,7 +4520,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Find these six."
       ],
       "icon": "minecraft:music_disc_13",
-      "x": 6, "y": 0,
+      "x": 6, "y": -7,
       "dependencies": ["treasury", "rainbow"],
       "tasks": [
         { "id": "music_disc_13", "type": "item", "item": "minecraft:music_disc_13" },
@@ -4693,7 +4539,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "The rarest trims: from ancient cities, strongholds, woodland mansions, monuments, end cities, bastions and fortresses."
       ],
       "icon": "minecraft:silence_armor_trim_smithing_template",
-      "x": 6, "y": -1.5,
+      "x": 6, "y": -8.5,
       "dependencies": ["treasury"],
       "tasks": [
         { "id": "silence_armor_trim_smithing_template", "type": "item", "item": "minecraft:silence_armor_trim_smithing_template" },
@@ -4714,8 +4560,8 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Twelve pottery sherds, any kind."
       ],
       "icon": "minecraft:heart_pottery_sherd",
-      "x": 6, "y": 1.5,
-      "dependencies": ["rainbow", "archaeology/brush"],
+      "x": 6, "y": -5.5,
+      "dependencies": ["rainbow", "iron_age/brush"],
       "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 12 } ],
       "rewards": [ { "id": "decorated_pot", "type": "item", "item": "minecraft:decorated_pot", "count": 2 } ]
     },
@@ -4726,7 +4572,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Heads: charged creepers blow them off mobs, wither skeletons drop theirs, and end ships carry a dragon's."
       ],
       "icon": "minecraft:creeper_head",
-      "x": 8, "y": 0,
+      "x": 8, "y": -7,
       "dependencies": ["records"],
       "tasks": [
         { "id": "skeleton_skull", "type": "item", "item": "minecraft:skeleton_skull" },
@@ -4745,7 +4591,7 @@ pub const CHAPTERS: &[(&str, &str)] = &[
         "Logs, flowers, dyes, metals, records, trims, sherds and heads. Nothing is missing from your collection."
       ],
       "icon": "minecraft:nether_star",
-      "x": 10, "y": 0,
+      "x": 10, "y": -7,
       "shape": "hexagon",
       "size": 1.75,
       "visibility": "until_deps_complete",

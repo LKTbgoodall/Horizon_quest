@@ -23,37 +23,13 @@ fn the_example_pack_is_sound() {
     let chapters: Vec<&str> = book.file().chapters.iter().map(|c| c.id.as_str()).collect();
     assert_eq!(
         chapters,
-        [
-            "getting_started",
-            "further_afield",
-            "iron_age",
-            "diamonds",
-            "the_nether",
-            "the_end",
-            "beyond",
-            "farming",
-            "monsters",
-            "wide_world",
-            "caves",
-            "oceans",
-            "new_horizons",
-            "trial_chambers",
-            "archaeology",
-            "nether_frontier",
-            "animals",
-            "kitchen",
-            "villagers",
-            "arsenal",
-            "redstone",
-            "builder",
-            "magic",
-            "collector",
-        ]
+        ["getting_started", "iron_age", "diamonds", "the_nether", "the_end", "beyond", "farming", "monsters", "builder"]
     );
     let sizes: Vec<usize> = (0..chapters.len()).map(|c| book.chapter_nodes(c).len()).collect();
-    assert_eq!(sizes, [16, 9, 14, 15, 14, 11, 16, 15, 16, 18, 13, 13, 20, 15, 10, 13, 15, 9, 11, 8, 13, 19, 11, 10]);
+    assert_eq!(sizes, [45, 49, 41, 33, 11, 29, 39, 35, 42]);
     assert_eq!(sizes.iter().sum::<usize>(), 324);
-    // The main story, from the first tree to the dragon and beyond, then the other paths.
+    // Six big chapters for the main story, from the first tree to the dragon and beyond,
+    // then three side paths.
     let groups: Vec<(&str, Vec<&str>)> = book
         .file()
         .settings
@@ -68,23 +44,7 @@ fn the_example_pack_is_sound() {
         groups,
         [
             ("Main story", vec!["getting_started", "iron_age", "diamonds", "the_nether", "the_end", "beyond"]),
-            (
-                "Exploration",
-                vec![
-                    "further_afield",
-                    "wide_world",
-                    "caves",
-                    "oceans",
-                    "new_horizons",
-                    "trial_chambers",
-                    "archaeology",
-                    "nether_frontier",
-                ]
-            ),
-            ("Life and farming", vec!["farming", "animals", "kitchen", "villagers"]),
-            ("Combat", vec!["monsters", "arsenal"]),
-            ("Crafting and building", vec!["redstone", "builder", "magic"]),
-            ("Challenges", vec!["collector"]),
+            ("Side paths", vec!["farming", "monsters", "builder"]),
         ]
     );
     let tables: Vec<&str> = book.file().reward_tables.iter().map(|t| t.id.as_str()).collect();
@@ -110,18 +70,18 @@ fn the_example_pack_is_sound() {
         hidden,
         [
             "getting_started/settled",
+            "iron_age/traveller",
+            "diamonds/trials_done",
             "the_nether/nether_done",
+            "the_nether/arcanist",
             "the_end/credits",
             "beyond/master",
+            "beyond/sea_master",
+            "farming/animal_lover",
             "monsters/hunter",
-            "wide_world/traveller",
-            "oceans/sea_master",
-            "trial_chambers/trials_done",
-            "animals/animal_lover",
-            "redstone/engineer",
             "builder/master_builder",
-            "magic/arcanist",
-            "collector/completionist",
+            "builder/engineer",
+            "builder/completionist",
         ]
     );
     let open: Vec<&str> = (0..statuses.len())

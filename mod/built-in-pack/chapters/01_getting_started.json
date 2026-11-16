@@ -212,6 +212,403 @@
       "dependencies": ["furnace"],
       "tasks": [ { "id": "cooked_beef", "type": "craft", "item": "minecraft:cooked_beef", "count": 4 } ],
       "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 4 } ]
+    },
+    {
+      "id": "baker",
+      "title": "Daily bread",
+      "subtitle": "Repeatable",
+      "description": [
+        "Three wheat in a row make a loaf. Bake three loaves at a crafting table.",
+        "This quest can be done again: a few minutes after you claim its reward, it starts over. The reward is drawn at random each time."
+      ],
+      "x": 6, "y": 6,
+      "shape": "circle",
+      "dependencies": ["crafting_table"],
+      "repeatable": true,
+      "repeat_cooldown": 300,
+      "tasks": [ { "id": "bread", "type": "craft", "item": "minecraft:bread", "count": 3 } ],
+      "rewards": [ { "id": "surprise", "type": "random", "table": "baker_loot" } ]
+    },
+    {
+      "id": "armed",
+      "title": "Armed and ready",
+      "description": [
+        "Craft a stone sword, then put it to use on two skeletons.",
+        "The tasks of this quest go in order: the skeletons only count once the sword is made."
+      ],
+      "x": 8, "y": 5,
+      "shape": "hexagon",
+      "dependencies": ["stone"],
+      "sequential_tasks": true,
+      "tasks": [
+        { "id": "sword", "type": "craft", "item": "minecraft:stone_sword" },
+        { "id": "skeletons", "type": "kill", "entity": "minecraft:skeleton", "count": 2 }
+      ],
+      "rewards": [ { "id": "arrows", "type": "item", "item": "minecraft:arrow", "count": 16 } ]
+    },
+    {
+      "id": "stone_age",
+      "title": "Stone age",
+      "description": [
+        "Earn the advancement \"Stone Age\" by mining stone with your new pickaxe. If you already have it, this completes by itself."
+      ],
+      "x": 8, "y": 7,
+      "shape": "diamond",
+      "dependencies": ["wooden_pickaxe"],
+      "tasks": [ { "id": "advancement", "type": "advancement", "advancement": "minecraft:story/mine_stone" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 25 } ]
+    },
+    {
+      "id": "seasoned",
+      "title": "Seasoned",
+      "description": [
+        "Reach experience level 5. Mining, smelting and fighting all give experience.",
+        "The reward is yours to choose: pick one in the list below once the quest is completed."
+      ],
+      "x": 10, "y": 6,
+      "shape": "hexagon",
+      "dependencies": ["armed", "stone_age"],
+      "dependency_mode": "one_completed",
+      "tasks": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ],
+      "rewards": [ { "id": "pick", "type": "choice", "table": "seasoned_choice" } ]
+    },
+    {
+      "id": "origin",
+      "title": "The middle of the map",
+      "subtitle": "Optional",
+      "description": [
+        "Every world has a point where X and Z are both zero. Go and stand there (F3 shows where you are)."
+      ],
+      "x": 12, "y": 5,
+      "shape": "square",
+      "optional": true,
+      "dependencies": ["seasoned"],
+      "tasks": [ { "id": "there", "type": "location", "dimension": "minecraft:overworld", "from": [-16, -64, -16], "to": [16, 320, 16] } ],
+      "rewards": [ { "id": "map", "type": "item", "item": "minecraft:map" } ]
+    },
+    {
+      "id": "nether",
+      "title": "Somewhere warmer",
+      "subtitle": "Optional",
+      "description": [
+        "Build a portal of obsidian, light it, and step through to the Nether."
+      ],
+      "icon": "minecraft:obsidian",
+      "x": 12, "y": 7,
+      "shape": "circle",
+      "optional": true,
+      "dependencies": ["seasoned"],
+      "tasks": [ { "id": "arrive", "type": "dimension", "dimension": "minecraft:the_nether" } ],
+      "rewards": [
+        { "id": "welcome", "type": "toast", "title": "Welcome to the Nether", "text": "Mind the lava.", "auto_claim": "enabled" },
+        { "id": "protection", "type": "command", "title": "A minute of fire resistance", "command": "effect give {player} minecraft:fire_resistance 60", "auto_claim": "enabled" }
+      ]
+    },
+    {
+      "id": "boat",
+      "title": "Set sail",
+      "description": [
+        "Five planks in a U make a boat. Water is the fastest road in the early game."
+      ],
+      "icon": "minecraft:oak_boat",
+      "x": 6, "y": 8,
+      "dependencies": ["crafting_table"],
+      "tasks": [ { "id": "boats", "type": "item", "item": "#minecraft:boats" } ],
+      "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
+    },
+    {
+      "id": "mapmaker",
+      "title": "Mapmaker",
+      "description": [
+        "Wrap a compass in paper to make a map, then hold it and use it to draw the land around you."
+      ],
+      "icon": "minecraft:map",
+      "x": 14, "y": 5,
+      "dependencies": ["origin"],
+      "tasks": [ { "id": "filled_map", "type": "item", "item": "minecraft:filled_map" } ],
+      "rewards": [ { "id": "paper", "type": "item", "item": "minecraft:paper", "count": 16 } ]
+    },
+    {
+      "id": "clock",
+      "title": "What time is it?",
+      "description": [
+        "Gold and redstone make a clock. Underground, it is the only way to know whether night has fallen."
+      ],
+      "x": 14, "y": 7,
+      "dependencies": ["seasoned"],
+      "tasks": [ { "id": "clock", "type": "item", "item": "minecraft:clock" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
+    },
+    {
+      "id": "cherry",
+      "title": "Cherry grove",
+      "description": [
+        "Pink trees on the hills, petals on the ground. Cherry wood makes the prettiest planks."
+      ],
+      "icon": "minecraft:cherry_sapling",
+      "x": 16, "y": -6.5,
+      "shape": "circle",
+      "dependencies": ["settled"],
+      "tasks": [
+        { "id": "cherry_log", "type": "item", "item": "minecraft:cherry_log", "count": 16 },
+        { "id": "pink_petals", "type": "item", "item": "minecraft:pink_petals", "count": 16 }
+      ],
+      "rewards": [ { "id": "cherry_sapling", "type": "item", "item": "minecraft:cherry_sapling", "count": 2 } ]
+    },
+    {
+      "id": "mangrove",
+      "title": "Mangrove swamp",
+      "description": [
+        "Roots in the water, mud underfoot. Pour water on dirt to make mud too."
+      ],
+      "icon": "minecraft:mangrove_propagule",
+      "x": 18, "y": -8,
+      "dependencies": ["cherry"],
+      "tasks": [
+        { "id": "mangrove_log", "type": "item", "item": "minecraft:mangrove_log", "count": 16 },
+        { "id": "mud", "type": "item", "item": "minecraft:mud", "count": 16 }
+      ],
+      "rewards": [ { "id": "mangrove_propagule", "type": "item", "item": "minecraft:mangrove_propagule", "count": 2 } ]
+    },
+    {
+      "id": "mud_bricks",
+      "title": "Mud bricks",
+      "description": [
+        "Mud and wheat make packed mud; four packed mud make mud bricks. A warm brown for any build."
+      ],
+      "x": 20, "y": -8,
+      "dependencies": ["mangrove"],
+      "tasks": [ { "id": "mud_bricks", "type": "item", "item": "minecraft:mud_bricks", "count": 32 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "bamboo_builder",
+      "title": "Bamboo builder",
+      "description": [
+        "Bamboo blocks make planks of their own, and a raft instead of a boat."
+      ],
+      "icon": "minecraft:bamboo_raft",
+      "x": 22, "y": -8,
+      "dependencies": ["mud_bricks"],
+      "tasks": [
+        { "id": "bamboo_block", "type": "item", "item": "minecraft:bamboo_block", "count": 8 },
+        { "id": "bamboo_raft", "type": "item", "item": "minecraft:bamboo_raft" }
+      ],
+      "rewards": [ { "id": "scaffolding", "type": "item", "item": "minecraft:scaffolding", "count": 16 } ]
+    },
+    {
+      "id": "tadpole",
+      "title": "Bukkit bukkit",
+      "description": [
+        "Frogs lay frogspawn in swamp water. Catch a tadpole in a water bucket: where it grows up decides its colour."
+      ],
+      "x": 18, "y": -5,
+      "dependencies": ["cherry"],
+      "tasks": [ { "id": "tadpole_bucket", "type": "item", "item": "minecraft:tadpole_bucket" } ],
+      "rewards": [ { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 } ]
+    },
+    {
+      "id": "froglights",
+      "title": "Froglights",
+      "description": [
+        "Frogs eat small magma cubes and leave a froglight. Each of the three frog colours makes its own."
+      ],
+      "icon": "minecraft:pearlescent_froglight",
+      "x": 20, "y": -5,
+      "dependencies": ["tadpole"],
+      "tasks": [
+        { "id": "ochre_froglight", "type": "item", "item": "minecraft:ochre_froglight" },
+        { "id": "verdant_froglight", "type": "item", "item": "minecraft:verdant_froglight" },
+        { "id": "pearlescent_froglight", "type": "item", "item": "minecraft:pearlescent_froglight" }
+      ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "pale_garden",
+      "title": "The pale garden",
+      "description": [
+        "A grey, silent forest. At night its creaking hearts wake up the creakings: do not take your eyes off them."
+      ],
+      "icon": "minecraft:pale_oak_sapling",
+      "x": 22, "y": -6.5,
+      "dependencies": ["cherry"],
+      "tasks": [
+        { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 16 },
+        { "id": "pale_moss_block", "type": "item", "item": "minecraft:pale_moss_block", "count": 8 }
+      ],
+      "rewards": [ { "id": "pale_oak_sapling", "type": "item", "item": "minecraft:pale_oak_sapling", "count": 2 } ]
+    },
+    {
+      "id": "eyeblossom",
+      "title": "Eyeblossoms",
+      "description": [
+        "A flower that opens at night and closes by day. Pick one of each."
+      ],
+      "icon": "minecraft:open_eyeblossom",
+      "x": 24, "y": -8,
+      "dependencies": ["pale_garden"],
+      "tasks": [
+        { "id": "open_eyeblossom", "type": "item", "item": "minecraft:open_eyeblossom" },
+        { "id": "closed_eyeblossom", "type": "item", "item": "minecraft:closed_eyeblossom" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 8 } ]
+    },
+    {
+      "id": "resin",
+      "title": "Resin",
+      "description": [
+        "When a creaking is hit, its heart oozes resin onto the logs around it. Collect the clumps."
+      ],
+      "x": 24, "y": -6.5,
+      "dependencies": ["pale_garden"],
+      "tasks": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 16 } ],
+      "rewards": [ { "id": "pale_oak_log", "type": "item", "item": "minecraft:pale_oak_log", "count": 8 } ]
+    },
+    {
+      "id": "resin_bricks",
+      "title": "Resin bricks",
+      "description": [
+        "Smelt resin clumps into bricks: a warm orange stone with its own stairs, slabs and walls."
+      ],
+      "x": 26, "y": -6.5,
+      "dependencies": ["resin"],
+      "tasks": [ { "id": "resin_bricks", "type": "item", "item": "minecraft:resin_bricks", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "creaking_heart",
+      "title": "Heart transplant",
+      "description": [
+        "A silk touch tool lifts a creaking heart whole. Place it between two pale oak logs and it wakes at night."
+      ],
+      "x": 26, "y": -8,
+      "optional": true,
+      "dependencies": ["resin"],
+      "tasks": [ { "id": "creaking_heart", "type": "item", "item": "minecraft:creaking_heart" } ],
+      "rewards": [ { "id": "resin_clump", "type": "item", "item": "minecraft:resin_clump", "count": 8 } ]
+    },
+    {
+      "id": "spring",
+      "title": "Spring flowers",
+      "description": [
+        "Wildflowers in birch forests, leaf litter under the trees, fireflies over swamps and flowers on cactus tops."
+      ],
+      "icon": "minecraft:wildflowers",
+      "x": 22, "y": -5,
+      "dependencies": ["pale_garden"],
+      "tasks": [
+        { "id": "wildflowers", "type": "item", "item": "minecraft:wildflowers", "count": 8 },
+        { "id": "leaf_litter", "type": "item", "item": "minecraft:leaf_litter", "count": 8 },
+        { "id": "firefly_bush", "type": "item", "item": "minecraft:firefly_bush" },
+        { "id": "cactus_flower", "type": "item", "item": "minecraft:cactus_flower" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
+    },
+    {
+      "id": "dry_lands",
+      "title": "Dry grass",
+      "description": [
+        "Deserts and badlands have dry grass and bushes of their own. Shears bring them home."
+      ],
+      "icon": "minecraft:tall_dry_grass",
+      "x": 24, "y": -5,
+      "dependencies": ["spring"],
+      "tasks": [
+        { "id": "short_dry_grass", "type": "item", "item": "minecraft:short_dry_grass" },
+        { "id": "tall_dry_grass", "type": "item", "item": "minecraft:tall_dry_grass" },
+        { "id": "bush", "type": "item", "item": "minecraft:bush" }
+      ],
+      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 4 } ]
+    },
+    {
+      "id": "eggs",
+      "title": "Chickens of the world",
+      "description": [
+        "Chickens from cold places lay blue eggs, those from warm places brown eggs. Throw one: the chick looks like its parent."
+      ],
+      "icon": "minecraft:blue_egg",
+      "x": 26, "y": -5,
+      "dependencies": ["dry_lands"],
+      "tasks": [
+        { "id": "egg", "type": "item", "item": "minecraft:egg" },
+        { "id": "blue_egg", "type": "item", "item": "minecraft:blue_egg" },
+        { "id": "brown_egg", "type": "item", "item": "minecraft:brown_egg" }
+      ],
+      "rewards": [ { "id": "wheat_seeds", "type": "item", "item": "minecraft:wheat_seeds", "count": 16 } ]
+    },
+    {
+      "id": "dappled_forest",
+      "title": "Dappled forest",
+      "description": [
+        "Tall poplars in red, orange and yellow leaves. Look for the shelf mushrooms that grow on their trunks: they bounce."
+      ],
+      "icon": "minecraft:poplar_sapling",
+      "x": 28, "y": -8,
+      "dependencies": ["eyeblossom"],
+      "tasks": [
+        { "id": "poplar_log", "type": "item", "item": "minecraft:poplar_log", "count": 16 },
+        { "id": "shelf_mushroom", "type": "item", "item": "minecraft:shelf_mushroom" }
+      ],
+      "rewards": [ { "id": "poplar_sapling", "type": "item", "item": "minecraft:poplar_sapling", "count": 2 } ]
+    },
+    {
+      "id": "sulfur_caves",
+      "title": "Sulfur caves",
+      "description": [
+        "Yellow caves of sulfur, where springs of noxious gas burst out. Do not breathe too deep."
+      ],
+      "icon": "minecraft:sulfur",
+      "x": 28, "y": -6.5,
+      "dependencies": ["resin_bricks"],
+      "tasks": [ { "id": "sulfur", "type": "item", "item": "minecraft:sulfur", "count": 16 } ],
+      "rewards": [ { "id": "milk_bucket", "type": "item", "item": "minecraft:milk_bucket" } ]
+    },
+    {
+      "id": "sulfur_bricks",
+      "title": "Sulfur bricks",
+      "description": [
+        "Sulfur takes a polish and makes bricks, stairs and walls of a sharp yellow."
+      ],
+      "x": 30, "y": -8,
+      "dependencies": ["sulfur_caves"],
+      "tasks": [ { "id": "sulfur_bricks", "type": "item", "item": "minecraft:sulfur_bricks", "count": 16 } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 40 } ]
+    },
+    {
+      "id": "sulfur_cube",
+      "title": "A sulfur cube",
+      "description": [
+        "Sulfur cubes bounce around the sulfur caves and swallow blocks. A small one can be carried home in a bucket."
+      ],
+      "icon": "minecraft:sulfur_cube_bucket",
+      "x": 30, "y": -6.5,
+      "dependencies": ["sulfur_caves"],
+      "tasks": [ { "id": "sulfur_cube_bucket", "type": "item", "item": "minecraft:sulfur_cube_bucket" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "golden_dandelion",
+      "title": "Forever young",
+      "description": [
+        "A golden dandelion stops a baby animal from growing up. Use it again and the baby starts growing."
+      ],
+      "icon": "minecraft:golden_dandelion",
+      "x": 28, "y": -5,
+      "dependencies": ["eggs"],
+      "tasks": [ { "id": "golden_dandelion", "type": "item", "item": "minecraft:golden_dandelion" } ],
+      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
+    },
+    {
+      "id": "cushion",
+      "title": "Take a seat",
+      "description": [
+        "Place a cushion and sit on it. Every colour of wool makes its own."
+      ],
+      "icon": "minecraft:red_cushion",
+      "x": 30, "y": -5,
+      "dependencies": ["golden_dandelion"],
+      "tasks": [ { "id": "cushions", "type": "item", "item": "#minecraft:cushions", "count": 2 } ],
+      "rewards": [ { "id": "white_wool", "type": "item", "item": "minecraft:white_wool", "count": 8 } ]
     }
   ]
 }

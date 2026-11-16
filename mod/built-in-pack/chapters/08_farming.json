@@ -1,9 +1,9 @@
 {
   "id": "farming",
-  "title": "Farm and food",
-  "subtitle": "Grow your food",
+  "title": "Farming and animals",
+  "subtitle": "Crops, cooking and companions",
   "icon": "minecraft:wheat",
-  "group": "life",
+  "group": "side",
   "quests": [
     {
       "id": "seeds",
@@ -202,6 +202,336 @@
       "dependencies": ["golden_carrots", "beyond/netherite"],
       "tasks": [ { "id": "netherite_hoe", "type": "item", "item": "minecraft:netherite_hoe" } ],
       "rewards": [ { "id": "hay_block", "type": "item", "item": "minecraft:hay_block", "count": 16 } ]
+    },
+    {
+      "id": "lead",
+      "title": "On a leash",
+      "description": [
+        "String and a slime ball make leads. Tie animals to fences, or walk them home."
+      ],
+      "x": 4, "y": 5.5,
+      "shape": "circle",
+      "dependencies": ["breed"],
+      "tasks": [ { "id": "lead", "type": "craft", "item": "minecraft:lead", "count": 2 } ],
+      "rewards": [ { "id": "wheat", "type": "item", "item": "minecraft:wheat", "count": 16 } ]
+    },
+    {
+      "id": "name_tag",
+      "title": "What's in a name",
+      "description": [
+        "Name tags come from chests, fishing and librarians. Rename one at an anvil, then use it on an animal you love."
+      ],
+      "x": 4, "y": 7,
+      "dependencies": ["lead"],
+      "tasks": [ { "id": "name_tag", "type": "item", "item": "minecraft:name_tag" } ],
+      "rewards": [ { "id": "anvil", "type": "item", "item": "minecraft:anvil" } ]
+    },
+    {
+      "id": "horse",
+      "title": "Saddle up",
+      "description": [
+        "Mount a horse again and again until it stops throwing you off, then saddle it."
+      ],
+      "icon": "minecraft:saddle",
+      "x": 6, "y": 4,
+      "dependencies": ["lead"],
+      "tasks": [
+        { "id": "saddle", "type": "item", "item": "minecraft:saddle" },
+        { "id": "check", "type": "checkmark", "title": "I tamed and rode a horse" }
+      ],
+      "rewards": [ { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 } ]
+    },
+    {
+      "id": "horse_armor",
+      "title": "Armoured steed",
+      "description": [
+        "Horse armour is found in chests. A horse wearing it takes far less damage."
+      ],
+      "x": 8, "y": 4,
+      "optional": true,
+      "dependencies": ["horse"],
+      "tasks": [ { "id": "iron_horse_armor", "type": "item", "item": "minecraft:iron_horse_armor" } ],
+      "rewards": [ { "id": "hay_block", "type": "item", "item": "minecraft:hay_block", "count": 8 } ]
+    },
+    {
+      "id": "camel",
+      "title": "Ship of the desert",
+      "description": [
+        "Camels wander deserts and savannas. Two can ride one, and they dash over gaps."
+      ],
+      "icon": "minecraft:cactus",
+      "x": 10, "y": 4,
+      "dependencies": ["horse"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I rode a camel" } ],
+      "rewards": [ { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 } ]
+    },
+    {
+      "id": "armadillo",
+      "title": "Isn't it scute?",
+      "description": [
+        "Brush an armadillo, or wait for it to shed: it drops scutes. They roll up when anything comes close."
+      ],
+      "icon": "minecraft:armadillo_scute",
+      "x": 6, "y": 7,
+      "dependencies": ["lead"],
+      "tasks": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 6 } ],
+      "rewards": [ { "id": "brush", "type": "item", "item": "minecraft:brush" } ]
+    },
+    {
+      "id": "wolf",
+      "title": "A loyal wolf",
+      "description": [
+        "Give bones to a wolf until hearts appear. It follows you, fights for you, and sits when told."
+      ],
+      "icon": "minecraft:bone",
+      "x": 6, "y": 5.5,
+      "dependencies": ["lead"],
+      "tasks": [
+        { "id": "bone", "type": "item", "item": "minecraft:bone", "count": 8 },
+        { "id": "check", "type": "checkmark", "title": "I tamed a wolf" }
+      ],
+      "rewards": [ { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 } ]
+    },
+    {
+      "id": "wolf_armor",
+      "title": "Armour for a friend",
+      "description": [
+        "Armadillo scutes make wolf armour. It soaks up the damage and can be repaired with more scutes."
+      ],
+      "x": 8, "y": 7,
+      "dependencies": ["armadillo", "wolf"],
+      "tasks": [ { "id": "wolf_armor", "type": "craft", "item": "minecraft:wolf_armor" } ],
+      "rewards": [ { "id": "armadillo_scute", "type": "item", "item": "minecraft:armadillo_scute", "count": 4 } ]
+    },
+    {
+      "id": "whole_pack",
+      "title": "The whole pack",
+      "description": [
+        "Wolves look different in every forest and taiga. Tame one of each."
+      ],
+      "icon": "minecraft:wolf_armor",
+      "x": 10, "y": 7,
+      "optional": true,
+      "dependencies": ["wolf_armor"],
+      "tasks": [ { "id": "whole_pack", "type": "advancement", "advancement": "minecraft:husbandry/whole_pack", "title": "Tame one of each kind of wolf" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "cat",
+      "title": "A cat of your own",
+      "description": [
+        "Stray cats live in villages. Feed them raw fish and they keep phantoms and creepers away."
+      ],
+      "icon": "minecraft:cod",
+      "x": 8, "y": 5.5,
+      "dependencies": ["wolf"],
+      "tasks": [
+        { "id": "cod", "type": "item", "item": "minecraft:cod", "count": 4 },
+        { "id": "check", "type": "checkmark", "title": "I tamed a cat" }
+      ],
+      "rewards": [ { "id": "string", "type": "item", "item": "minecraft:string", "count": 8 } ]
+    },
+    {
+      "id": "allay",
+      "title": "You've got a friend",
+      "description": [
+        "Allays are kept in pillager outposts and woodland mansions. Free one and give it an item: it collects more of it for you."
+      ],
+      "icon": "minecraft:amethyst_shard",
+      "x": 10, "y": 5.5,
+      "dependencies": ["cat"],
+      "tasks": [ { "id": "allay_deliver_item_to_player", "type": "advancement", "advancement": "minecraft:husbandry/allay_deliver_item_to_player", "title": "An allay brings you an item" } ],
+      "rewards": [ { "id": "note_block", "type": "item", "item": "minecraft:note_block" } ]
+    },
+    {
+      "id": "dried_ghast",
+      "title": "A dried ghast",
+      "description": [
+        "Soul sand valleys hide dried ghasts. Put one in water and wait: something small wakes up."
+      ],
+      "icon": "minecraft:dried_ghast",
+      "x": 12, "y": 4,
+      "dependencies": ["camel", "the_nether/portal"],
+      "tasks": [ { "id": "dried_ghast", "type": "item", "item": "minecraft:dried_ghast" } ],
+      "rewards": [ { "id": "water_bucket", "type": "item", "item": "minecraft:water_bucket" } ]
+    },
+    {
+      "id": "happy_ghast",
+      "title": "Sky ride",
+      "description": [
+        "A grown happy ghast carries up to four players with a harness. Snowballs are its favourite treat."
+      ],
+      "icon": "minecraft:white_harness",
+      "x": 14, "y": 4,
+      "dependencies": ["dried_ghast"],
+      "tasks": [
+        { "id": "harnesses", "type": "item", "item": "#minecraft:harnesses" },
+        { "id": "check", "type": "checkmark", "title": "I flew on a happy ghast" }
+      ],
+      "rewards": [ { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 } ]
+    },
+    {
+      "id": "snow_golem",
+      "title": "Frosty",
+      "description": [
+        "Two snow blocks with a carved pumpkin on top. It throws snowballs at monsters and leaves snow behind."
+      ],
+      "icon": "minecraft:carved_pumpkin",
+      "x": 12, "y": 7,
+      "dependencies": ["cat"],
+      "tasks": [
+        { "id": "carved_pumpkin", "type": "item", "item": "minecraft:carved_pumpkin" },
+        { "id": "check", "type": "checkmark", "title": "I built a snow golem" }
+      ],
+      "rewards": [ { "id": "snow_block", "type": "item", "item": "minecraft:snow_block", "count": 16 } ]
+    },
+    {
+      "id": "animal_lover",
+      "title": "Animal lover",
+      "description": [
+        "Horses, wolves, cats, allays and a ghast to fly. You never travel alone now."
+      ],
+      "icon": "minecraft:lead",
+      "x": 14, "y": 6.25,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["happy_ghast", "allay", "wolf_armor", "snow_golem"],
+      "tasks": [],
+      "rewards": [
+        { "id": "random", "type": "random", "table": "farmer_loot" },
+        { "id": "levels", "type": "xp_levels", "levels": 5 }
+      ]
+    },
+    {
+      "id": "smoker",
+      "title": "A smoker",
+      "description": [
+        "A furnace among four logs. It cooks food twice as fast."
+      ],
+      "x": 4, "y": -7,
+      "shape": "circle",
+      "dependencies": ["wheat"],
+      "tasks": [ { "id": "smoker", "type": "item", "item": "minecraft:smoker" } ],
+      "rewards": [ { "id": "charcoal", "type": "item", "item": "minecraft:charcoal", "count": 16 } ]
+    },
+    {
+      "id": "butcher",
+      "title": "Butcher",
+      "description": [
+        "Cows, pigs, chickens. Keep a stock of cooked meat."
+      ],
+      "icon": "minecraft:cooked_porkchop",
+      "x": 6, "y": -8.5,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "cooked_beef", "type": "item", "item": "minecraft:cooked_beef", "count": 8 },
+        { "id": "cooked_porkchop", "type": "item", "item": "minecraft:cooked_porkchop", "count": 8 },
+        { "id": "cooked_chicken", "type": "item", "item": "minecraft:cooked_chicken", "count": 8 }
+      ],
+      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 4 } ]
+    },
+    {
+      "id": "fish_supper",
+      "title": "Fish supper",
+      "description": [
+        "Cooked fish from rivers and oceans."
+      ],
+      "icon": "minecraft:cooked_salmon",
+      "x": 6, "y": -5.5,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "cooked_cod", "type": "item", "item": "minecraft:cooked_cod", "count": 8 },
+        { "id": "cooked_salmon", "type": "item", "item": "minecraft:cooked_salmon", "count": 8 }
+      ],
+      "rewards": [ { "id": "fishing_rod", "type": "item", "item": "minecraft:fishing_rod" } ]
+    },
+    {
+      "id": "snacks",
+      "title": "Snacks",
+      "description": [
+        "Small foods you can eat fast: dried kelp and baked potatoes."
+      ],
+      "icon": "minecraft:baked_potato",
+      "x": 8, "y": -7,
+      "dependencies": ["smoker"],
+      "tasks": [
+        { "id": "dried_kelp", "type": "item", "item": "minecraft:dried_kelp", "count": 16 },
+        { "id": "baked_potato", "type": "item", "item": "minecraft:baked_potato", "count": 16 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 20 } ]
+    },
+    {
+      "id": "soups",
+      "title": "Soup kitchen",
+      "description": [
+        "Stews come in bowls. A suspicious stew, made with a flower, gives a short effect: guess which one."
+      ],
+      "icon": "minecraft:rabbit_stew",
+      "x": 8, "y": -8.5,
+      "dependencies": ["butcher"],
+      "tasks": [
+        { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" },
+        { "id": "rabbit_stew", "type": "item", "item": "minecraft:rabbit_stew" },
+        { "id": "beetroot_soup", "type": "item", "item": "minecraft:beetroot_soup" },
+        { "id": "suspicious_stew", "type": "item", "item": "minecraft:suspicious_stew" }
+      ],
+      "rewards": [ { "id": "bowl", "type": "item", "item": "minecraft:bowl", "count": 8 } ]
+    },
+    {
+      "id": "sweets",
+      "title": "Sweet tooth",
+      "description": [
+        "Wheat and cocoa make cookies; pumpkin, sugar and an egg make a pie."
+      ],
+      "icon": "minecraft:cookie",
+      "x": 8, "y": -5.5,
+      "dependencies": ["fish_supper"],
+      "tasks": [
+        { "id": "cookie", "type": "item", "item": "minecraft:cookie", "count": 16 },
+        { "id": "pumpkin_pie", "type": "item", "item": "minecraft:pumpkin_pie", "count": 4 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "baker_loot" } ]
+    },
+    {
+      "id": "golden_food",
+      "title": "Golden food",
+      "description": [
+        "Gold nuggets around a melon slice or a carrot. Golden carrots are the best everyday food."
+      ],
+      "icon": "minecraft:glistering_melon_slice",
+      "x": 10, "y": -7,
+      "dependencies": ["snacks"],
+      "tasks": [
+        { "id": "glistering_melon_slice", "type": "item", "item": "minecraft:glistering_melon_slice", "count": 2 },
+        { "id": "golden_carrot", "type": "item", "item": "minecraft:golden_carrot", "count": 8 }
+      ],
+      "rewards": [ { "id": "gold_nugget", "type": "item", "item": "minecraft:gold_nugget", "count": 16 } ]
+    },
+    {
+      "id": "notch_apple",
+      "title": "An enchanted apple",
+      "description": [
+        "It cannot be crafted. Only chests in ruins, temples and bastions hold one."
+      ],
+      "x": 12, "y": -8.5,
+      "optional": true,
+      "dependencies": ["golden_food"],
+      "tasks": [ { "id": "enchanted_golden_apple", "type": "item", "item": "minecraft:enchanted_golden_apple" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 5 } ]
+    },
+    {
+      "id": "balanced_diet",
+      "title": "A balanced diet",
+      "description": [
+        "Every food, even the strange ones: chorus fruit, poisonous potatoes, rotten flesh, spider eyes."
+      ],
+      "icon": "minecraft:golden_apple",
+      "x": 12, "y": -5.5,
+      "optional": true,
+      "dependencies": ["golden_food", "soups", "sweets"],
+      "tasks": [ { "id": "balanced_diet", "type": "advancement", "advancement": "minecraft:husbandry/balanced_diet", "title": "Eat everything that can be eaten" } ],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
     }
   ]
 }

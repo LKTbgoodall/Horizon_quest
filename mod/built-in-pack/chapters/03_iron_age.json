@@ -208,6 +208,499 @@
         { "id": "copper_lantern", "type": "item", "item": "minecraft:copper_lantern" }
       ],
       "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
+    },
+    {
+      "id": "going_under",
+      "title": "Going under",
+      "description": [
+        "Huge caves open under the hills. Bring torches, mark your way back, and mine what shines."
+      ],
+      "icon": "minecraft:raw_iron",
+      "x": 2, "y": 7,
+      "shape": "circle",
+      "dependencies": ["iron_pickaxe"],
+      "tasks": [
+        { "id": "raw_iron", "type": "item", "item": "minecraft:raw_iron", "count": 16 },
+        { "id": "raw_copper", "type": "item", "item": "minecraft:raw_copper", "count": 16 }
+      ],
+      "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
+    },
+    {
+      "id": "dripstone",
+      "title": "Dripstone caves",
+      "description": [
+        "Stalactites hang over stalagmites. Do not fall on one, and do not stand under one that shakes."
+      ],
+      "icon": "minecraft:pointed_dripstone",
+      "x": 4, "y": 5.5,
+      "dependencies": ["going_under"],
+      "tasks": [
+        { "id": "pointed_dripstone", "type": "item", "item": "minecraft:pointed_dripstone", "count": 8 },
+        { "id": "dripstone_block", "type": "item", "item": "minecraft:dripstone_block", "count": 16 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "lush",
+      "title": "Lush caves",
+      "description": [
+        "Under azalea trees lies a garden of moss, clay and glowing berry vines. Axolotls swim in its pools."
+      ],
+      "icon": "minecraft:moss_block",
+      "x": 4, "y": 8.5,
+      "dependencies": ["going_under"],
+      "tasks": [
+        { "id": "glow_berries", "type": "item", "item": "minecraft:glow_berries", "count": 8 },
+        { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 16 },
+        { "id": "azalea", "type": "item", "item": "minecraft:azalea" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
+    },
+    {
+      "id": "axolotl",
+      "title": "The cutest predator",
+      "description": [
+        "Scoop an axolotl into a water bucket. It fights drowned and guardians at your side underwater."
+      ],
+      "x": 6, "y": 8.5,
+      "dependencies": ["lush"],
+      "tasks": [ { "id": "axolotl_bucket", "type": "item", "item": "minecraft:axolotl_bucket" } ],
+      "rewards": [ { "id": "tropical_fish_bucket", "type": "item", "item": "minecraft:tropical_fish_bucket" } ]
+    },
+    {
+      "id": "glow_squid",
+      "title": "Glowing ink",
+      "description": [
+        "Glow squids swim in dark underground water. Their ink makes signs and item frames glow."
+      ],
+      "x": 8, "y": 8.5,
+      "dependencies": ["axolotl"],
+      "tasks": [
+        { "id": "glow_ink_sac", "type": "item", "item": "minecraft:glow_ink_sac", "count": 4 },
+        { "id": "glow_item_frame", "type": "item", "item": "minecraft:glow_item_frame" }
+      ],
+      "rewards": [ { "id": "item_frame", "type": "item", "item": "minecraft:item_frame", "count": 4 } ]
+    },
+    {
+      "id": "geode",
+      "title": "Amethyst geode",
+      "description": [
+        "Spheres of smooth basalt, calcite and amethyst hide in the rock. Mine the clusters for shards."
+      ],
+      "icon": "minecraft:amethyst_cluster",
+      "x": 6, "y": 5.5,
+      "dependencies": ["dripstone"],
+      "tasks": [ { "id": "amethyst_shard", "type": "item", "item": "minecraft:amethyst_shard", "count": 16 } ],
+      "rewards": [ { "id": "copper_ingot", "type": "item", "item": "minecraft:copper_ingot", "count": 8 } ]
+    },
+    {
+      "id": "spyglass",
+      "title": "Spyglass",
+      "description": [
+        "An amethyst shard on copper makes a spyglass. Tinted glass lets no light through."
+      ],
+      "x": 8, "y": 5.5,
+      "dependencies": ["geode"],
+      "tasks": [
+        { "id": "spyglass", "type": "item", "item": "minecraft:spyglass" },
+        { "id": "tinted_glass", "type": "item", "item": "minecraft:tinted_glass", "count": 2 }
+      ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "road",
+      "title": "Pack for the road",
+      "description": [
+        "The world is huge and every biome has something of its own. Take a map, a bed and food, and go see it."
+      ],
+      "icon": "minecraft:map",
+      "x": 6, "y": -7,
+      "shape": "circle",
+      "dependencies": ["compass"],
+      "tasks": [
+        { "id": "map", "type": "item", "item": "minecraft:map" },
+        { "id": "beds", "type": "item", "item": "#minecraft:beds" },
+        { "id": "bread", "type": "item", "item": "minecraft:bread", "count": 16 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "explorer_loot" } ]
+    },
+    {
+      "id": "village",
+      "title": "A village",
+      "description": [
+        "Villages grow on plains, deserts, savannas, taigas and snowy plains. A bell hangs in their middle.",
+        "Their armourer also sells bells, if you would rather not take theirs."
+      ],
+      "x": 8, "y": -7,
+      "dependencies": ["road"],
+      "tasks": [ { "id": "bell", "type": "item", "item": "minecraft:bell" } ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
+    },
+    {
+      "id": "desert",
+      "title": "Desert",
+      "description": [
+        "Cactus, dead bushes and sandstone. Under a desert pyramid's floor waits a treasure room, and a trap: mind the pressure plate."
+      ],
+      "icon": "minecraft:cactus",
+      "x": 8, "y": -8.5,
+      "dependencies": ["road"],
+      "tasks": [
+        { "id": "cactus", "type": "item", "item": "minecraft:cactus", "count": 8 },
+        { "id": "check", "type": "checkmark", "title": "I explored a desert pyramid" }
+      ],
+      "rewards": [ { "id": "sandstone", "type": "item", "item": "minecraft:sandstone", "count": 32 } ]
+    },
+    {
+      "id": "jungle",
+      "title": "Jungle",
+      "description": [
+        "Tall trees, cocoa pods, bamboo and parrots. Jungle temples hide behind vines, with tripwires and arrows."
+      ],
+      "icon": "minecraft:jungle_sapling",
+      "x": 10, "y": -8.5,
+      "dependencies": ["desert"],
+      "tasks": [
+        { "id": "cocoa_beans", "type": "item", "item": "minecraft:cocoa_beans", "count": 8 },
+        { "id": "bamboo", "type": "item", "item": "minecraft:bamboo", "count": 16 },
+        { "id": "check", "type": "checkmark", "title": "I explored a jungle temple" }
+      ],
+      "rewards": [ { "id": "melon_seeds", "type": "item", "item": "minecraft:melon_seeds", "count": 4 } ]
+    },
+    {
+      "id": "swamp",
+      "title": "Swamp",
+      "description": [
+        "Murky water, lily pads and slimes that come out under the moon. A witch lives in a hut on stilts."
+      ],
+      "icon": "minecraft:lily_pad",
+      "x": 12, "y": -8.5,
+      "dependencies": ["jungle"],
+      "tasks": [
+        { "id": "lily_pad", "type": "item", "item": "minecraft:lily_pad", "count": 4 },
+        { "id": "slime_ball", "type": "item", "item": "minecraft:slime_ball", "count": 4 },
+        { "id": "check", "type": "checkmark", "title": "I found a witch hut" }
+      ],
+      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
+    },
+    {
+      "id": "dark_forest",
+      "title": "Dark forest",
+      "description": [
+        "A forest so thick that monsters spawn under its leaves at noon. Dark oak grows here, and huge mushrooms."
+      ],
+      "icon": "minecraft:dark_oak_sapling",
+      "x": 14, "y": -8.5,
+      "dependencies": ["swamp"],
+      "tasks": [
+        { "id": "dark_oak_log", "type": "item", "item": "minecraft:dark_oak_log", "count": 16 },
+        { "id": "red_mushroom", "type": "item", "item": "minecraft:red_mushroom", "count": 4 }
+      ],
+      "rewards": [ { "id": "torch", "type": "item", "item": "minecraft:torch", "count": 32 } ]
+    },
+    {
+      "id": "mansion",
+      "title": "The woodland mansion",
+      "description": [
+        "Deep in a dark forest stands a mansion full of illagers. A cartographer may sell you a map to it."
+      ],
+      "icon": "minecraft:dark_oak_planks",
+      "x": 16, "y": -8.5,
+      "shape": "hexagon",
+      "dependencies": ["dark_forest"],
+      "tasks": [
+        { "id": "check", "type": "checkmark", "title": "I found a woodland mansion" },
+        { "id": "vindicator", "type": "kill", "entity": "minecraft:vindicator", "count": 3 }
+      ],
+      "rewards": [ { "id": "totem_of_undying", "type": "item", "item": "minecraft:totem_of_undying" } ]
+    },
+    {
+      "id": "badlands",
+      "title": "Badlands",
+      "description": [
+        "Stripes of coloured terracotta, red sand and gold close to the surface. Its mineshafts are built in plain sight."
+      ],
+      "icon": "minecraft:red_sand",
+      "x": 8, "y": -5.5,
+      "dependencies": ["road"],
+      "tasks": [
+        { "id": "red_sand", "type": "item", "item": "minecraft:red_sand", "count": 32 },
+        { "id": "terracotta", "type": "item", "item": "#minecraft:terracotta", "count": 16 }
+      ],
+      "rewards": [ { "id": "gold_ingot", "type": "item", "item": "minecraft:gold_ingot", "count": 4 } ]
+    },
+    {
+      "id": "snowy",
+      "title": "Snow and ice",
+      "description": [
+        "Powder snow lets you sink and freeze; leather boots let you walk on it. Igloos sometimes hide a basement."
+      ],
+      "icon": "minecraft:snow_block",
+      "x": 10, "y": -5.5,
+      "dependencies": ["badlands"],
+      "tasks": [
+        { "id": "snowball", "type": "item", "item": "minecraft:snowball", "count": 16 },
+        { "id": "powder_snow_bucket", "type": "item", "item": "minecraft:powder_snow_bucket" },
+        { "id": "check", "type": "checkmark", "title": "I found an igloo" }
+      ],
+      "rewards": [ { "id": "leather_boots", "type": "item", "item": "minecraft:leather_boots" } ]
+    },
+    {
+      "id": "savanna",
+      "title": "Savanna",
+      "description": [
+        "Flat dry grass, acacia trees, horses and llamas. Armadillos roam here too."
+      ],
+      "icon": "minecraft:acacia_sapling",
+      "x": 12, "y": -5.5,
+      "dependencies": ["snowy"],
+      "tasks": [ { "id": "acacia_log", "type": "item", "item": "minecraft:acacia_log", "count": 16 } ],
+      "rewards": [ { "id": "lead", "type": "item", "item": "minecraft:lead", "count": 2 } ]
+    },
+    {
+      "id": "taiga",
+      "title": "Taiga",
+      "description": [
+        "Spruce forests full of foxes, wolves and sweet berry bushes. The bushes sting: walk around them."
+      ],
+      "icon": "minecraft:spruce_sapling",
+      "x": 14, "y": -5.5,
+      "dependencies": ["savanna"],
+      "tasks": [
+        { "id": "spruce_log", "type": "item", "item": "minecraft:spruce_log", "count": 16 },
+        { "id": "sweet_berries", "type": "item", "item": "minecraft:sweet_berries", "count": 16 }
+      ],
+      "rewards": [ { "id": "campfire", "type": "item", "item": "minecraft:campfire" } ]
+    },
+    {
+      "id": "mushroom_fields",
+      "title": "Mushroom island",
+      "description": [
+        "Far out at sea lie islands of mycelium and giant mushrooms, where no monster spawns and mooshrooms graze."
+      ],
+      "icon": "minecraft:red_mushroom_block",
+      "x": 16, "y": -5.5,
+      "optional": true,
+      "dependencies": ["taiga"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I set foot on a mushroom island" } ],
+      "rewards": [ { "id": "mushroom_stew", "type": "item", "item": "minecraft:mushroom_stew" } ]
+    },
+    {
+      "id": "peaks",
+      "title": "Peaks",
+      "description": [
+        "Goats live on snowy peaks; a goat that rams a tree drops its horn. Emerald ore only shows up in mountains."
+      ],
+      "icon": "minecraft:goat_horn",
+      "x": 18, "y": -5.5,
+      "dependencies": ["taiga"],
+      "tasks": [
+        { "id": "goat_horn", "type": "item", "item": "minecraft:goat_horn" },
+        { "id": "emerald", "type": "item", "item": "minecraft:emerald" }
+      ],
+      "rewards": [ { "id": "spyglass", "type": "item", "item": "minecraft:spyglass" } ]
+    },
+    {
+      "id": "top_of_world",
+      "title": "Top of the world",
+      "description": [
+        "Climb or build all the way to the build limit, at Y 320. Look down."
+      ],
+      "icon": "minecraft:ladder",
+      "x": 20, "y": -5.5,
+      "dependencies": ["peaks"],
+      "tasks": [ { "id": "location", "type": "location", "title": "Reach Y 320", "from": [-30000000, 320, -30000000], "to": [30000000, 4000, 30000000], "dimension": "minecraft:overworld" } ],
+      "rewards": [ { "id": "levels", "type": "xp_levels", "levels": 3 } ]
+    },
+    {
+      "id": "mineshaft",
+      "title": "Abandoned mineshaft",
+      "description": [
+        "Old tunnels of planks and rails run through the caves. Cave spiders guard their webs, and the chests are worth it."
+      ],
+      "icon": "minecraft:rail",
+      "x": 8, "y": -10,
+      "dependencies": ["road"],
+      "tasks": [
+        { "id": "cave_spider", "type": "kill", "entity": "minecraft:cave_spider", "count": 3 },
+        { "id": "rail", "type": "item", "item": "minecraft:rail", "count": 16 }
+      ],
+      "rewards": [ { "id": "minecart", "type": "item", "item": "minecraft:minecart" } ]
+    },
+    {
+      "id": "ruined_portal",
+      "title": "A ruined portal",
+      "description": [
+        "Broken portals lie all over the world, with a chest of gold beside them. Some can be repaired."
+      ],
+      "icon": "minecraft:crying_obsidian",
+      "x": 10, "y": -10,
+      "dependencies": ["mineshaft"],
+      "tasks": [
+        { "id": "crying_obsidian", "type": "item", "item": "minecraft:crying_obsidian" },
+        { "id": "gold_nugget", "type": "item", "item": "minecraft:gold_nugget", "count": 9 }
+      ],
+      "rewards": [ { "id": "flint_and_steel", "type": "item", "item": "minecraft:flint_and_steel" } ]
+    },
+    {
+      "id": "abandoned_camp",
+      "title": "An abandoned camp",
+      "description": [
+        "Some forests hide a camp left behind by someone long gone. Find one and see what was left."
+      ],
+      "icon": "minecraft:campfire",
+      "x": 12, "y": -10,
+      "dependencies": ["ruined_portal"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I found an abandoned camp" } ],
+      "rewards": [ { "id": "random", "type": "random", "table": "explorer_loot" } ]
+    },
+    {
+      "id": "traveller",
+      "title": "Seasoned traveller",
+      "description": [
+        "You have seen deserts, jungles, swamps, peaks and ruins. The world is a little smaller now."
+      ],
+      "icon": "minecraft:compass",
+      "x": 22, "y": -7,
+      "shape": "hexagon",
+      "size": 1.5,
+      "visibility": "until_deps_complete",
+      "dependencies": ["mansion", "top_of_world", "abandoned_camp", "village"],
+      "tasks": [],
+      "rewards": [ { "id": "choice", "type": "choice", "table": "treasure_choice" } ]
+    },
+    {
+      "id": "brush",
+      "title": "A brush",
+      "description": [
+        "A feather, a copper ingot and a stick. Brush suspicious sand and gravel to uncover what is buried in it."
+      ],
+      "x": 4, "y": 12.5,
+      "shape": "circle",
+      "dependencies": ["copper_tools"],
+      "tasks": [ { "id": "brush", "type": "craft", "item": "minecraft:brush" } ],
+      "rewards": [ { "id": "feather", "type": "item", "item": "minecraft:feather", "count": 4 } ]
+    },
+    {
+      "id": "first_sherd",
+      "title": "A first find",
+      "description": [
+        "Desert wells, desert pyramids, ocean ruins and trail ruins hide suspicious blocks. Pottery sherds are the prize."
+      ],
+      "icon": "minecraft:archer_pottery_sherd",
+      "x": 6, "y": 11,
+      "dependencies": ["brush"],
+      "tasks": [ { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds" } ],
+      "rewards": [ { "id": "xp", "type": "xp", "points": 30 } ]
+    },
+    {
+      "id": "decorated_pot",
+      "title": "Careful restoration",
+      "description": [
+        "Four sherds, or bricks, make a decorated pot. Each sherd paints one of its sides."
+      ],
+      "icon": "minecraft:decorated_pot",
+      "x": 8, "y": 11,
+      "dependencies": ["first_sherd"],
+      "tasks": [
+        { "id": "decorated_pot_sherds", "type": "item", "item": "#minecraft:decorated_pot_sherds", "count": 4 },
+        { "id": "decorated_pot", "type": "item", "item": "minecraft:decorated_pot" }
+      ],
+      "rewards": [ { "id": "brick", "type": "item", "item": "minecraft:brick", "count": 16 } ]
+    },
+    {
+      "id": "trail_ruins",
+      "title": "Trail ruins",
+      "description": [
+        "Old ruins, half buried under the forests and taigas. Most of them is under the ground: dig and brush."
+      ],
+      "icon": "minecraft:mud_bricks",
+      "x": 6, "y": 14,
+      "dependencies": ["brush"],
+      "tasks": [ { "id": "check", "type": "checkmark", "title": "I dug up trail ruins" } ],
+      "rewards": [ { "id": "emerald", "type": "item", "item": "minecraft:emerald", "count": 4 } ]
+    },
+    {
+      "id": "relic",
+      "title": "A relic",
+      "description": [
+        "Some trail ruins keep a music disc in their suspicious gravel."
+      ],
+      "x": 8, "y": 14,
+      "optional": true,
+      "dependencies": ["trail_ruins"],
+      "tasks": [ { "id": "music_disc_relic", "type": "item", "item": "minecraft:music_disc_relic" } ],
+      "rewards": [ { "id": "jukebox", "type": "item", "item": "minecraft:jukebox" } ]
+    },
+    {
+      "id": "sniffer_egg",
+      "title": "Smells interesting",
+      "description": [
+        "Warm ocean ruins hide sniffer eggs in their suspicious sand. Place one on moss: it hatches faster."
+      ],
+      "x": 8, "y": 12.5,
+      "dependencies": ["first_sherd", "trail_ruins"],
+      "tasks": [ { "id": "sniffer_egg", "type": "item", "item": "minecraft:sniffer_egg" } ],
+      "rewards": [ { "id": "moss_block", "type": "item", "item": "minecraft:moss_block", "count": 8 } ]
+    },
+    {
+      "id": "ancient_seeds",
+      "title": "Ancient seeds",
+      "description": [
+        "A grown sniffer digs up seeds from a time long gone. Feed it torchflower seeds to breed it."
+      ],
+      "icon": "minecraft:torchflower_seeds",
+      "x": 10, "y": 12.5,
+      "dependencies": ["sniffer_egg"],
+      "tasks": [
+        { "id": "torchflower_seeds", "type": "item", "item": "minecraft:torchflower_seeds" },
+        { "id": "pitcher_pod", "type": "item", "item": "minecraft:pitcher_pod" }
+      ],
+      "rewards": [ { "id": "bone_meal", "type": "item", "item": "minecraft:bone_meal", "count": 16 } ]
+    },
+    {
+      "id": "old_flowers",
+      "title": "Planting the past",
+      "description": [
+        "Grow the ancient seeds into torchflowers and pitcher plants."
+      ],
+      "icon": "minecraft:torchflower",
+      "x": 12, "y": 12.5,
+      "dependencies": ["ancient_seeds"],
+      "tasks": [
+        { "id": "torchflower", "type": "item", "item": "minecraft:torchflower", "count": 4 },
+        { "id": "pitcher_plant", "type": "item", "item": "minecraft:pitcher_plant", "count": 2 }
+      ],
+      "rewards": [ { "id": "random", "type": "random", "table": "farmer_loot" } ]
+    },
+    {
+      "id": "new_look",
+      "title": "A new look",
+      "description": [
+        "Armour trim templates turn up in structures all over the world. At a smithing table, with an ingot or a gem, they decorate armour."
+      ],
+      "icon": "minecraft:coast_armor_trim_smithing_template",
+      "x": 10, "y": 11,
+      "dependencies": ["decorated_pot"],
+      "tasks": [ { "id": "trim_with_any_armor_pattern", "type": "advancement", "advancement": "minecraft:adventure/trim_with_any_armor_pattern", "title": "Trim a piece of armour" } ],
+      "rewards": [ { "id": "lapis_lazuli", "type": "item", "item": "minecraft:lapis_lazuli", "count": 8 } ]
+    },
+    {
+      "id": "templates",
+      "title": "Template hunter",
+      "description": [
+        "Pillager outposts, desert pyramids, shipwrecks and jungle temples each keep a trim of their own."
+      ],
+      "icon": "minecraft:sentry_armor_trim_smithing_template",
+      "x": 12, "y": 11,
+      "dependencies": ["new_look"],
+      "tasks": [
+        { "id": "sentry_armor_trim_smithing_template", "type": "item", "item": "minecraft:sentry_armor_trim_smithing_template" },
+        { "id": "dune_armor_trim_smithing_template", "type": "item", "item": "minecraft:dune_armor_trim_smithing_template" },
+        { "id": "coast_armor_trim_smithing_template", "type": "item", "item": "minecraft:coast_armor_trim_smithing_template" },
+        { "id": "wild_armor_trim_smithing_template", "type": "item", "item": "minecraft:wild_armor_trim_smithing_template" }
+      ],
+      "rewards": [ { "id": "diamond", "type": "item", "item": "minecraft:diamond", "count": 2 } ]
     }
   ]
 }
