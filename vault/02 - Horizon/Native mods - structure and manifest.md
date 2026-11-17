@@ -1,7 +1,7 @@
 ---
 tags: [horizon, reference, manifest]
 source: playhorizon.dev/docs/make-a-mod, /docs/mod-manifest, horizon/docs/native-mods.md, api/mod-files.md, horizon-mods/native/smp
-verified_on: 2026-11-16
+verified_on: 2026-11-17
 ---
 # Native mods: structure and manifest
 
@@ -9,6 +9,7 @@ Back: [[Horizon - Overview]]
 
 > [!warning] Horizon `main` changed the native mod format on 2026-11-16
 > PR horizon-rust/horizon#17145 ("The mod API: #16941 merged with main", merged 2026-11-16 01:32 UTC, merge `85b5bcca7c`) brought the fork's mod API upstream ([[Fork - arismoko mod API]]). Everything below this box describes the **old** format, which our mod still uses and which the released launcher (0.2.69, built before the merge) and the Nightly `9f42064` still take. Once a launcher and a Nightly built from the new `main` ship, the old layout is **refused**. See § "The new format" at the end.
+> **2026-11-17**: launcher **0.2.70** (and 0.2.71) is built after the merge: it refuses the old layout (`bundle_in`), and builds only on the installed version's revision, refusing mods that pin another one (`MISMATCH`). The newest Nightly is still `9f42064` (no mod API), so for now neither format builds with an up-to-date launcher ([[2026-11-17]]).
 
 ## Typical layout (model from the `horizon-mods` registry)
 ```
