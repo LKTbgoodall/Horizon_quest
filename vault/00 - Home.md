@@ -48,6 +48,7 @@ updated: 2026-11-16
 - [[Example - smp mod (patterns to reuse)]]: ⭐ **the model to copy**
 - [[Build, test and tools]]: launcher, `native.py`, tests, Windows pitfalls
 - [[Publishing and mod policy]]
+- [[Modpacks on Horizon (hpack)]]: the `.hpack` format, what the registry offers a pack
 - [[Links and resources]]
 - [[Fork - arismoko mod API]]: the mod API fork (not official): what it has, what a port would cost
 
