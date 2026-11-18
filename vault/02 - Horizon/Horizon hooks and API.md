@@ -243,3 +243,7 @@ fn native_tell(&mut self, uuid: u128, line: Text) -> bool
 - **Controls > Key Binds cannot take a mod's key**: the page lists `keybinds::all_mappings()` (static `MAPPINGS` + `HORIZON_MAPPINGS`). A native mod's keys (`NativeMod.keys` from `native_mods`) are rebindable on its page in Options > Mods; `native_mod_key(mod_id, name, default)` reads the choice (`key.<mod>.<name>` in `horizon-mods.txt`).
 - **Items in code**: `native_items(items: &mut Vec<horizon_mods::content::Item>)` (API 145, static, asked once at start on every side). `Item { id: "ns:path", template, max_stack_size, rarity, components (patch, `!minecraft:x` removes), crafting_remainder, place_block }`. Look = the template's unless a content mod whose id is the namespace is on (its assets). Counted in the joining client's content check.
 - **Right-click with an item, client side**: `native_claim_items(mod_id, &[ids])` + `native_poll(mod_id)` → `NativeModEvent::UseStart(NativeHeldItem, ticks)` / `UseStop` (API 116, module `native_claimed_items`). The server never hears a claimed item's use.
+
+> [!warning] `ClientHost::playing()` on the mod API (learned 2026-11-18)
+> It means "playing, with nothing over the world": false under **any** screen, a mod's own screen included. To know whether the client is in a world, use `host.local_player().is_some()` ("the local player in a logged-in client world"). Our 0.22.0 dropped the book's pack each tick while the book was open because of this.
+

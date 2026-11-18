@@ -2,6 +2,12 @@
 
 Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%20numbers.md): the middle number for a new feature, the last for a small addition or a fix, and 1.0.0 for the first public release. Versions tested in game have a git tag.
 
+## 0.22.1: the first build on Horizon's mod API, fixed after its first run
+- **The book no longer stays on "Loading quests from server"** (single player too): the client forgot the pack whenever `playing()` was false, and on the mod API that is false under any screen, the book's own included, so the quests showed for one frame and were dropped. It now forgets them only out of a world (no local player).
+- **`mod/Cargo.lock` keeps the prebuilt game's versions** of the crates the game uses too (`syn` 3.0.6, `unicode-ident` 1.0.26, `equivalent` 1.0.2, the `toml_*` crates...). The launcher refuses a mod that moves the game's crates, and on launcher 0.2.78 it hung forever after "Checking the pinned registry index" instead of saying so.
+- `tools/build-mod.ps1` prepares a newly installed Nightly first (unprepared, the launcher says so once, then later builds hang without a word).
+- Seen in game on the dev PC: 0.22.0 builds, installs and starts; the Quest Book's texture comes from the one package.
+
 ## 0.22.0: on Horizon's mod API (to test in game; 1.0.0 once it passes)
 - **Pinned on Nightly 2026-11-18 (`0b14f8a`)**, the first Nightly with the mod API and its signed SDK (`sdk-0b14f8a…`), horizon-mixins `e59da90` as its `sdk.json` names. Checked against that exact commit: 244 tests, no warning. Needs launcher 0.2.73 or newer; any launcher from 0.2.70 refuses the old format of 0.21.2 and earlier.
 - `mod/Cargo.lock` is now the registry-only lock the launcher reads (21 crates.io pins, same versions, no SDK crates), as `horizon-launcher native-lock` writes it; `tools/check-mod` puts it back after Cargo has added the linked API's crates.

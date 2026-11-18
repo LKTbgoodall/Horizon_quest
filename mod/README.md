@@ -48,7 +48,7 @@ Needs an up-to-date launcher (0.2.73 or newer) with **Nightly 2026-11-18 (`0b14f
    (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --update --trust-native-code`: `--update` moves the instance to the newest installed Nightly (add `-NoUpdate` to keep the one it plays), the launcher fetches that Nightly's SDK and compiles `mod/` against it, and the game loads `assets/` and `data/` from the same package. If it says "Made for other Horizon versions", the installed Nightly is not `0b14f8a`: tell Claude, the pins must move.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order. The Options > Mods row now says **0.22.0**.
+3. Start the game and check, in order. The Options > Mods row now says **0.22.1**.
    - [ ] **New in 0.22.0, the first build on Horizon's mod API** (all the code that touches the game is new; the quests, the book and their rules are the same). First, before the list below:
      - **Build**: it succeeds and the instance now plays Nightly 2026-11-18. If not, send `%APPDATA%\horizon-launcher\native\build.log`.
      - **Textures**: the Quest Book in the hotbar and hand has its violet book texture, and the nodes their frames, the lines their chevrons: the content now comes from the same package as the code (the reason for the port).

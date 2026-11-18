@@ -240,10 +240,13 @@ fn write_tracked(host: &dyn ClientHost, quest: Option<&str>) {
 /// a close a click asked for. Out of a world, the last world's pack and
 /// requests are forgotten, so another server's book starts from nothing.
 pub(super) fn tick(host: &mut dyn ClientHost) {
-    if !host.playing() {
-        // No world, or between two dimensions (the server, which already
-        // placed the player, may send a toast meanwhile: "Somewhere
-        // warmer"). The pack and requests are forgotten; the toasts wait.
+    // Out of a world means no local player. Not `playing()`: that is false
+    // under any screen, the book's own included, and would forget the pack
+    // the moment the book opens ("Loading quests from server" forever).
+    if host.local_player().is_none() {
+        // No world, or between two worlds (the server, which already placed
+        // the player, may send a toast meanwhile: "Somewhere warmer"). The
+        // pack and requests are forgotten; the toasts wait.
         with(|s| {
             if s.in_use() {
                 let toasts = std::mem::take(&mut s.toasts);
