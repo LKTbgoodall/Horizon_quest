@@ -26,6 +26,21 @@ $Mod = Join-Path $Root "mod"
 $Launcher = Join-Path $env:LOCALAPPDATA "Programs\Horizon Launcher\horizon-launcher.exe"
 if (-not (Test-Path $Launcher)) { throw "horizon-launcher.exe not found: $Launcher" }
 
+# A newly installed Nightly must be prepared (its game resources made from the player's own
+# Minecraft) before the launcher can build on it. Unprepared, native-build says so once, then
+# later runs hang without a word. Preparing runs no mod code.
+if (-not $NoUpdate) {
+    $Versions = Join-Path $env:APPDATA "horizon-launcher\versions"
+    $Newest = Get-ChildItem $Versions -Directory -Filter "nightly-*" -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending | Select-Object -First 1
+    if ($Newest -and -not (Test-Path (Join-Path $Newest.FullName ".local\horizon-client"))) {
+        Write-Host "Preparing $($Newest.Name) from your Minecraft first..."
+        $q = Start-Process -FilePath $Launcher -ArgumentList @("prepare", "--version", $Newest.Name) `
+            -NoNewWindow -Wait -PassThru
+        if ($q.ExitCode -ne 0) { throw "prepare failed (code $($q.ExitCode))." }
+    }
+}
+
 $Arguments = @("native-build", "`"$Mod`"", "--instance", "`"$Instance`"")
 if (-not $NoUpdate) { $Arguments += "--update" }
 $Arguments += "--trust-native-code"
