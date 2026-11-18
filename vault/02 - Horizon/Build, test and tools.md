@@ -1,7 +1,7 @@
 ---
 tags: [horizon, build, tools]
 source: playhorizon.dev/docs/make-a-mod, /docs/test-a-mod, horizon/docs/native-mods.md, horizon-mods/native/tools/native.py
-verified_on: 2026-11-16
+verified_on: 2026-11-18
 ---
 # Build, test and tools
 
@@ -125,3 +125,9 @@ Home PC:
 
 ## Glue type-check on Linux (2026-11-12)
 - `tools/check-glue.sh`: the twin of `check-glue.ps1`, reading the launcher's copy of the pinned source and its `horizon-mixins` under `~/.local/share/horizon-launcher/native/`. Ends with "The glue type-checks". First run: a few minutes (crates fetched into `build/check/`).
+
+## On the mod API (since v0.22.0, 2026-11-18)
+- **Check** (any PC with Rust): `tools/check-mod.ps1` / `.sh`, against `ext/horizon` linked by `tools/link-sdk` (check out the pinned commit there; `ext/horizon` may be a sparse clone: `git sparse-checkout disable` if `crates/horizon-mod-api` is missing). It puts `mod/Cargo.lock` back afterwards: that lock is registry-only.
+- **Registry lock by hand** (when `horizon-launcher native-lock` is not at hand): copy `mod/Cargo.toml` without the `horizon-mod-api` line, add `build = false` and the `auto*` keys false, `[lib] path = "inert.rs"`, `[workspace]`, an empty `inert.rs`, the current `Cargo.lock`; run `cargo update --workspace` there (keeps versions, drops the SDK's crates) and copy the lock back. Same result as `native-lock` (which runs `generate-lockfile` on that inert copy, so it may pick newer versions).
+- **Build** (the player): `tools/build-mod.ps1` runs `native-build mod --instance <name> --update --trust-native-code` through `Start-Process -Wait` (the launcher is a windowed app). `--update` moves the instance to the newest installed Nightly; without it the launcher builds on the version the instance plays and refuses a mod pinning another commit ("Made for other Horizon versions").
+- **On the dev PC (2026-11-18)**: no launcher installed any more (only `Downloads\horizon-launcher-setup.exe` and an uninstaller in Temp), and no C compiler, so `cargo build -p cargo-horizon-mod` fails on `ring` ("gcc.exe not found"): `cargo horizon-mod update` / `check` cannot run here. `update` only rewrites `[native] horizon` in `horizon-mod.toml` (and drops the old SDK), so it can be done by hand.

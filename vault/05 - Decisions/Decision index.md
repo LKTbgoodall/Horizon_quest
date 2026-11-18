@@ -9,8 +9,8 @@ Every important technical decision has its own note (template: `99 - Templates/T
 |---|---|---|---|
 | 001 | [[ADR-001 Native Rust mod for Horizon]] | ✅ accepted (imposed) | 2026-11-10 |
 | 002 | [[ADR-002 Authoritative server and dual UI]] | ✅ accepted, UI part superseded by 008 | 2026-11-10 |
-| 003 | [[ADR-003 Hook points over raw injections]] | ✅ accepted, superseded by 018 at the port | 2026-11-10 |
-| 004 | [[ADR-004 Mixin bundle style like smp]] | ✅ accepted, superseded by 018 at the port | 2026-11-10 |
+| 003 | [[ADR-003 Hook points over raw injections]] | ✅ accepted, superseded by 018 (2026-11-18, v0.22.0) | 2026-11-10 |
+| 004 | [[ADR-004 Mixin bundle style like smp]] | ✅ accepted, superseded by 018 (2026-11-18, v0.22.0) | 2026-11-10 |
 | 005 | [[ADR-005 Progress as JSON in the world folder]] | ✅ accepted | 2026-11-10 |
 | 006 | [[ADR-006 Quest definitions as JSON per chapter]] | ✅ accepted | 2026-11-10 |
 | 007 | [[ADR-007 Obsidian vault as project memory]] | ✅ accepted | 2026-11-10 |
@@ -24,7 +24,7 @@ Every important technical decision has its own note (template: `99 - Templates/T
 | 015 | [[ADR-015 Embed the content pack in the native mod]] | ❌ dropped: the mod API format ships content and code in one `.hmod` (018) | 2026-11-11 |
 | 016 | [[ADR-016 Edit mode in the book]] | ✅ accepted (coded in v0.11.0) | 2026-11-12 |
 | 017 | [[ADR-017 Edit in place]] | ✅ accepted (coded in v0.15.0) | 2026-11-12 |
-| 018 | [[ADR-018 Port to the mod API]] | ✅ accepted, ported on branch `mod-api-port` (compiles against `main`); merged when the Nightly is out, 1.0.0 on it | 2026-11-16 |
+| 018 | [[ADR-018 Port to the mod API]] | ✅ accepted, done: merged into `main` as v0.22.0 on Nightly 2026-11-18 (`0b14f8a`), to test in game; 1.0.0 on it | 2026-11-16 |
 | 019 | [[ADR-019 Big main chapters, few side paths]] | ✅ accepted (done in v0.21.1) | 2026-11-16 |
 | 020 | [[ADR-020 Compact vertical chapter layout]] | ✅ accepted (done in v0.21.2) | 2026-11-16 |
 

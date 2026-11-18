@@ -72,7 +72,7 @@ updated: 2026-11-12
 - [x] Datapack quests (`NativeReloadListener`): coded (v0.4.0), example data pack in `examples/quest-datapack/`. **Tested in game 2026-11-11**
 - [x] Book polish: coded (v0.5.0, hover fix v0.5.1), **tested in game 2026-11-11** (solo and LAN). Bastien's choices (2026-11-10): **tracked quest on the HUD, top-left corner**; **the party's name in the book** (members and the rest go in a party tab outside the book, later); **our own recipe view** for a task's item (later: use JEI's when it is installed); **team rewards** as an option (`"team": true`: one member claims for the whole party). No search for now. Client toasts done in v0.0.6
 - [ ] Assets (combined `.hmod`): coded (v0.6.0): node frame textures (`textures/gui/nodes.png`, 5 shapes x 5 states, polygons as fallback) and the registry icon `mod/icon.png`. To test in game
-- [ ] **Port to the mod API** ([[ADR-018 Port to the mod API]], accepted 2026-11-16): **coded on branch `mod-api-port`** (2026-11-16), compiles against Horizon `main`, 244 tests pass. Left: the first Nightly with the mod API (pins, lock, fixes), merge, full retest in game
+- [ ] **Port to the mod API** ([[ADR-018 Port to the mod API]], accepted 2026-11-16): coded on branch `mod-api-port` (2026-11-16); **pinned on Nightly 2026-11-18 (`0b14f8a`) and merged into `main` as v0.22.0 (2026-11-18)**, 244 tests pass against that exact commit. Left: the first build by the launcher and a full retest in game (Bastien), then 1.0.0
 - [ ] **First public release on playhorizon.dev** → [[Publishing and mod policy]]. Preparation started 2026-11-11: `release/v1-checklist.md`, `release/registry-entry.md`, `docs/making-quests.md`, `CHANGELOG.md`
 
 ## Phase 4: V2

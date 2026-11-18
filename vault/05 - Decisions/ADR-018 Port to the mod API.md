@@ -40,6 +40,10 @@ Effective when the port lands (the old rules keep governing the current code unt
 - The CLAUDE.md rule "only crates in Horizon's `Cargo.lock`" becomes "crates.io crates pinned in our `Cargo.lock`, SDK re-exports preferred" (`mod_api::serde_json`).
 - [[ADR-014 Publish one hmod with content and code]] is met by the format itself; [[ADR-015 Embed the content pack in the native mod]] is no longer needed.
 
+## Outcome (2026-11-18)
+- Nightly 2026-11-18 (`0b14f8a`) is the first with the mod API, published with its signed SDK (prerelease `sdk-0b14f8a…`, `sdk.json` on the Nightly). The branch was re-pinned on it (`[native] horizon = 0b14f8a`, `mixins = e59da90` from `sdk.json`), its `Cargo.lock` made registry-only as `native-lock` writes it, checked against that exact commit (244 tests, `-D warnings`), numbered **0.22.0** and merged into `main` ([[2026-11-18]]). The old format is gone from `main`.
+- Still to see: the launcher's own build of it, and the in-game retest. 1.0.0 follows once it passes.
+
 ## Links
 - [[Native mods - structure and manifest]] · [[Horizon hooks and API]] · [[Fork - arismoko mod API]]
 - [[2026-11-16]] · `release/v1-checklist.md`
