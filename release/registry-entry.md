@@ -1,5 +1,7 @@
 # The registry entry for playhorizon.dev (draft for 1.0.0)
 
+> **2026-11-18**: the form cannot take new-format (`.hmod`) mods yet. Until it can, the entry is a hand-made pull request on horizon-mods (`release/v1-checklist.md` § 5, horizon-mods README § "Publishing without the form"): the fields below still give the `mods/horizon_quests.toml` content, the description and the icon; the file goes on a GitHub release of our repository, and its `sha256` into the entry. The "Kind: Native mod (.hnmod)" row is outdated: the file is the `.hmod`.
+
 What to fill in the form at https://playhorizon.dev/mods/submit when 1.0.0 is ready. Bastien sends it with his GitHub account; the form opens a pull request on `horizon-rust/horizon-mods`, and a maintainer reviews every line of the code.
 
 ## The form, section by section (as seen 2026-11-11)

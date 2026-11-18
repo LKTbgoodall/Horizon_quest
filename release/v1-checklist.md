@@ -43,4 +43,4 @@ Tick in order. Claude prepares and checks; Bastien tests in game, decides and se
 ## 5. Release
 - [ ] Version 1.0.0 in `Cargo.toml`, `horizon-mod.toml`, `hq_meta::VERSION` (the files of the new format); the changelog's "Unreleased" becomes "1.0.0".
 - [ ] Build, test once more, git tag `v1.0.0`, GitHub release with the `.hmod`.
-- [ ] Bastien sends the form (`registry-entry.md`), then answers the review.
+- [ ] Publish: the form cannot take new-format mods yet (2026-11-18), so a hand-made pull request on horizon-mods ([Publishing and mod policy](../vault/02%20-%20Horizon/Publishing%20and%20mod%20policy.md), horizon-mods README § "Publishing without the form"): the `.hmod` attached to the `v1.0.0` GitHub release of our repository, a PR adding `mods/horizon_quests.toml` (`[[versions]]`: `version`, `file`, `sha256`) and `icons/horizon_quests.png`, the release file linked in its description. Bastien opens it with his account (fields and texts in `registry-entry.md`), then answers the review.

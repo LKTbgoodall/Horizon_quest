@@ -1,11 +1,17 @@
 ---
 tags: [horizon, publication]
-source: playhorizon.dev/docs/publish-a-mod, horizon-mods/MOD-POLICY.md, README.md, mods/*.toml, native/tools/native.py
-verified_on: 2026-11-13
+source: playhorizon.dev/docs/publish-a-mod, horizon-mods/README.md § "Publishing without the form", horizon-mods/MOD-POLICY.md, README.md, mods/*.toml, native/tools/native.py
+verified_on: 2026-11-18
 ---
 # Publishing and mod policy
 
 Back: [[Horizon - Overview]]
+
+> [!warning] Changed with the mod SDK (Horizon team announcement, 2026-11-18)
+> - The process below is the **old** one (`native.py`, `.hnmod`, the form). Old native mods (`.hnmod`) no longer load; old `.hnmod` submissions were closed with a note (resubmit as `.hmod`). All 137 old native projects are frozen in `archive/native-v1/mods/` of horizon-mods, outside the live index. We never submitted, so nothing of ours was closed.
+> - **The website form cannot take new-format mods yet.** Instead, a hand-made pull request on horizon-mods (its README § "Publishing without the form"): (1) attach the `.hmod` to a **GitHub release of our own repository**, under the file name the entry gives it; (2) open a PR adding `mods/horizon_quests.toml` with a `[[versions]]` record (`version`, `file`, `sha256`), plus `icons/horizon_quests.png`, and link the release file in the PR description; (3) a maintainer reviews it (a native mod also gets a source security review), stages the file with `scripts/stage.sh`, re-runs the checks and merges.
+> - The registry checks with `cargo horizon-mod` built from the engine commit in `.github/horizon-rev` of horizon-mods. Entry format: Horizon `docs/modding/src/reference/registry-index.md`.
+> - Missing a hook or API for a port: an issue on horizon-rust/horizon titled `mod API: ...`.
 
 ## Process
 1. The source code must be in a **public repository** under a free license (SPDX name: MIT, Apache-2.0, GPL…). For us: https://github.com/LKTbgoodall/Horizon_quest. License to be chosen, see [[Open questions]].
