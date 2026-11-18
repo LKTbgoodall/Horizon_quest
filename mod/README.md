@@ -29,14 +29,14 @@ mod/
 A native mod package holds Rust only under `src/`: the book preview lives in `tools/book-preview/`.
 
 ## Check the mod (any PC with Rust)
-The mod depends on Horizon's API crate in `mod/.horizon/sdk/`, which is never committed. `cargo horizon-mod` fetches the pinned SDK there; until a Nightly with the mod API publishes one, `tools/link-sdk` points it at a Horizon checkout (`ext/horizon`, cloned when missing). Then:
+The mod depends on Horizon's API crate in `mod/.horizon/sdk/`, which is never committed. `cargo horizon-mod` fetches the pinned SDK there; `tools/link-sdk` points it at a Horizon checkout instead (`ext/horizon`, cloned when missing; check out the pinned commit, `0b14f8a`, to check against exactly what the launcher builds on). Then:
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\check-mod.ps1
 ```
-(Linux: `tools/check-mod.sh`.) It runs `cargo test` and `cargo check` with `-D warnings`, as the launcher builds the mod; it ends with "The mod builds against the mod API with no warning, and its tests pass". Run it before asking for an in-game test. After editing a file of `built-in-pack/`, run `python tools/gen-built-in-pack.py` (a test fails until you do).
+(Linux: `tools/check-mod.sh`.) It runs `cargo test` and `cargo check` with `-D warnings`, as the launcher builds the mod; it ends with "The mod builds against the mod API with no warning, and its tests pass". Run it before asking for an in-game test. `Cargo.lock` is the registry-only lock the launcher reads (crates.io pins only, as `horizon-launcher native-lock mod` writes it); the check puts it back after Cargo has added the API's crates to it. After editing a file of `built-in-pack/`, run `python tools/gen-built-in-pack.py` (a test fails until you do).
 
 ## Test in game
-Needs a launcher and a Nightly built with Horizon's mod API (newer than `nightly-2026-11-13-9f42064`); the first time, `horizon-mod.toml`'s `[native]` pins move to that Nightly (`cargo horizon-mod update`) and `horizon-launcher native-lock mod` writes the registry lock.
+Needs an up-to-date launcher (0.2.73 or newer) with **Nightly 2026-11-18 (`0b14f8a`)** installed: the first Nightly with Horizon's mod API, and the one `horizon-mod.toml` pins. The launcher builds only on the commit a mod pins, so each new Nightly means moving the pins first (`cargo horizon-mod update`, and `mixins` from the Nightly's `sdk.json`).
 1. Get the latest code (on another PC):
    ```bash
    git pull
@@ -45,11 +45,19 @@ Needs a launcher and a Nightly built with Horizon's mod API (newer than `nightly
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1
    ```
-   (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --trust-native-code`: the launcher compiles `mod/` against the prebuilt SDK of the pinned build, and the game loads `assets/` and `data/` from the same package.
+   (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --update --trust-native-code`: `--update` moves the instance to the newest installed Nightly (add `-NoUpdate` to keep the one it plays), the launcher fetches that Nightly's SDK and compiles `mod/` against it, and the game loads `assets/` and `data/` from the same package. If it says "Made for other Horizon versions", the installed Nightly is not `0b14f8a`: tell Claude, the pins must move.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order. The Options > Mods row now says **0.18.1**.
-   Use a **new single-player world** in Survival:
+3. Start the game and check, in order. The Options > Mods row now says **0.22.0**.
+   - [ ] **New in 0.22.0, the first build on Horizon's mod API** (all the code that touches the game is new; the quests, the book and their rules are the same). First, before the list below:
+     - **Build**: it succeeds and the instance now plays Nightly 2026-11-18. If not, send `%APPDATA%\horizon-launcher\native\build.log`.
+     - **Textures**: the Quest Book in the hotbar and hand has its violet book texture, and the nodes their frames, the lines their chevrons: the content now comes from the same package as the code (the reason for the port).
+     - **The key**: K opens the book; it is now set in **Options > Controls** ("Open the quest book"), not in Options > Mods.
+     - **Single player as host**: hand in 8 rotten flesh from "Leftovers" (the items leave the inventory), reach a level for an experience task, enter the Nether: each must count. These used a special host path before; now every player goes through the same one.
+     - **Tracked quest**: pin a quest (shown top left), leave and rejoin: it is still pinned (now kept in `horizon-mod-data/horizon_quests/tracked.txt` of the instance).
+     - **Commands**: `/quests`, `/quests check`, `/quests team create X` answer as before.
+     - **LAN** with a second player, if you can: the book syncs, parties work.
+   Then the usual list. Use a **new single-player world** in Survival:
    - [ ] **Build**: it succeeds. If not, send `native/build.log`.
    - [ ] **Open the Book (K)**: opens the graphical quest book. You should see the chapters on the left sidebar ("Getting started" and "Further afield"), the canvas with quest nodes, dependency lines, icons. (Since 0.1.1 there is no HUD hint in the top-left corner.)
    - [ ] **Pan & Zoom**: drag to pan the canvas, mouse wheel to zoom in and out.
