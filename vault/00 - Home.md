@@ -1,6 +1,6 @@
 ---
 tags: [home, moc]
-updated: 2026-11-17
+updated: 2026-11-18
 ---
 # 🧭 Horizon Quests: home
 
@@ -18,6 +18,7 @@ updated: 2026-11-17
 | **In progress** | The in-game editor: all 4 steps coded (v0.11.0 to v0.14.0), waiting for the in-game test → [[Roadmap]] phase 5. Every phase 3 step is coded; v0.6.0 (assets) waits for a look in game, then 1.0.0, the public release |
 
 ## ➡️ Next step
+- **2026-11-18: launchers up to 0.2.78, still no Nightly** ([[2026-11-18]]): the SDK route is in place (#18051: each Nightly now comes with a signed prerelease `sdk-<sha>`), but Nightlies are only built by hand since 2026-11-15 and none has been started since `9f42064`. Ready when `nightly` moves **and** `sdk-<that commit>` exists. `mod-api-port` re-checked against `main` `99d455c`: 244 tests pass, no warning.
 - **2026-11-17: launcher 0.2.70 ships the mod API, but no Nightly or SDK does yet** ([[2026-11-17]]): the `nightly` release is still `9f42064`, no `sdk-<commit>` release exists. Launcher 0.2.70 **refuses `main`'s old format** and cannot build `mod-api-port` without an SDK, so **Bastien keeps launcher 0.2.69 for in-game tests** until the Nightly ships. `mod-api-port` re-checked against Horizon `main` `5c9c56b`: 244 tests pass, no warning. Merge still waits for the Nightly (ADR-018). **Launcher 0.2.71** (same day) only fixes Play and translations. The launcher updates itself (this PC is already on 0.2.70), so keeping 0.2.69 may not be possible; and a mod pinning a revision other than the installed Nightly's is refused (re-pin first).
 - **2026-11-16 (night): v0.21.2, the nine chapters compact and vertical**, on `main` and `mod-api-port` ([[ADR-020 Compact vertical chapter layout]]): Bastien pulls, builds and looks (`mod/README.md` § "New in 0.21.2"): does a chapter open readable, any gap or stray part, missing icons. Possible next: canvas titles and section labels (a new feature).
 - **2026-11-16 (late): v0.21.1, the big quest book in 9 chapters, on `main`** ([[2026-11-16]]): Bastien pulls, runs `tools\build-mod.ps1` and looks at it in game (`mod/README.md` § "New in 0.21.1"): whether a 45-quest chapter reads well, no missing icon, a few new quests. The same pack is on `mod-api-port` too (`mod/built-in-pack/`, `src/hq_built_in.rs` regenerated, 244 tests pass).
