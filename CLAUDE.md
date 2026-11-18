@@ -24,11 +24,14 @@ Vault conventions: `[[Note title]]` wiki links, YAML frontmatter, API status ✅
 ## Project rules
 - **Never copy FTB Quests code, assets or text** (All Rights Reserved). We reimplement the concepts.
 - No Mojang code or assets in the repo: game data is read at runtime.
-- Use only **hook points** from the catalog, with no raw function injections (ADR-003) and no unnumbered ⏳ pending hooks.
-- Only crates already in Horizon's `Cargo.lock` are allowed.
-- **Port to the mod API** (ADR-018, 2026-11-16): done on branch **`mod-api-port`**, merged into `main` when the first Nightly with Horizon's mod API ships. On that branch the two rules above become: hooks are `mod_api::Hooks` methods (no `native_*` hook points, no `[[native.*]]` tables), and crates come from crates.io pinned in our `Cargo.lock` (`log`, `serde`, `serde_json`, `toml` so far). Check it with `tools/check-mod.ps1` (it runs `tools/link-sdk.ps1` first if `mod/.horizon/sdk` is missing). On `main` the old rules still govern the old format.
+- **The mod is on Horizon's mod API** (ADR-018; merged into `main` on 2026-11-18 as v0.22.0, pinned on Nightly 2026-11-18 `0b14f8a`). `mod/` is one flat package (`horizon-mod.toml` with `[native]`, `Cargo.toml`, `src/`, `assets/`, `data/`).
+  - Hooks are `mod_api::Hooks` methods only: no `native_*` hook points, no `[[native.*]]` tables (they would tie the mod to one build).
+  - Crates come from crates.io, pinned in `mod/Cargo.lock` (`log`, `serde`, `serde_json`, `toml` so far; SDK re-exports preferred). That lock is **registry-only** (as `horizon-launcher native-lock` writes it): never commit it with Horizon's crates in it.
+  - Check with `tools/check-mod.ps1` (runs `tools/link-sdk.ps1` first if `mod/.horizon/sdk` is missing; `ext/horizon` checked out at the pinned commit). It puts `Cargo.lock` back after cargo test.
+  - **Each new Nightly**: the launcher builds only on the commit a mod pins, so move `[native] horizon` to it and `mixins` to the revision in its `sdk.json` (release asset of the `nightly` tag), then check. The SDK is the prerelease `sdk-<commit>`.
+  - The old format (`horizon-native.json`, `mixins/`, `check-glue`, `native_data!`) is gone; launchers from 0.2.70 refuse it.
 - `RUSTFLAGS=-D warnings`: any warning breaks the build.
-- Logic goes in **pure, testable modules** (`hq_*.rs`, `cargo test`). Code that touches `Game` goes in `*_glue.rs` (the smp pattern).
+- Logic goes in **pure, testable modules** (`hq_*.rs`, `cargo test`). Code that touches the game goes in `*_glue.rs`, through `mod_api` (`src/lib.rs` is the one `impl Hooks` that routes to it).
 - **Never run a command with `--trust-native-code` yourself** (Horizon rule: it is the player's decision). Prepare the command; the user runs it.
 
 ## Git and GitHub

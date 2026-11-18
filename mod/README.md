@@ -1,71 +1,63 @@
 # Horizon Quests: the native mod
 
-The bundle the Horizon launcher builds into the game: the quest engine, the graphical book, parties, settings and the example pack. What each version added is in [`CHANGELOG.md`](../CHANGELOG.md); how to write quests, in [`docs/making-quests.md`](../docs/making-quests.md). This file is for building and testing the mod.
+The mod's package, as Horizon's mod API takes it (ADR-018): the quest engine, the graphical book, parties, settings and the example pack. What each version added is in [`CHANGELOG.md`](../CHANGELOG.md); how to write quests, in [`docs/making-quests.md`](../docs/making-quests.md). This file is for building and testing the mod.
 
 | Feature | What it provides | Hooks / Modules |
 |---|---|---|
-| **Graphical Book** | Interactive quest canvas: chapter sidebar, zoom, pan, a quest window with clickable task and reward icons, recipe and choice windows, a tracked quest on the HUD | `hq_book`, `hq_canvas`, `hq_client_glue`, `native_mod_screen_open`, `native_screen_render_post`, input hooks |
-| **Network Sync** | Reliable framing (<=30KB frames, 16 frames/tick) for definitions, progress, actions | `hq_net`, channel `horizon_quests:book`, `native_net_send_*`, `native_net_from_*` |
+| **Graphical Book** | Interactive quest canvas: chapter sidebar, zoom, pan, a quest window with clickable task and reward icons, recipe and choice windows, a tracked quest on the HUD | `hq_book`, `hq_canvas`, `hq_client_glue`, `mod_screen_open`, `screen_render_post`, screen input hooks, `render_gui_post` |
+| **Network Sync** | Reliable framing (<=30KB frames, 16 frames/tick) for definitions, progress, actions | `hq_net`, channel `horizon_quests:book` (`play_bidirectional`, raw bytes) |
 | **Server Engine** | Tasks (item, hand-in, kill, checkmark, craft, experience level, dimension, location, advancement), rewards (item, XP, levels, command, toast, random, choice), repeatable quests, atomic JSON saves, `/quests` | `hq_server_glue`, `hq_session`, `hq_progress`, `hq_store` |
 
 ## Layout
+One flat package: the folder is what the launcher compiles and what the registry ships.
 ```
 mod/
-├── Cargo.toml            # cargo test: the pure modules through src/lib.rs
-├── src/lib.rs
-├── tests/example_pack.rs # loads the example pack and plays it to the end
-├── compatibility.json    # game 26.3, hooks 397 (config files), pinned Horizon commit
+├── horizon-mod.toml      # the only manifest: id, version, side = "both", [native] pins
+├── icon.png              # the registry icon
+├── Cargo.toml, Cargo.lock
 ├── LICENSE               # MIT
-└── mixins/horizon_quests/
-    ├── horizon-mixin.toml
-    ├── hq_meta.rs, hq_canvas.rs, hq_model.rs,
-    │   hq_validate.rs, hq_logic.rs, hq_progress.rs,
-    │   hq_store.rs, hq_net.rs, hq_book.rs,
-    │   hq_commands.rs, hq_session.rs, hq_config.rs # pure, tested, in the bundle
-    ├── hq_client_glue.rs, hq_server_glue.rs       # touch the game
-    ├── *.rs                                       # one helper per hook
-    └── data/quests/                               # the example pack: chapters/ and reward_tables/
+├── src/
+│   ├── lib.rs            # the one `impl mod_api::Hooks`: routes each hook to the glue
+│   ├── hq_*.rs           # the pure logic, tested by cargo test
+│   ├── hq_built_in.rs    # the example pack, generated from built-in-pack/ (tools/gen-built-in-pack.py)
+│   ├── hq_client_glue.rs, hq_server_glue.rs   # touch the game, through mod_api
+│   └── tests/            # tests that read the package's files
+├── assets/horizon_quests/                     # the Quest Book's model and texture, the GUI textures, lang
+├── data/horizon_quests/horizon/item/          # the Quest Book's declaration
+└── built-in-pack/        # the example pack's JSON (not shipped: compiled in through hq_built_in.rs)
 ```
+A native mod package holds Rust only under `src/`: the book preview lives in `tools/book-preview/`.
 
-The game builds every module with `-D warnings`, and there the modules are private: code that no glue calls is dead code and breaks the build, even when `cargo test` is clean. Remove what the glue stops calling.
-
-## Unit tests (any PC with Rust)
-```bash
-cd mod
-cargo test
-```
-
-## Type-check the glue (a PC whose launcher has built Horizon once)
-`cargo test` never compiles the glue: it needs the game. This does, without building or running the game (no `--trust-native-code`): it stages the launcher's copy of the pinned Horizon source with the mod applied (`horizon-mixins apply`) and runs `cargo check` on it.
+## Check the mod (any PC with Rust)
+The mod depends on Horizon's API crate in `mod/.horizon/sdk/`, which is never committed. `cargo horizon-mod` fetches the pinned SDK there; `tools/link-sdk` points it at a Horizon checkout instead (`ext/horizon`, cloned when missing; check out the pinned commit, `0b14f8a`, to check against exactly what the launcher builds on). Then:
 ```powershell
-powershell -ExecutionPolicy Bypass -File toolseck-glue.ps1
+powershell -ExecutionPolicy Bypass -File tools\check-mod.ps1
 ```
-It ends with "The glue type-checks against Horizon 9f42064", or with the compiler's errors. Run it before asking for an in-game test.
+(Linux: `tools/check-mod.sh`.) It runs `cargo test` and `cargo check` with `-D warnings`, as the launcher builds the mod; it ends with "The mod builds against the mod API with no warning, and its tests pass". Run it before asking for an in-game test. `Cargo.lock` is the registry-only lock the launcher reads (crates.io pins only, as `horizon-launcher native-lock mod` writes it); the check puts it back after Cargo has added the API's crates to it. After editing a file of `built-in-pack/`, run `python tools/gen-built-in-pack.py` (a test fails until you do).
 
 ## Test in game
+Needs an up-to-date launcher (0.2.73 or newer) with **Nightly 2026-11-18 (`0b14f8a`)** installed: the first Nightly with Horizon's mod API, and the one `horizon-mod.toml` pins. The launcher builds only on the commit a mod pins, so each new Nightly means moving the pins first (`cargo horizon-mod update`, and `mixins` from the Nightly's `sdk.json`).
 1. Get the latest code (on another PC):
    ```bash
    git pull
    ```
-2. Package, install and build it. Run this yourself from the repo root; an agent must never run the build step, which passes `--trust-native-code`. Add `-Instance NAME` if your instance is not `mon-horizon`.
+2. Build it into your instance. Run this yourself from the repo root; an agent must never run it, since it passes `--trust-native-code`. Add `-Instance NAME` if your instance is not `mon-horizon`.
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1
    ```
-   The script packs **`build/horizon_quests.hmod`, the one file of the mod**: its native code (`horizon-native.json`, `mixins/horizon_quests/`) and its content (`horizon-mod.toml`, `assets/` from `mod/content`: the Quest Book's model and texture), Horizon's "one `.hmod` for content and code" format. Every entry has a fixed date, so the same sources give the same file. The launcher of the pinned Horizon still builds native code only from `horizon-native-mods/<id>.hnmod`, so to install, the script cuts the file's two halves (`build/install/`): the code goes to the instance's `horizon-native-mods`, the content to its `horizon-mods`. It turns the mod on in `horizon-mods.txt` and runs `horizon-launcher native-build --instance mon-horizon` with every native mod of the instance. `-NoBuild` stops before the build; `-Uninstall` takes the mod out.
-
-   **On Linux (or macOS)**, the same with bash:
-   ```bash
-   bash tools/build-mod.sh
-   ```
-   Without options it installs into the default instance, which on Linux is the game home `~/.local/share/horizon` itself (it holds `horizon-native-mods`), and builds the launcher's selected instance. For another instance add `--instance NAME` (looked for under `~/.config/horizon/instances/` and `~/.local/share/horizon/instances/`) or `--instance-dir DIR`. The launcher is found on the `PATH`, else through its applications-menu entry `~/.local/share/applications/horizon-launcher.desktop`; else set `HORIZON_LAUNCHER=/path/to/horizon-launcher`. `--no-build` and `--uninstall` work as on Windows. It needs `bsdtar` (always there on Arch), `zip` or `python3`.
-
-   `-Combined` installs the one `.hmod` in `horizon-native-mods/` instead of the two halves, as the registry installs it with a launcher that reads native `.hmod` files (`release/v1-checklist.md` says what each outcome means). Without it the halves come back.
-
-   Do **not** use `horizon-launcher native-build mod/mixins/horizon_quests` alone: the mod is then missing from the launcher's list, and the next build the launcher starts (its "Compile" button) drops it.
+   (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --update --trust-native-code`: `--update` moves the instance to the newest installed Nightly (add `-NoUpdate` to keep the one it plays), the launcher fetches that Nightly's SDK and compiles `mod/` against it, and the game loads `assets/` and `data/` from the same package. If it says "Made for other Horizon versions", the installed Nightly is not `0b14f8a`: tell Claude, the pins must move.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order. The Options > Mods row now says **0.18.1**.
-   Use a **new single-player world** in Survival:
+3. Start the game and check, in order. The Options > Mods row now says **0.22.0**.
+   - [ ] **New in 0.22.0, the first build on Horizon's mod API** (all the code that touches the game is new; the quests, the book and their rules are the same). First, before the list below:
+     - **Build**: it succeeds and the instance now plays Nightly 2026-11-18. If not, send `%APPDATA%\horizon-launcher\native\build.log`.
+     - **Textures**: the Quest Book in the hotbar and hand has its violet book texture, and the nodes their frames, the lines their chevrons: the content now comes from the same package as the code (the reason for the port).
+     - **The key**: K opens the book; it is now set in **Options > Controls** ("Open the quest book"), not in Options > Mods.
+     - **Single player as host**: hand in 8 rotten flesh from "Leftovers" (the items leave the inventory), reach a level for an experience task, enter the Nether: each must count. These used a special host path before; now every player goes through the same one.
+     - **Tracked quest**: pin a quest (shown top left), leave and rejoin: it is still pinned (now kept in `horizon-mod-data/horizon_quests/tracked.txt` of the instance).
+     - **Commands**: `/quests`, `/quests check`, `/quests team create X` answer as before.
+     - **LAN** with a second player, if you can: the book syncs, parties work.
+   Then the usual list. Use a **new single-player world** in Survival:
    - [ ] **Build**: it succeeds. If not, send `native/build.log`.
    - [ ] **Open the Book (K)**: opens the graphical quest book. You should see the chapters on the left sidebar ("Getting started" and "Further afield"), the canvas with quest nodes, dependency lines, icons. (Since 0.1.1 there is no HUD hint in the top-left corner.)
    - [ ] **Pan & Zoom**: drag to pan the canvas, mouse wheel to zoom in and out.
@@ -92,7 +84,6 @@ It ends with "The glue type-checks against Horizon 9f42064", or with the compile
    - [ ] **New in 0.8.1**: once "Daily bread" (random) or "Seasoned" (choice) is claimed, its icon and tooltip show only what it gave, with a check (a reward claimed before 0.8.1 still shows the list: `/quests reset` the quest to see it). Zoomed far out, the padlocks shrink with the nodes.
    - [ ] **New in 0.8.2**: a locked node is greyed over its whole face, in the frame's shape: no grey square around the icon.
    - [ ] **New in 0.8.3**: the example quests use every node shape (square, circle, diamond, hexagon, octagon) to compare them; "Settled in" is an octagon now. Note which shapes look wrong (icon off centre, frame too thick).
-   - [ ] **New in 0.21.2, the big quest book in nine compact chapters**: the built-in pack has 324 quests in six main chapters (Getting started, Iron age, Diamonds, The Nether, The End, Beyond) and three side paths (Farming and animals, Monsters and villages, Building and collecting). Use a world without its own quests so the built-in pack shows. Each chapter is one block: a column of milestones (hexagons) with small blocks of quests packed left and right. Check: a chapter opens readable (not tiny), no big empty gaps, no part far away on its own, no icon missing, lines that make sense. In play, try a few: "Rock bottom" (stand at Y -58 or lower), "Top of the world" (Y 320), "The Warden" (kill one), "The mace", "A sulfur cube" (a bucket of sulfur cube).
    - [ ] **New in 0.20.0, the chapter list edited with the mouse**: turn on edit mode (pencil) and open the chapter list. Each row has a small grip of dots on its left. Hold the left button on a chapter and drag it: an orange line shows where it will land (indented inside a group), the row dims and its name follows the pointer. Drop it between two chapters of another group: it moves into that group; drop it at the very top: it leaves its group. Drag a group heading: the whole group moves above the next group. A plain click still opens the chapter or folds the group. Each group heading ends with an orange "+": a click makes a new chapter in that group. "+ New group" makes a group that now shows even while empty: use its "+" or drop a chapter under it. Check that the list does not close while you drag, and that both PCs see the new order after a reconnect.
    - [ ] **New in 0.19.0, the rail on the right, small animations, redrawn edit controls**: the band at the bottom is gone. On the **right edge** of the book, from the top: a blue button with a cross (close, red under the pointer), the pencil (operators), a "?" (point at it: the help), two small gold people when you are in a party (point: its name), and, when rewards wait, a red throbbing "!" button with their number (click: claim all). Under them a thin bar down to the bottom: the chapter's progress, filling from the bottom (point: chapter and "n/m quests done"); complete a quest: it glides up. The chapter's name and tally are at the **top left of the canvas** ("Editing (...)" before them in edit mode, on brown); a refusal from the server shows at the bottom left. **Animations**: open a quest: its window rises a few pixels into place; point at the left strip: the chapter list slides in; right-click in edit mode: the menu drops in; an edit panel too. Nothing should feel slow (a fifth of a second). **Edit mode**: open a task's panel and the quest settings: buttons are rounded with a light top edge, "-" and "+" are drawn signs, number and text fields look sunken, switches have a track and a knob (green when on), the chosen choice is blue with a light line under it, the panel's "x" is a drawn cross that turns red under the pointer. Tell me what still looks off.
    - [ ] **New in 0.18.0, arrows in the quest window**: open a quest: a small **cyan arrow** at the left end of the Tasks / Rewards row, a **yellow arrow** at the right end. Left: what the quest needs; right: what it opens (dim, "Needs no quest" / "Opens no quest", when there is none). On a locked quest the left arrow throbs red. A click lists the quests with their icons (a green check on those done, " [Chapter]" after one from another chapter); click one: the book turns to its chapter, centres it and opens it. Quests you cannot see yet are left out, not even counted: an arrow whose quests are all hidden is dim, as if there were none (0.18.1); in edit mode all show. The old "Needs: [ ] ..." lines under "Locked" are gone.

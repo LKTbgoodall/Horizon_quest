@@ -1,19 +1,19 @@
 [package]
-name = "horizon-mod-horizon-quests"
-version = "0.21.2"
+name = "mod-horizon-quests"
+version = "0.22.0"
 edition = "2024"
 license = "MIT"
 publish = false
 description = "Horizon Quests: an FTB Quests-style quest book for Horizon, as a native mod."
 
-# The mod's pure logic and its tests: the same files the bundle adds to the
-# game as modules of `crate::game`, reached here through src/lib.rs.
-[lib]
-path = "src/lib.rs"
-
-# All three are dependencies of horizon-client (in Horizon's Cargo.lock), so
-# the game has them too (like smp).
 [dependencies]
+# The pinned SDK's API crate. `cargo horizon-mod` fetches it into .horizon/sdk/
+# (never committed); tools/link-sdk points it at a Horizon checkout instead.
+horizon-mod-api = { path = ".horizon/sdk/api/crates/horizon-mod-api" }
+# Registry crates of our own, pinned in Cargo.lock (`horizon-launcher
+# native-lock .`). Only the pure modules use them, never across the SDK's
+# boundary (hq_net sends bytes, the stores read and write text).
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "1.1"  # Horizon 9f42064 locks 1.1.6: tested against the same
+toml = "1.1"
+log = "0.4"

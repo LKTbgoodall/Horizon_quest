@@ -1,0 +1,13 @@
+# Draws the quest book without the game (hq_book's draw lists as SVG). Kept
+# out of mod/: a native mod package may hold Rust only under src/.
+#     cargo run --manifest-path tools/book-preview/Cargo.toml
+[package]
+name = "book-preview"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+mod-horizon-quests = { path = "../../mod" }
+
+[workspace]

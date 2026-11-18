@@ -40,7 +40,7 @@ reward_tables/         optional
 After editing, run `/quests reload` (a world folder) or `/reload` (data packs). `/quests validate` lists the problems found. A chapter with an error is left out, never the whole pack, and the rest keeps working.
 
 Complete, working examples:
-- the built-in pack: [`mod/mixins/horizon_quests/data/quests/`](../mod/mixins/horizon_quests/data/quests/);
+- the built-in pack: [`mod/built-in-pack/`](../mod/built-in-pack/);
 - a data pack: [`examples/quest-datapack/`](../examples/quest-datapack/). Copy it into `saves/<world>/datapacks/` and run `/reload`.
 
 ## The rules of the files
