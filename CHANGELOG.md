@@ -2,6 +2,9 @@
 
 Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%20numbers.md): the middle number for a new feature, the last for a small addition or a fix, and 1.0.0 for the first public release. Versions tested in game have a git tag.
 
+## 0.22.2: pinned on Nightly 2026-11-18 `dd67b76`
+- `[native] horizon` moves from `0b14f8a` to `dd67b76`, the newer Nightly the launcher installs by itself (it builds a mod only on the installed Nightly's commit). horizon-mixins stays `e59da90`, the game's crates the lock shares keep their versions, and the mod API only gained points between the two (`PlayerRef::connect_address`, `request_world` from the title, a Tab-list-only player name): no code change.
+
 ## 0.22.1: the first build on Horizon's mod API, fixed after its first run
 - **The book no longer stays on "Loading quests from server"** (single player too): the client forgot the pack whenever `playing()` was false, and on the mod API that is false under any screen, the book's own included, so the quests showed for one frame and were dropped. It now forgets them only out of a world (no local player).
 - **`mod/Cargo.lock` keeps the prebuilt game's versions** of the crates the game uses too (`syn` 3.0.6, `unicode-ident` 1.0.26, `equivalent` 1.0.2, the `toml_*` crates...). The launcher refuses a mod that moves the game's crates, and on launcher 0.2.78 it hung forever after "Checking the pinned registry index" instead of saying so.

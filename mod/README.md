@@ -29,14 +29,14 @@ mod/
 A native mod package holds Rust only under `src/`: the book preview lives in `tools/book-preview/`.
 
 ## Check the mod (any PC with Rust)
-The mod depends on Horizon's API crate in `mod/.horizon/sdk/`, which is never committed. `cargo horizon-mod` fetches the pinned SDK there; `tools/link-sdk` points it at a Horizon checkout instead (`ext/horizon`, cloned when missing; check out the pinned commit, `0b14f8a`, to check against exactly what the launcher builds on). Then:
+The mod depends on Horizon's API crate in `mod/.horizon/sdk/`, which is never committed. `cargo horizon-mod` fetches the pinned SDK there; `tools/link-sdk` points it at a Horizon checkout instead (`ext/horizon`, cloned when missing; check out the pinned commit, `dd67b76`, to check against exactly what the launcher builds on). Then:
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\check-mod.ps1
 ```
 (Linux: `tools/check-mod.sh`.) It runs `cargo test` and `cargo check` with `-D warnings`, as the launcher builds the mod; it ends with "The mod builds against the mod API with no warning, and its tests pass". Run it before asking for an in-game test. `Cargo.lock` is the registry-only lock the launcher reads (crates.io pins only, as `horizon-launcher native-lock mod` writes it); the check puts it back after Cargo has added the API's crates to it. After editing a file of `built-in-pack/`, run `python tools/gen-built-in-pack.py` (a test fails until you do).
 
 ## Test in game
-Needs an up-to-date launcher (0.2.73 or newer) with **Nightly 2026-11-18 (`0b14f8a`)** installed: the first Nightly with Horizon's mod API, and the one `horizon-mod.toml` pins. The launcher builds only on the commit a mod pins, so each new Nightly means moving the pins first (`cargo horizon-mod update`, and `mixins` from the Nightly's `sdk.json`).
+Needs an up-to-date launcher (0.2.73 or newer) with **Nightly 2026-11-18 (`dd67b76`)** installed: the second Nightly with Horizon's mod API, and the one `horizon-mod.toml` pins. The launcher builds only on the commit a mod pins, so each new Nightly means moving the pins first (`cargo horizon-mod update`, and `mixins` from the Nightly's `sdk.json`).
 1. Get the latest code (on another PC):
    ```bash
    git pull
@@ -45,10 +45,10 @@ Needs an up-to-date launcher (0.2.73 or newer) with **Nightly 2026-11-18 (`0b14f
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1
    ```
-   (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --update --trust-native-code`: `--update` moves the instance to the newest installed Nightly (add `-NoUpdate` to keep the one it plays), the launcher fetches that Nightly's SDK and compiles `mod/` against it, and the game loads `assets/` and `data/` from the same package. If it says "Made for other Horizon versions", the installed Nightly is not `0b14f8a`: tell Claude, the pins must move.
+   (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --update --trust-native-code`: `--update` moves the instance to the newest installed Nightly (add `-NoUpdate` to keep the one it plays), the launcher fetches that Nightly's SDK and compiles `mod/` against it, and the game loads `assets/` and `data/` from the same package. If it says "Made for other Horizon versions", the installed Nightly is not `dd67b76`: tell Claude, the pins must move.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
-3. Start the game and check, in order. The Options > Mods row now says **0.22.1**.
+3. Start the game and check, in order. The Options > Mods row now says **0.22.2**.
    - [ ] **New in 0.22.0, the first build on Horizon's mod API** (all the code that touches the game is new; the quests, the book and their rules are the same). First, before the list below:
      - **Build**: it succeeds and the instance now plays Nightly 2026-11-18. If not, send `%APPDATA%\horizon-launcher\native\build.log`.
      - **Textures**: the Quest Book in the hotbar and hand has its violet book texture, and the nodes their frames, the lines their chevrons: the content now comes from the same package as the code (the reason for the port).
