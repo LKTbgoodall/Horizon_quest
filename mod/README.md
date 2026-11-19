@@ -45,7 +45,7 @@ Needs an up-to-date launcher (0.2.73 or newer) with **Nightly 2026-11-18 (`dd67b
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\build-mod.ps1
    ```
-   (Linux: `tools/build-mod.sh [INSTANCE]`.) It runs `horizon-launcher native-build mod --instance mon-horizon --update --trust-native-code`: `--update` moves the instance to the newest installed Nightly (add `-NoUpdate` to keep the one it plays), the launcher fetches that Nightly's SDK and compiles `mod/` against it, and the game loads `assets/` and `data/` from the same package. If it says "Made for other Horizon versions", the installed Nightly is not `dd67b76`: tell Claude, the pins must move.
+   (Linux: `tools/build-mod.sh [INSTANCE]`, instance `horizon` by default; it finds the launcher on PATH or through its desktop entry, `HORIZON_LAUNCHER=...` to pick another, and prepares a new Nightly first too.) It runs `horizon-launcher native-build mod --instance mon-horizon --update --trust-native-code`: `--update` moves the instance to the newest installed Nightly (add `-NoUpdate` to keep the one it plays), the launcher fetches that Nightly's SDK and compiles `mod/` against it, and the game loads `assets/` and `data/` from the same package. If it says "Made for other Horizon versions", the installed Nightly is not `dd67b76`: tell Claude, the pins must move.
 
    For faster rebuilds while testing, you can first run `horizon-launcher settings native-profile dev`, and later `horizon-launcher settings native-profile performance`.
 3. Start the game and check, in order. The Options > Mods row now says **0.22.2**.
