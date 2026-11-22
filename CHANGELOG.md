@@ -2,6 +2,9 @@
 
 Versions follow [the project's rule](vault/05%20-%20Decisions/ADR-013%20Version%20numbers.md): the middle number for a new feature, the last for a small addition or a fix, and 1.0.0 for the first public release. Versions tested in game have a git tag.
 
+## 0.22.3: re-pinned on Nightly 2026-11-22
+- **Pinned on Nightly 2026-11-22 (`2b77287`)** and its SDK `sdk-2b77287…`; horizon-mixins stays `e59da90` (its `sdk.json`). The mod API only grew since `dd67b76` (the SDK's surface says "additive"), and every crate of `mod/Cargo.lock` keeps the game's version at `2b77287`, so the lock is unchanged. Checked against that exact commit: 244 tests, no warning. No change for players.
+
 ## 0.22.2: pinned on Nightly 2026-11-18 `dd67b76`
 - `[native] horizon` moves from `0b14f8a` to `dd67b76`, the newer Nightly the launcher installs by itself (it builds a mod only on the installed Nightly's commit). horizon-mixins stays `e59da90`, the game's crates the lock shares keep their versions, and the mod API only gained points between the two (`PlayerRef::connect_address`, `request_world` from the title, a Tab-list-only player name): no code change.
 

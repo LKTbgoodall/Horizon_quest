@@ -94,3 +94,6 @@ updated: 2026-11-10
 
 ## Found 2026-11-18
 - ❓ **FTB Quests import for rewritten modpacks**: Horizon's roadmap has "Whole modpacks, such as ATM10, rewritten" (Later, not a priority) and no quest book among its planned native mods ([[Horizon roadmap (hub)]]). ATM10's progression is FTB Quests. Should the phase 5 "FTB Quests import (JSON5/SNBT)" move up, so such a pack can bring its quests into Horizon Quests? Reading a pack's quest files is fine (data, not FTB's code); we still copy no FTB code, assets or text into our repo. Bastien to decide.
+
+## Found 2026-11-22
+- ❓ **Fit later Nightlies without a re-pin**: Horizon now compiles a native mod against a newer build than its pin when nothing it uses changed, judged from the package's `uses.json` (`cargo horizon-mod build`). Does `native-build` on our source folder write one too? If so, players a Nightly ahead of our pin could still build us. To try when `cargo horizon-mod` runs on a PC ([[2026-11-22]], [[Build, test and tools]]).

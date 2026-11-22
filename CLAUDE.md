@@ -24,7 +24,7 @@ Vault conventions: `[[Note title]]` wiki links, YAML frontmatter, API status ✅
 ## Project rules
 - **Never copy FTB Quests code, assets or text** (All Rights Reserved). We reimplement the concepts.
 - No Mojang code or assets in the repo: game data is read at runtime.
-- **The mod is on Horizon's mod API** (ADR-018; merged into `main` on 2026-11-18 as v0.22.0, re-pinned on Nightly 2026-11-18 `dd67b76` in v0.22.2). `mod/` is one flat package (`horizon-mod.toml` with `[native]`, `Cargo.toml`, `src/`, `assets/`, `data/`).
+- **The mod is on Horizon's mod API** (ADR-018; merged into `main` on 2026-11-18 as v0.22.0, re-pinned on Nightly 2026-11-22 `2b77287` in v0.22.3). `mod/` is one flat package (`horizon-mod.toml` with `[native]`, `Cargo.toml`, `src/`, `assets/`, `data/`).
   - Hooks are `mod_api::Hooks` methods only: no `native_*` hook points, no `[[native.*]]` tables (they would tie the mod to one build).
   - Crates come from crates.io, pinned in `mod/Cargo.lock` (`log`, `serde`, `serde_json`, `toml` so far; SDK re-exports preferred). That lock is **registry-only** (as `horizon-launcher native-lock` writes it): never commit it with Horizon's crates in it.
   - Check with `tools/check-mod.ps1` (runs `tools/link-sdk.ps1` first if `mod/.horizon/sdk` is missing; `ext/horizon` checked out at the pinned commit). It puts `Cargo.lock` back after cargo test.

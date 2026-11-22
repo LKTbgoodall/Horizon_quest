@@ -9,7 +9,7 @@
 
   The launcher builds only on the commit of the version it builds from, and refuses a mod that
   pins another one. By default this passes --update, so the instance moves to the newest
-  installed Nightly: it must be the one horizon-mod.toml pins (Nightly 2026-11-18, dd67b76).
+  installed Nightly: it must be the one horizon-mod.toml pins (Nightly 2026-11-22, 2b77287).
   -NoUpdate keeps the version the instance already plays.
 
   It passes --trust-native-code: only the player runs this script, never an agent.

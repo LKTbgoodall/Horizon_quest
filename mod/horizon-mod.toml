@@ -3,7 +3,7 @@
 # data/. Keep `version` equal to hq_meta::VERSION (a test checks it).
 id = "horizon_quests"
 name = "Horizon Quests"
-version = "0.22.2"
+version = "0.22.3"
 description = "An FTB Quests-style quest book: a graphical book, quests with tasks and rewards, synced with the server."
 authors = ["LKTbgoodall"]
 api = "0.2"
@@ -12,12 +12,12 @@ api = "0.2"
 side = "both"
 capabilities = ["registries"]
 
-# The build it is written against: Nightly 2026-11-18 (`dd67b76`, the second
-# with the mod API), and the horizon-mixins revision its SDK names. The
+# The build it is written against: Nightly 2026-11-22 (`2b77287`), and the
+# horizon-mixins revision its SDK names (unchanged since 2026-11-18). The
 # launcher builds only on the installed Nightly's commit, so move both with
 # each new Nightly (`cargo horizon-mod update`, then the mixins line by hand
 # from the Nightly's sdk.json).
 [native]
 game = "26.3"
-horizon = "dd67b76ff23e28c6d8e21859df600d31572f81a0"
+horizon = "2b77287de099c9316278ba7ac4d83590fdb7ef30"
 mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
